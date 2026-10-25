@@ -1,7 +1,7 @@
 /* Guest threads on host pthreads. Each guest thread owns a FreeBSD-style TCB
  * (variant II: static TLS below the TCB). The loader rewrites the eboot's
  * `mov rax, fs:[0]` into `mov rax, gs:[0]`, so GS base = guest TCB while glibc
- * keeps FS. Priorities/affinity are recorded, not enforced by a PS4 scheduler. */
+ * keeps FS. Guest priorities/affinity are recorded; Linux host placement uses a separate policy. */
 #define _GNU_SOURCE
 #include "runtime.h"
 #include <stdio.h>
@@ -9,14 +9,13 @@
 #include <string.h>
 #include <pthread.h>
 #include <sched.h>
+#include "cachy_affinity.h"
 #include <setjmp.h>
 #include <errno.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/mman.h>
-#ifndef _WIN32
 #include <asm/prctl.h>
-#endif
 #define ERR(n) ((int32_t)(UINT32_C(0x80020000)|(n)))
 #define ATTR_MAGIC UINT32_C(0x41545452)
 #define STACK_MARGIN (256*1024)
@@ -61,11 +60,7 @@ void runtime_set_main_tls(const void *data,uint64_t filesz,uint64_t memsz,uint64
 }
 static uint64_t tls_offset(void) { return (tls_memsz+tls_align-1)&~(tls_align-1); }
 static void set_gs(void *base) {
-#ifdef _WIN32
-    bb_guest_tls_set(base); /* GS is the TEB: the game reads its TLS slot (bbport_posix_c.h) */
-#else
     if (syscall(SYS_arch_prctl,ARCH_SET_GS,(unsigned long)base)) { perror("STOP: arch_prctl(ARCH_SET_GS)"); exit(21); }
-#endif
 }
 /* Build TCB/static TLS for the calling host thread and point GS at it. */
 static void attach(GuestThread *t) {
@@ -126,6 +121,7 @@ GuestThread *runtime_thread_current(void) {
     t->host=pthread_self(); t->host_owned=1;
     snprintf(t->name,sizeof(t->name),"host");
     attach(t); publish(t);
+    cachy_pin_thread(pthread_self(),t->name);
     return t;
 }
 /* Host threads that call guest code (HLE decoders invoking guest callbacks) need
@@ -133,6 +129,7 @@ GuestThread *runtime_thread_current(void) {
 void runtime_thread_attach_host(const char *name) {
     GuestThread *t=runtime_thread_current();
     snprintf(t->name,sizeof(t->name),"%s",name ? name : "host");
+    cachy_pin_thread(pthread_self(),t->name);
 }
 void runtime_re_watch_now(uint64_t address);
 void runtime_thread_attach_main(void) {
@@ -252,6 +249,7 @@ static void set_host_name(const char *name) {
     char host[16]={0};
     memcpy(host,name,strnlen(name,sizeof(host)-1));
     pthread_setname_np(pthread_self(),host);
+    cachy_pin_thread(pthread_self(),name);
 }
 static void run_guest(void *p) {
     GuestThread *t=p;
@@ -261,14 +259,7 @@ static void *host_start(void *p) {
     GuestThread *t=p;
     attach(t);
     set_host_name(t->name);
-#ifdef _WIN32
-    /* winpthreads ignores a given stack: the guest runs on its low one, fully committed (the
-     * game's frames skip Windows' guard pages). */
-    if (t->stack_memory) bb_run_on_stack(run_guest,t,t->stack_memory,t->stack_memory+t->stack_bytes);
-    else run_guest(t);
-#else
     run_guest(t);
-#endif
     runtime_thread_keys_cleanup();
     pthread_mutex_lock(&lock); t->finished=1; ++exited; pthread_mutex_unlock(&lock);
     return t->result;
@@ -289,12 +280,8 @@ static int32_t create(GuestThread **out,ThreadAttr **attr_slot,GuestEntry entry,
     size_t stack_bytes=(size_t)stack+STACK_MARGIN;
     void *stack_memory=runtime_low_map(stack_bytes,PROT_READ|PROT_WRITE);
     t->stack_memory=stack_memory; t->stack_bytes=stack_bytes;
-#ifdef _WIN32
-    pthread_attr_setstacksize(&host,256*1024); /* the host part only: the guest's is stack_memory */
-#else
     if (stack_memory) pthread_attr_setstack(&host,stack_memory,stack_bytes);
     else pthread_attr_setstacksize(&host,stack_bytes);
-#endif
     publish(t);
     /* Publish the handle before the thread can run and inspect itself. */
     *out=t;

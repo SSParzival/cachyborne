@@ -17,6 +17,16 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
+/* Advice never changes allocation semantics; dma-buf VMAs may reject it. */
+static void advise_guest(void *view, size_t size) {
+    if (view == MAP_FAILED || !size) return;
+    int saved_errno = errno;
+    const char *huge = getenv("BB_HUGEPAGES");
+    const char *prefetch = getenv("BB_MEMORY_WILLNEED");
+    if (!huge || strcmp(huge, "0")) (void)madvise(view, size, MADV_HUGEPAGE);
+    if (!prefetch || strcmp(prefetch, "0")) (void)madvise(view, size, MADV_WILLNEED);
+    errno = saved_errno;
+}
 /* sceKernelGetDirectMemorySize on retail PS4: 5056 MiB. BB_DMEM_MB raises it (the resolution
  * patches above 1080p need about 4 GiB more; run.sh sets it). */
 static uint64_t game_pool_bytes(void) {
@@ -124,6 +134,7 @@ static void add_region(uint64_t phys, uint64_t size) {
         close(fd);
         fd=-1;
     }
+    advise_guest(backing_base+phys,size);
     size_t i=region_count;
     while (i>0 && regions[i-1].phys>phys) { regions[i]=regions[i-1]; --i; }
     regions[i]=(Region){phys,size,fd>=0 || fd==CHUNK_IMPORTED ? fd : -2};
@@ -150,16 +161,11 @@ static int host_prot(int prot) {
 /* Direct memory occupies [0,POOL_SIZE) of the memfd, flexible memory [POOL_SIZE,+FLEX_SPAN). */
 static int pool(void) {
     if (pool_fd>=0) return 0;
-#ifdef _WIN32
-    /* A pagefile-backed section (gpu/platform/win32/posix_memory.cpp). */
-    pool_fd=bb_section_create(POOL_SIZE+FLEX_SPAN);
-    if (pool_fd<0) return -1;
-#else
     pool_fd=memfd_create("bb-guest-memory", MFD_CLOEXEC);
     if (pool_fd<0 || ftruncate(pool_fd,(off_t)(POOL_SIZE+FLEX_SPAN))) return -1;
-#endif
     void *view=mmap(NULL,POOL_SIZE+FLEX_SPAN,PROT_READ|PROT_WRITE,MAP_SHARED|MAP_NORESERVE,pool_fd,0);
     if (view==MAP_FAILED) return -1;
+    advise_guest(view,POOL_SIZE+FLEX_SPAN);
     backing_base=view;
     chunk_fds=malloc((POOL_SIZE/CHUNK+1)*sizeof(int));
     if (!chunk_fds) return -1;
@@ -195,13 +201,17 @@ static void ensure_chunks(uint64_t phys, uint64_t size) {
             close(fd);
             fd=-1;
         }
+        advise_guest(backing_base+c*CHUNK,chunk_size(c));
         chunk_fds[c]=fd>=0 || fd==CHUNK_IMPORTED ? fd : -2;
     }
 }
 /* mmap of direct or flexible memory at phys, split where it crosses chunks. */
 static void *map_phys(uintptr_t address, uint64_t size, int prot, uint64_t phys) {
-    if (!chunk_fds || phys>=POOL_SIZE)
-        return mmap((void *)address,size,prot,MAP_SHARED|MAP_FIXED,pool_fd,(off_t)phys);
+    if (!chunk_fds || phys>=POOL_SIZE) {
+        void *view=mmap((void *)address,size,prot,MAP_SHARED|MAP_FIXED,pool_fd,(off_t)phys);
+        if (prot != PROT_NONE) advise_guest(view,size);
+        return view;
+    }
     ensure_chunks(phys,size);
     for (uint64_t done=0;whole_chunks && done<size;) {
         const uint64_t at=phys+done;
@@ -218,6 +228,7 @@ static void *map_phys(uintptr_t address, uint64_t size, int prot, uint64_t phys)
                         at,n,r && r->fd>=0 ? "a GPU-visible dma-buf (whole-allocation chunk)" : "the memfd",strerror(errno));
             return MAP_FAILED;
         }
+        if (prot != PROT_NONE) advise_guest(p,n);
         done+=n;
         if (done==size) return (void *)address;
     }
@@ -234,6 +245,7 @@ static void *map_phys(uintptr_t address, uint64_t size, int prot, uint64_t phys)
                         at,n,chunk_fds[c]>=0 ? "a GPU-visible dma-buf chunk" : "the memfd",strerror(errno));
             return MAP_FAILED;
         }
+        if (prot != PROT_NONE) advise_guest(p,n);
         done+=n;
     }
     return (void *)address;
@@ -739,16 +751,9 @@ static uintptr_t low_next=LOW_MIN;
 /* The guest's address range, reserved before anything else can land there (Windows: one
  * placeholder the game's mappings replace in; Linux needs nothing). */
 void runtime_memory_reserve(void) {
-#ifdef _WIN32
-    if (bb_reserve_arena(USER_MIN,USER_MAX)) exit(21);
-#endif
 }
 void *runtime_low_map(size_t size, int prot) {
-#ifdef _WIN32
-    const uint64_t granule=UINT64_C(65536); /* VirtualAlloc places allocations at 64 KiB */
-#else
     const uint64_t granule=PAGE;
-#endif
     size=align_up(size,PAGE);
     write_lock();
     void *p=MAP_FAILED;
@@ -759,6 +764,7 @@ void *runtime_low_map(size_t size, int prot) {
         if (p!=MAP_FAILED) break;
     }
     write_unlock();
+    if (prot != PROT_NONE) advise_guest(p,size);
     return p==MAP_FAILED ? NULL : p;
 }
 /* ---- GPU library interface (gpu/shim/bbgpu.cpp) ---- */

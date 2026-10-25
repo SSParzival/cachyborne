@@ -8,6 +8,7 @@
 
 #include "common/logging/log.h"
 #include "common/thread.h"
+#include "../../src/cachy_affinity.h"
 
 namespace Common {
 
@@ -21,6 +22,7 @@ void SetThreadName(void* thread, const char* name) {
     std::strncpy(truncated, name, sizeof(truncated) - 1);
     truncated[sizeof(truncated) - 1] = '\0';
     pthread_setname_np(reinterpret_cast<pthread_t>(thread), truncated);
+    cachy_pin_thread(reinterpret_cast<pthread_t>(thread), name);
 }
 
 std::string GetCurrentThreadName() {

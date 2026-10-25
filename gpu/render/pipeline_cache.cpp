@@ -1,3 +1,4 @@
+#include "common/thread.h"
 // SPDX-License-Identifier: GPL-2.0-or-later
 // bbport render: program and pipeline selection (see pipeline_cache.h).
 
@@ -267,6 +268,7 @@ public:
 
 private:
     void Run() {
+        Common::SetCurrentThreadName("bb:ShaderCompile");
         for (;;) {
             std::function<void()> job;
             {

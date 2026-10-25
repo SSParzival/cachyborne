@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include "../src/runtime_pad.c"
 
+int bbgpu_free_camera(void) { return 0; }
+int bbgpu_pointer_wanted(void) { return 0; }
 static int capture;
 int bbgpu_overlay_captures_input(void) { return capture; }
 void bbgpu_mouse_take(double *dx, double *dy, int *up, int *down) { *dx=*dy=0; *up=*down=0; }

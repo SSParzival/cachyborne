@@ -40,6 +40,10 @@ uintptr_t runtime_memory_resolve(const char*) { std::abort(); }
 void runtime_wait_report(double) {}
 void runtime_sleep_stats(uint64_t* calls, uint64_t* ns) { *calls = 0; *ns = 0; }
 uint64_t runtime_heap_growths() { return 0; }
+// Guest process services absent in standalone renderer tests.
+int runtime_extra_direct_map(uint64_t, uint64_t, void**) { std::abort(); }
+volatile int runtime_restarting = 0;
+void runtime_toypad_lights(uint32_t out[3]) { out[0] = out[1] = out[2] = 0; }
 }
 // Input prompts and reverse-engineering watches (no pad, no game files here).
 extern "C" {
