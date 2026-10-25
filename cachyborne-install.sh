@@ -33,18 +33,8 @@ mkdir -p "$bin" "$apps"
 ln -sfn "$here/cachyborne-setup.sh" "$bin/cachyborne-setup"
 ln -sfn "$here/cachyborne-launch.sh" "$bin/cachyborne-launch"
 ln -sfn "$here/cachyborne-gui" "$bin/cachyborne-gui"
-# Generate quoted absolute Exec paths so menu entries do not depend on PATH.
-python3 - "$here" "$apps" <<'PY'
-from pathlib import Path
-import sys
-root, apps = map(Path, sys.argv[1:])
-for name, label, command in [('cachyborne', 'Cachyborne — Configuración', 'cachyborne-gui'),
-                             ('cachyborne-play', 'Cachyborne — Bloodborne', 'cachyborne-launch.sh')]:
-    executable = str(root / command).replace('\\', '\\\\').replace('"', '\\"').replace('`', '\\`').replace('$', '\\$').replace('%', '%%')
-    (apps / (name + '.desktop')).write_text('[Desktop Entry]\nType=Application\n'
-        f'Name={label}\nExec="{executable}"\nIcon=applications-games\nTerminal=false\nCategories=Game;\n')
-PY
-python3 launcher/cachyborne.py desktop --desktop
+# One implementation generates both menu and desktop entries and preserves local artwork.
+python3 launcher/cachyborne.py desktop --desktop --download-icon
 if command -v update-desktop-database >/dev/null; then update-desktop-database "$apps"; fi
 printf 'Installed. Keep this checkout at %s and add ~/.local/bin to PATH.\n' "$here"
 printf 'Prepare: cachyborne-setup /path/to/app0\nPlay: cachyborne-launch\nSettings: cachyborne-gui\n'

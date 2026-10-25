@@ -177,6 +177,8 @@ class PreparedLaunchTests(unittest.TestCase):
         self.assertEqual(env['BB_PRESENT_MODE'], 'Mailbox')
         self.assertEqual(env['BB_MEMORY_WILLNEED'], '0')
         self.assertEqual(env['BB_ASYNC_PIPELINE_THREADS'], '2')
+        self.assertEqual(env['BB_DMEM_EXTRA_MB'], '256')
+        self.assertEqual(env['BB_RENDER_RESOURCE_CACHE_MB'], '256')
         self.assertEqual(env['MESA_SHADER_CACHE_MAX_SIZE'], '4G')
 
     def test_high_internal_resolution_retains_required_direct_pool(self):
@@ -191,3 +193,79 @@ class PreparedLaunchTests(unittest.TestCase):
         self.assertEqual(path.parent, self.root / 'Escritorio')
         self.assertTrue(os.access(path, os.X_OK))
         self.assertIn('cachyborne-launch.sh', path.read_text())
+
+    def test_cpu_ranges_reject_reversed_and_out_of_bounds_indices(self):
+        for value in ('3-1', '1024', '0-2048'):
+            with self.subTest(value=value):
+                settings = runner.DEFAULTS | {'p_cpus': value}
+                with self.assertRaisesRegex(ValueError, 'CPU range'):
+                    runner.validate_settings(settings)
+
+    def test_shortcuts_include_separate_game_and_configuration_entries(self):
+        icon = self.root / 'xdg/icons/hicolor/512x512/apps/cachyborne.png'
+        icon.parent.mkdir(parents=True)
+        icon.write_bytes(b'local icon')
+        with patch.dict(os.environ, {'XDG_DATA_HOME': str(self.root / 'xdg')}), \
+             patch.object(runner.subprocess, 'check_output', return_value=str(self.root / 'Escritorio')), \
+             patch.object(runner.shutil, 'which', return_value='/usr/bin/xdg-user-dir'):
+            paths = runner.install_shortcuts(on_desktop=True)
+        self.assertEqual(len(paths), 4)
+        self.assertTrue(all(os.access(path, os.X_OK) for path in paths))
+        play = self.root / 'Escritorio/cachyborne-play.desktop'
+        settings = self.root / 'Escritorio/cachyborne.desktop'
+        self.assertIn(f'Icon={icon}', play.read_text())
+        self.assertIn('cachyborne-launch.sh', play.read_text())
+        self.assertIn('cachyborne-gui', settings.read_text())
+        self.assertIn('Name=Cachyborne — Configuración', settings.read_text())
+
+    def test_icon_download_failure_preserves_local_icon_and_installs_shortcuts(self):
+        with patch.dict(os.environ, {'XDG_DATA_HOME': str(self.root / 'xdg')}):
+            icon = runner.icon_path()
+            icon.parent.mkdir(parents=True)
+            icon.write_bytes(b'previous icon')
+            with patch('urllib.request.urlopen', side_effect=OSError('offline')), patch('builtins.print'):
+                paths = runner.install_shortcuts(download_icon=True)
+            self.assertEqual(icon.read_bytes(), b'previous icon')
+            self.assertEqual(len(paths), 2)
+
+    def test_nonimage_download_never_overwrites_installed_icon(self):
+        from unittest.mock import MagicMock
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = b'<html>error page</html>'
+        with patch.dict(os.environ, {'XDG_DATA_HOME': str(self.root / 'xdg')}):
+            icon = runner.icon_path()
+            icon.parent.mkdir(parents=True)
+            icon.write_bytes(b'previous icon')
+            with patch('urllib.request.urlopen', return_value=response):
+                with self.assertRaisesRegex(ValueError, 'Invalid downloaded icon'):
+                    runner.download_desktop_icon()
+            self.assertEqual(icon.read_bytes(), b'previous icon')
+
+    def test_desktop_escaping_handles_shell_metacharacters_in_checkout_path(self):
+        import shutil
+        if not shutil.which('desktop-file-validate'):
+            self.skipTest('desktop-file-validate unavailable')
+        with patch.object(runner, 'ROOT', self.root / 'a \\path "quoted" $dollar `tick` %'), \
+             patch.dict(os.environ, {'XDG_DATA_HOME': str(self.root / 'xdg')}):
+            path = runner.desktop()
+        result = subprocess.run(['desktop-file-validate', str(path)], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_jpeg_from_png_url_is_saved_as_a_real_png_icon(self):
+        try:
+            import gi
+            gi.require_version('GdkPixbuf', '2.0')
+            from gi.repository import GdkPixbuf
+        except (ImportError, ValueError):
+            self.skipTest('GdkPixbuf bindings unavailable')
+        from unittest.mock import MagicMock
+        pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, 1, 1)
+        pixbuf.fill(0x223344ff)
+        ok, jpeg = pixbuf.save_to_bufferv('jpeg', [], [])
+        self.assertTrue(ok)
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = jpeg
+        with patch.dict(os.environ, {'XDG_DATA_HOME': str(self.root / 'xdg')}), \
+             patch('urllib.request.urlopen', return_value=response):
+            path = runner.download_desktop_icon()
+        self.assertEqual(path.read_bytes()[:8], b'\x89PNG\r\n\x1a\n')

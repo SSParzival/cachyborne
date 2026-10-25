@@ -25,6 +25,8 @@ DEFAULTS = dict(memory_profile='16gb', pinning=True, p_cpus='0-11', e_cpus='12-1
                 upscaler='off', output_res='2560x1440', render_res='1920x1080',
                 fullscreen=True, present_mode='mailbox', audio=True, gamepad='',
                 scheduler='current', fsr411_dir='', mods_dir='', mods_config='', patches_dir='', patches_config='')
+ICON_URL = ('https://image.api.playstation.com/vulcan/img/rnd/202010/2614/'
+            'O2Z66UWrZH8zcejxopwWxhGu.png?w=512&h=512')
 ARTIFACTS = ('boot-linked.bin', 'patches.bin', 'content.bin', 'bbport.ini')
 
 
@@ -62,6 +64,10 @@ def validate_settings(s):
     for key in ('p_cpus', 'e_cpus'):
         if not re.fullmatch(r'\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*', s[key]):
             raise ValueError(f'Invalid CPU list: {key}')
+        for span in s[key].split(','):
+            bounds = list(map(int, span.split('-')))
+            if not (0 <= bounds[0] <= bounds[-1] < 1024):
+                raise ValueError(f'Invalid CPU range: {key}={span}')
     if s['memory_profile'] != '16gb':
         raise ValueError('Unsupported memory profile; expected 16gb')
     if s['fps'] not in ('30', '60', '90', '120', '144', '165', 'uncap'):
@@ -232,7 +238,7 @@ def launch_command(profile, app0=None, extra=(), base_env=None):
                   BB_FULLSCREEN='1' if s['fullscreen'] else '0', BB_PRESENT_MODE=s['present_mode'].capitalize(),
                   BB_FPS=s['fps'], BB_FPS_LIMIT='0' if s['fps'] == 'uncap' else s['fps'],
                   BB_VBLANK_HZ='60' if s['fps'] == '30' else '1000', BB_DMEM_MB=direct_mb,
-                  BB_DMEM_EXTRA_MB='512', BB_MEMORY_WILLNEED='0', BB_ASYNC_PIPELINE_THREADS='2',
+                  BB_DMEM_EXTRA_MB='256', BB_RENDER_RESOURCE_CACHE_MB='256', BB_MEMORY_WILLNEED='0', BB_ASYNC_PIPELINE_THREADS='2',
                   BB_PC_MODEL='1', BB_GUEST_IN_PLACE='1', BB_PREUPLOAD='1',
                   BB_COPY_GPU_BUFFERS='1', BB_GPU_WRITE_TWINS='1', BB_GPU_WRITE_TWINS_MAX='65536',
                   BB_UFFD='0', BB_AUDIO='auto' if s['audio'] else 'none', BB_GAMEPAD=s['gamepad'])
@@ -331,23 +337,93 @@ def check_runtime_requirements(profile):
             raise RuntimeError(f'Enable {scheduler} through CachyOS scx-manager first, or select current scheduler.')
 
 
-def desktop(on_desktop=False):
+def icon_path():
+    data_home = Path(os.environ.get('XDG_DATA_HOME', Path.home() / '.local/share'))
+    return data_home / 'icons/hicolor/512x512/apps/cachyborne.png'
+
+
+def download_desktop_icon():
+    """Download official artwork for the user's local shortcuts; never bundle it."""
+    import urllib.request
+    request = urllib.request.Request(ICON_URL, headers={'User-Agent': 'Cachyborne/1.0'})
+    with urllib.request.urlopen(request, timeout=20) as response:
+        data = response.read(5 * 1024**2 + 1)
+    # Sony's CDN may serve JPEG even when the source URL ends in .png.
+    if len(data) > 5 * 1024**2 or not (data.startswith(b'\x89PNG\r\n\x1a\n') or data.startswith(b'\xff\xd8\xff')):
+        raise ValueError('Invalid downloaded icon: expected a PNG or JPEG up to 5 MiB.')
+    import gi
+    gi.require_version('GdkPixbuf', '2.0')
+    from gi.repository import GdkPixbuf, GLib
+    try:
+        loader = GdkPixbuf.PixbufLoader.new()
+        loader.set_size(512, 512)
+        loader.write(data)
+        loader.close()
+        pixbuf = loader.get_pixbuf()
+        if pixbuf is None:
+            raise ValueError('Downloaded icon has no image data.')
+        success, data = pixbuf.save_to_bufferv('png', [], [])
+        if not success:
+            raise ValueError('Could not encode the desktop icon.')
+    except GLib.Error as error:
+        raise ValueError(f'Invalid downloaded image: {error}') from error
+    path = icon_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(dir=path.parent, prefix='.cachyborne-icon-')
+    try:
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(data)
+        os.chmod(temporary, 0o644)
+        os.replace(temporary, path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+    return path
+
+
+def desktop_value(value):
+    return str(value).replace('\\', '\\\\').replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+
+
+def desktop_exec(executable):
+    # First escape the quoted Exec argument, then escape the desktop key's value.
+    argument = str(executable).replace('\\', '\\\\').replace('"', '\\"').replace('`', '\\`').replace('$', '\\$').replace('%', '%%')
+    return desktop_value('"' + argument + '"')
+
+
+def desktop(on_desktop=False, configuration=False):
     directory = Path(os.environ.get('XDG_DATA_HOME', Path.home() / '.local/share')) / 'applications'
     if on_desktop:
         if shutil.which('xdg-user-dir'):
-            directory = Path(subprocess.check_output(['xdg-user-dir', 'DESKTOP'], text=True).strip())
+            location = subprocess.check_output(['xdg-user-dir', 'DESKTOP'], text=True).strip()
+            if not location or not Path(location).is_absolute():
+                raise ValueError('Invalid XDG desktop directory')
+            directory = Path(location)
         else:
             directory = Path.home() / 'Desktop'
     directory.mkdir(parents=True, exist_ok=True)
-    executable = str(ROOT / 'cachyborne-launch.sh')
-    # Desktop Exec quoting is not shell quoting. Escape reserved characters.
-    quoted = executable.replace('\\', '\\\\').replace('"', '\\"').replace('`', '\\`').replace('$', '\\$').replace('%', '%%')
-    path = directory / 'cachyborne-play.desktop'
-    path.write_text('[Desktop Entry]\nType=Application\nName=Cachyborne — Bloodborne\n'
-                    f'Exec="{quoted}"\nIcon=applications-games\nTerminal=false\nCategories=Game;\n')
+    executable = ROOT / ('cachyborne-gui' if configuration else 'cachyborne-launch.sh')
+    path = directory / ('cachyborne.desktop' if configuration else 'cachyborne-play.desktop')
+    name = 'Cachyborne — Configuración' if configuration else 'Cachyborne'
+    icon = 'preferences-system' if configuration else (str(icon_path()) if icon_path().is_file() else 'applications-games')
+    categories = 'Settings;' if configuration else 'Game;'
+    path.write_text('[Desktop Entry]\nType=Application\n' +
+                    f'Name={name}\nExec={desktop_exec(executable)}\nIcon={desktop_value(icon)}\n' +
+                    f'Terminal=false\nCategories={categories}\n')
     path.chmod(0o755)
     print(path)
     return path
+
+
+def install_shortcuts(on_desktop=False, download_icon=False):
+    if download_icon:
+        try:
+            download_desktop_icon()
+        except (OSError, ValueError, ImportError) as error:
+            print(f'Cachyborne: icon download failed; keeping the existing icon: {error}', file=sys.stderr)
+    entries = [desktop(configuration=config) for config in (False, True)]
+    if on_desktop:
+        entries += [desktop(on_desktop=True, configuration=config) for config in (False, True)]
+    return entries
 
 
 def main(argv=None):
@@ -368,6 +444,7 @@ def main(argv=None):
     launch.add_argument('--stage', action='store_true', help='Preload RAM only; do not start the game')
     launch.add_argument('probe_args', nargs=argparse.REMAINDER)
     shortcut = commands.add_parser('desktop')
+    shortcut.add_argument('--download-icon', action='store_true', help='Download official Bloodborne artwork for local shortcuts')
     shortcut.add_argument('--desktop', action='store_true', help='Also copy the shortcut to the XDG desktop directory')
     args = parser.parse_args(argv)
     try:
@@ -380,9 +457,7 @@ def main(argv=None):
             settings.update({k: v for k, v in vars(args).items() if k in DEFAULTS and v is not None})
             setup(args.game, settings)
         elif args.action == 'desktop':
-            desktop()
-            if args.desktop:
-                desktop(on_desktop=True)
+            install_shortcuts(on_desktop=args.desktop, download_icon=args.download_icon)
         else:
             profile = load_profile(args.profile)
             app0 = profile['game']

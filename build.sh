@@ -77,7 +77,12 @@ if [[ ! -f out/libatrac9.a || build.sh -nt out/libatrac9.a || -n $(find third_pa
     for source in "${atrac9[@]}"; do "$CC" -std=c99 "${native[@]}" -g -w -c "$source" -o "out/atrac9/$(basename "${source%.c}").o"; done
     ar rcs out/libatrac9.a out/atrac9/*.o
 fi
-"$CC" -std=c11 "${native[@]}" "${link[@]}" -g -Wall -Wextra -Werror -pthread -no-pie "${includes[@]}" -I. -Isrc src/probe.c "${runtime[@]}" src/vulkan_smoke.c out/libatrac9.a -lm "${gpu[@]}" "${libraries[@]}" -o out/bb-probe
+# Link to a new inode: replacing a running bb-probe directly fails with ETXTBSY.
+probe_temp=$(mktemp out/.bb-probe.XXXXXX)
+trap 'rm -f -- "$probe_temp"' EXIT
+"$CC" -std=c11 "${native[@]}" "${link[@]}" -g -Wall -Wextra -Werror -pthread -no-pie "${includes[@]}" -I. -Isrc src/probe.c "${runtime[@]}" src/vulkan_smoke.c out/libatrac9.a -lm "${gpu[@]}" "${libraries[@]}" -o "$probe_temp"
+chmod 755 "$probe_temp"
+mv -f -- "$probe_temp" out/bb-probe
 echo "Built $PWD/out/bb-probe"
 # GPU check for run.sh (live_resolution=auto) and the launcher's gamepad list (--gamepads).
 "$CC" -std=c11 "${native[@]}" "${link[@]}" -Wall -Wextra -Werror "${includes[@]}" tools/gpu_capabilities.c "${libraries[@]}" -o out/bb-gpu-capabilities

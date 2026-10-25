@@ -26,6 +26,8 @@ class Preferences(Adw.PreferencesWindow):
         self.entry(cpu, 'p_cpus', 'CPU de rendimiento', '0-11 en la topología objetivo; comprueba lscpu -e')
         self.entry(cpu, 'e_cpus', 'CPU de tareas en segundo plano', '12-19: compilación de pipelines y caché')
         memory = self.group(hardware, 'Perfil de 16 GB de RAM y driver AMD')
+        memory.add(Adw.ActionRow(title='Caché de recursos: 256 MiB · 2 compiladores',
+                                subtitle='Memoria directa: 5056 MiB hasta 1080p interno; 9152 MiB por encima.'))
         self.switch(memory, 'ramdisk', 'Pre-cargar juego en RAM', 'Desactivado en el perfil de 16 GB: el dump completo necesita unos 30 GB. Conserva 8 GiB libres.')
         self.switch(memory, 'radv', 'Perfil RADV / ACO para RX 9070 XT', 'Caché persistente de 4G; SAM gestionado por Mesa y el firmware')
         self.switch(memory, 'gamemode', 'Modo GameMode de Feral')
@@ -123,7 +125,9 @@ class Preferences(Adw.PreferencesWindow):
         return button
 
     def report(self, text):
-        self.status.set_title(text.splitlines()[0][:180])
+        lines = text.splitlines()
+        if lines:
+            self.status.set_title(lines[0][:180])
         buffer = self.log.get_buffer()
         buffer.insert(buffer.get_end_iter(), text + '\n')
         return GLib.SOURCE_REMOVE
@@ -191,7 +195,8 @@ class Preferences(Adw.PreferencesWindow):
 
     def desktop(self):
         try:
-            self.report(f'Acceso directo creado: {core.desktop()}')
+            core.install_shortcuts(on_desktop=True)
+            self.report('Accesos de juego y configuración creados en el escritorio.')
         except OSError as error:
             self.report(str(error))
 

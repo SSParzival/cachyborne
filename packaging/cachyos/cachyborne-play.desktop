@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Cachyborne — Bloodborne
+Name=Cachyborne
 Exec=cachyborne-launch
 Icon=applications-games
 Terminal=false

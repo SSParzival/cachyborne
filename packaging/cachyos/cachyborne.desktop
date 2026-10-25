@@ -4,4 +4,4 @@ Name=Cachyborne — Configuración
 Exec=cachyborne-gui
 Icon=applications-games
 Terminal=false
-Categories=Game;Settings;
+Categories=Settings;
