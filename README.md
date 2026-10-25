@@ -1,4 +1,4 @@
-# Cachyborne 0.7.0 — Bisexual Midnight for CachyOS
+# Cachyborne 0.7.1 — Bisexual Midnight for CachyOS
 
 Linux-native Bloodborne runtime specialized for **CachyOS, 16 GB of system RAM,
 Intel Core i5-14600KF and AMD Radeon RX 9070 XT with Mesa RADV**. Based on
@@ -73,24 +73,33 @@ It can also be added to Steam as a non-Steam application.
 
 The GTK4/Libadwaita interface matches the BiMidnight palette: near-black violet
 surfaces, lavender text and pink, purple and blue accents. A sidebar separates
-home, performance, graphics/audio, controls and setup. Native high-contrast mode
-keeps its accessible appearance. GTK 4.16+ and Libadwaita 1.6+ are required;
-current CachyOS packages provide them.
+home, performance, graphics/audio, controls, mods/patches, online/accounts,
+advanced settings and setup. Native high-contrast mode keeps its accessible appearance.
 
-**Controles y extras → Abrir configuración completa** opens the complete original
-bbport GTK editor with the same theme. All original settings remain available:
-controller/keyboard remapping and mouse options, game/UI language, display/GPU,
-aspect ratio, effects/LOD, FSR/DLSS asset tools, custom FPS limits, mod ordering,
-XML patches, online accounts and diagnostics. Choose **Aplicar a Cachyborne**,
-then **Validar y preparar** in the main window. The full INI and environment are
-carried into setup and direct launch; the complete editor does not start a second
-launch workflow. See the [configuration catalog](docs/CONFIGURATION.md).
+All **41 original bbport settings**, **44 keyboard/gamepad bindings**, and all
+original INI controls now live in these native Midnight pages. No second legacy
+window or import/apply step is required. See [the configuration catalog](docs/CONFIGURATION.md).
 
-The recommended profile targets **144 FPS**, with 1440p output and FSR 3.1 Quality
-at 1706×960 internally. Motion blur, chromatic aberration and depth of field are
-disabled. The native FPS counter is enabled. This is a target, not a guarantee
-of sustained frame rate in every area. `--performance-profile 60` provides a
-lower target; all individual options remain editable.
+The distribution defaults target **144 FPS**, with **FSR 4 Quality**, 1440p output
+and 1706×960 internally. Motion blur, chromatic aberration and depth of field are
+disabled; full RAM staging is off for 16 GB systems. FSR 4 requires separately
+downloaded assets: use **Avanzado → Descargar assets FSR 4** or run
+`bash tools/fetch_fsr4_assets.sh` before setup. Missing assets produce a clear
+error instead of silently accepting an unusable FSR 4 profile. FSR 3.1 remains
+selectable. Sustained 144 FPS depends on the scene and must be measured.
+
+**Usar perfil 144** preserves your selected upscaler, quality, resolution, HDR,
+bindings and content selection. `--performance-profile 60` changes the target
+without discarding those choices. The existing local user's **FSR 4 Native AA,
+2560×1440, HDR and LOD 2** selection was preserved; it uses more GPU and memory
+than Quality and is not a frame-rate guarantee.
+
+Widget changes are automatically saved as a draft after a short pause. **Guardar
+ajustes** also saves incomplete forms; invalid fields must be corrected before
+setup, but do not erase the draft or previous prepared game. **Preparar juego →
+Guardar como mis predeterminados** writes `~/.config/cachyborne/defaults.json`;
+**Restaurar mis predeterminados** restores that private snapshot. Drafts,
+credentials and personal defaults are never included in releases.
 
 Setup shows file-validation progress and supports cancellation. A failed or
 cancelled preparation retains the previous profile. Game-side INI changes newer
@@ -135,15 +144,17 @@ and huge pages do not eliminate physical memory or PCIe latency.
 
 GameMode and Gamescope are optional. Gamescope settings include output size,
 fullscreen, HDR, spatial FSR and Adaptive Sync. These require suitable display
-and compositor support. Mailbox is the default presentation request. FSR 3.1 is
-available; FSR 4.1.1 requires separately prepared assets and compatible GPU
-features. See [the CachyOS guide](docs/CACHYOS.md) for details.
+and compositor support. Mailbox is the default presentation request. FSR 4 is the default upscaler;
+FSR 3.1 remains available. FSR 4.1.1 requires separately prepared assets and
+compatible GPU features. See [the CachyOS guide](docs/CACHYOS.md) for details.
 
 Scheduler settings use the current scheduler or require an already active
 `scx_lavd`/`scx_bpfland`. Enable the selected scheduler through CachyOS's scheduler
 manager. The launcher does not start privileged services or change kernel policy.
-The prepared direct path is offline; it starts no community server or online
-authentication helper. Online modules can still be built and regression-tested.
+The direct path uses the prepared online/offline choice and starts no community
+server or authentication helper. Online sign-in and endpoint checks are explicit
+actions in **Online y cuentas**; multiplayer itself requires a working account
+and service.
 
 ## Configuration and saves
 
@@ -181,8 +192,8 @@ they do not establish gameplay FPS or prove stutter-free traversal.
 
 ## Releases
 
-[Version 0.7.0 notes](docs/RELEASE_0.7.0.md) and the
-[validation record](docs/VALIDATION_0.7.0.md) describe the source distribution and
+[Version 0.7.1 notes](docs/RELEASE_0.7.1.md) and the
+[validation record](docs/VALIDATION_0.7.1.md) describe the source distribution and
 validation scope. Source release assets include the pinned submodules and a
 SHA256SUMS file. Extract the source archive and run `./cachyborne-install.sh`;
 the installer builds for the local CPU. Game files, saves and account data are

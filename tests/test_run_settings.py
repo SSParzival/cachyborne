@@ -84,7 +84,7 @@ class PreparedLaunchTests(unittest.TestCase):
             run.side_effect = [None, subprocess.CalledProcessError(1, 'prepare')]
             before = (self.config / 'game_profile.json').read_bytes()
             with self.assertRaises(subprocess.CalledProcessError):
-                runner.setup(self.game, runner.DEFAULTS.copy())
+                runner.setup(self.game, runner.DEFAULTS | {'upscaler': 'fsr3'})
             self.assertEqual((self.config / 'game_profile.json').read_bytes(), before)
             self.assertEqual(list((self.root / 'data/prepared').iterdir()), [])
 
@@ -277,7 +277,7 @@ class PreparedLaunchTests(unittest.TestCase):
         recommended = runner.performance_settings(settings)
         self.assertEqual(recommended['fps'], '144')
         self.assertEqual(recommended['render_res'], '1706x960')
-        self.assertEqual(recommended['upscaler'], 'fsr3')
+        self.assertEqual(recommended['upscaler'], 'fsr4')
         self.assertEqual(recommended['runtime_ini']['preset'], '1')
         self.assertEqual(recommended['runtime_ini']['key.cross'], 'X')
         self.assertEqual(recommended['user_dir'], '/saves')

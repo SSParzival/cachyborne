@@ -29,14 +29,18 @@ again. `--mods-dir DIR --mods-config FILE` uses the existing mods.json selection
 `--patches-dir DIR --patches-config FILE` compiles selected XML patches during
 setup. Mod generations retain a symlink view of the source assets; keep both
 the original app0 and the selected mod files in place. They are never modified.
+FSR 4 requires `bash tools/fetch_fsr4_assets.sh` before setup; missing/corrupt
+assets are rejected before game scanning. Existing personal upscaler/preset
+choices are preserved when changing the performance target.
+
 FSR 4.1.1 selection checks the relevant replay assets; prepare these separately
 with `tools/fsr4cap/build_assets.sh` using your own required inputs.
 
-The Midnight GTK control center also exposes the complete original bbport editor
-through Controles y extras. Apply those settings to Cachyborne, then run Setup;
-all INI keys, bindings, mod/patch selections and launch variables are preserved.
+The Midnight GTK control center provides every original bbport setting in native
+pages, including all bindings, mods/patches, online/account tools and diagnostics.
+Save your settings, then run Setup; no separate editor or import step is needed.
 See [the configuration catalog](CONFIGURATION.md). The recommended 144 FPS target
-uses FSR 3.1 Quality at 1706x960 with 2560x1440 output; sustained FPS must be measured.
+uses FSR 4 Quality at 1706x960 with 2560x1440 output; sustained FPS must be measured.
 
 Setup publishes a symlink to a generation containing both the JSON profile and
 a safely quoted Bash execution plan. Warm direct launch does not start Python.
@@ -112,7 +116,7 @@ before launch. The runner does not replace the system scheduler or start privile
 services. Existing ananicy-cpp rules can identify the executable as `bb-probe`.
 
 The default direct path is offline and starts no community server or authentication
-helper. Online accounts and options are available in the complete editor. When
+helper. Online accounts and options are available in Online y cuentas. When
 enabled, setup prepares routing files and selects the online module; server
 connections occur when the game runs. Local server fallback processes are not
 started automatically.

@@ -64,9 +64,11 @@ def discover(root):
 
 def selected(root, config):
     available = discover(root)
-    if not config or not Path(config).is_file():
-        return available
-    settings = json.loads(Path(config).read_text(encoding='utf-8'))
+    if isinstance(config, dict):
+        settings = config
+    else:
+        if not config or not Path(config).is_file(): return available
+        settings = json.loads(Path(config).read_text(encoding='utf-8'))
     disabled_names = settings.get('disabled', [])
     if not isinstance(disabled_names, list) or not all(isinstance(n, str) for n in disabled_names):
         raise ValueError('Disabled mods must be a list of folder names')
@@ -166,6 +168,26 @@ def build_overlay(game, out, mods):
         raise
 
 
+def layers_for_game(game, mods_dir, config=None, enabled=True):
+    """Resolve selected names to (name, root) pairs for the overlay builder.
+
+    Keep this contract shared by standalone ingestion and Cachyborne setup: selected()
+    deliberately returns names, not tuples. Accept sibling and direct overlays too.
+    """
+    if not enabled:
+        return []
+    game, mods_dir = Path(game).resolve(), Path(mods_dir).expanduser().resolve()
+    layers = []
+    sibling = Path(str(game) + '-mods')
+    if sibling.is_dir():
+        layers.append((sibling.name, sibling))
+    if child(mods_dir, 'dvdroot_ps4').is_dir():
+        layers.append((mods_dir.name, mods_dir))
+    else:
+        layers.extend((name, mods_dir / name) for name in selected(mods_dir, config))
+    return layers
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('game', type=Path)
@@ -174,18 +196,7 @@ def main():
     parser.add_argument('--config', type=Path)
     parser.add_argument('--enabled', choices=('0', '1'), default='1')
     args = parser.parse_args()
-    layers = []
-    if args.enabled == '1':
-        # shadPS4's loose overlay convention, beside the original game.
-        legacy = Path(str(args.game.resolve()) + '-mods')
-        if legacy.is_dir():
-            layers.append((legacy.name, legacy))
-        # A directly selected loose overlay is also accepted.
-        if child(args.mods_dir, 'dvdroot_ps4').is_dir():
-            layers.append((args.mods_dir.name, args.mods_dir))
-        else:
-            for name in selected(args.mods_dir, args.config):
-                layers.append((name, args.mods_dir / name))
+    layers = layers_for_game(args.game, args.mods_dir, args.config, args.enabled == '1')
     print(build_overlay(args.game, args.out, layers))
 
 

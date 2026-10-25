@@ -22,9 +22,9 @@ CACHE = Path(os.environ.get('XDG_CACHE_HOME', Path.home() / '.cache')) / 'cachyb
 DEFAULTS = dict(memory_profile='16gb', pinning=True, p_cpus='0-11', e_cpus='12-19', ramdisk=False,
                 gamemode=False, radv=True, gamescope=False, hdr=False, vrr=False,
                 gamescope_fsr=False, width=2560, height=1440, fps='144', fps_limit=0,
-                upscaler='fsr3', output_res='2560x1440', render_res='1706x960',
+                upscaler='fsr4', output_res='2560x1440', render_res='1706x960',
                 fullscreen=True, present_mode='mailbox', audio=True, gamepad='',
-                scheduler='current', fsr411_dir='', mods_dir='', mods_enabled=True, mods_config='',
+                scheduler='current', fsr4_dir='', fsr411_dll='', fsr411_loader='', dlss_library='', fsr411_dir='', mods_dir='', mods_enabled=True, mods_config='',
                 patches_dir='', patches_config='', user_dir='', runtime_env={}, original_settings={},
                 runtime_ini={'preset': '1', 'sharpen': '1', 'sharpness': '0.35', 'object_motion': '1',
                              'show_fps': '1', 'live_resolution': '0', 'effect_chromatic_aberration': '0', 'effect_dof': '0',
@@ -61,6 +61,7 @@ def atomic_json(path, value):
 def preferences():
     profile = read_json(CONFIG / 'game_profile.json', {})
     prepared = profile.get('settings', {})
+    personal = read_json(CONFIG / 'defaults.json', {})
     draft = read_json(CONFIG / 'settings.json', {})
     active_ini = {}
     path = Path(profile.get('prepared', DATA / 'missing')) / 'bbport.ini'
@@ -69,27 +70,35 @@ def preferences():
             if '=' in line and not line.lstrip().startswith(('#', ';')):
                 key, value = line.split('=', 1)
                 active_ini[key.strip()] = value.strip()
-    result = DEFAULTS | prepared | draft
+    result = DEFAULTS | personal | prepared | draft
     draft_path = CONFIG / 'settings.json'
     active_is_newer = path.is_file() and (not draft_path.is_file() or path.stat().st_mtime_ns > draft_path.stat().st_mtime_ns)
     changes = (draft.get('runtime_ini', {}) | active_ini) if active_is_newer else (active_ini | draft.get('runtime_ini', {}))
-    result['runtime_ini'] = dict(DEFAULTS['runtime_ini']) | prepared.get('runtime_ini', {}) | changes
+    result['runtime_ini'] = dict(DEFAULTS['runtime_ini']) | personal.get('runtime_ini', {}) | prepared.get('runtime_ini', {}) | changes
     for key in ('upscaler', 'output_res'):
         if key in active_ini and (active_is_newer or key not in draft):
             result[key] = active_ini[key]
     return result
 
 
+def save_preferences(settings, as_default=False):
+    """Persist intent independently of game ingestion or optional runtime dependencies."""
+    import copy
+    snapshot = copy.deepcopy(settings)
+    atomic_json(CONFIG / 'settings.json', snapshot)
+    if as_default:
+        atomic_json(CONFIG / 'defaults.json', snapshot)
+    return snapshot
+
+
 def performance_settings(current=None, target='144'):
     """A target, not a frame-rate guarantee; preserve bindings, mods and user directories."""
     import copy
     settings = copy.deepcopy(DEFAULTS if current is None else DEFAULTS | current)
-    settings.update(fps=target, fps_limit=0, upscaler='fsr3', output_res='2560x1440',
-                    render_res='1706x960' if target == '144' else '1920x1080',
-                    pinning=True, ramdisk=False, radv=True, gamescope=False)
-    settings['runtime_ini'].update(DEFAULTS['runtime_ini'])
-    settings['runtime_ini']['preset'] = '1' if target == '144' else '0'
-    settings['runtime_ini'].update(upscaler='fsr3', output_res='2560x1440')
+    settings['runtime_ini'] = dict(DEFAULTS['runtime_ini']) | settings.get('runtime_ini', {})
+    settings.update(fps=target, fps_limit=int(target), pinning=True, ramdisk=False, radv=True)
+    settings['upscaler'] = current.get('upscaler', 'fsr4') if current else 'fsr4'
+    settings['runtime_ini'].update(upscaler=settings['upscaler'], output_res=settings['output_res'])
     # Clear conflicting old editor overrides when explicitly applying a recommended preset.
     for key in ('BB_FPS', 'BB_FPS_LIMIT', 'BB_UPSCALER', 'BB_UPSCALE_PRESET', 'BB_RENDER_RES',
                 'BB_OUTPUT_RES', 'BB_PC_MODEL', 'BB_GUEST_IN_PLACE', 'BB_AS_0_3'):
@@ -144,7 +153,7 @@ def prepare_online_settings(settings, user):
     import online
     if env.get('BB_NET_BACKEND') == 'thd':
         if not env.get('BB_THD_TOKEN') or not env.get('BB_THD_ONLINE_ID'):
-            raise RuntimeError("Sign in to The Hunter's Dream in the complete editor first.")
+            raise RuntimeError("Sign in to The Hunter's Dream in Online y cuentas first.")
         path, base = online.write_thd_overrides(user, env.get('BB_COMMUNITY_SERVER'))
         env.update(BB_THD_SERVER=f'{base}:18671', BB_THD_AUTH=base)
     else:
@@ -193,15 +202,28 @@ def public_environment(env):
 def setup(game, settings=None):
     import copy
     s = copy.deepcopy(preferences() if settings is None else settings)
+    if s.get('original_settings'):
+        from cachyborne_options import reconcile
+        s = reconcile(s)
     validate_settings(s)
     setup_env = os.environ | s.get('runtime_env', {})
     if setup_env.get('BB_SKIP_GAME_CHECK') == '1':
         raise RuntimeError('Setup requires validation; unset BB_SKIP_GAME_CHECK.')
+    if s['upscaler'] == 'fsr4':
+        from cachyborne_options import fsr4_problem
+        assets = Path(s.get('fsr4_dir') or s.get('runtime_env', {}).get('BB_FSR4_DIR') or ROOT / 'fsr4_shaders').expanduser().resolve()
+        issue = fsr4_problem(assets, s['output_res'], s.get('runtime_ini', {}).get('preset', '1'))
+        if issue: raise RuntimeError(issue + '. Ejecuta tools/fetch_fsr4_assets.sh o selecciona otro escalador.')
+        s.setdefault('runtime_env', {})['BB_FSR4_DIR'] = str(assets)
     game = Path(game).expanduser().resolve(strict=True)
     if not (ROOT / 'out/bb-probe').is_file():
         raise RuntimeError('Build first: bash build.sh')
     sys.path.insert(0, str(ROOT / 'scripts'))
     import game_check
+    import mods
+    mod_layers = mods.layers_for_game(game, s['mods_dir'] or DATA / 'mods',
+                                     s.get('mod_selection', Path(s['mods_config']).expanduser() if s['mods_config'] else CONFIG / 'mods.json'),
+                                     s.get('mods_enabled', True))
     image_hash = game_check.image_sha256(game)
     problem = game_check.problem(game, image_hash)
     if problem:
@@ -230,11 +252,8 @@ def setup(game, settings=None):
     out.mkdir(mode=0o700)
     try:
         source_game = game
-        if s['mods_dir'] and s.get('mods_enabled', True):
-            import mods
-            selection = mods.selected(Path(s['mods_dir']).expanduser(),
-                                      Path(s['mods_config']).expanduser() if s['mods_config'] else CONFIG / 'mods.json')
-            game = mods.build_overlay(game, out, selection)
+        if mod_layers:
+            game = mods.build_overlay(game, out, mod_layers)
             # Persist this generation's symlink view. Sources must remain in place until next setup.
             problem = game_check.problem(game)
             if problem:
@@ -251,7 +270,11 @@ def setup(game, settings=None):
         patch_args = []
         if s['patches_dir']:
             patch_args += ['--patches-dir', str(Path(s['patches_dir']).expanduser())]
-        if s['patches_config']:
+        if 'patch_selection' in s:
+            selection_file = out / 'selected-patches.json'
+            atomic_json(selection_file, s['patch_selection'])
+            patch_args += ['--patches-config', str(selection_file)]
+        elif s['patches_config']:
             patch_args += ['--patches-config', str(Path(s['patches_config']).expanduser())]
         subprocess.run([sys.executable, str(ROOT / 'scripts/patches.py'), '--out', str(out),
                         '--game-dir', str(game), '--fps', fps, '--settings', str(ini),

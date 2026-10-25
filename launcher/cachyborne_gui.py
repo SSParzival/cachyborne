@@ -16,6 +16,8 @@ gi.require_version('Gdk', '4.0')
 from gi.repository import Adw, Gio, GLib, Gtk, Gdk
 
 import cachyborne as core
+import cachyborne_options as options
+from cachyborne_panels import NativePanels
 
 
 def apply_style():
@@ -56,7 +58,7 @@ def action(text, callback, primary=False, icon=None):
     return button
 
 
-class Preferences(Adw.ApplicationWindow):
+class Preferences(NativePanels, Adw.ApplicationWindow):
     def __init__(self, app):
         super().__init__(application=app, title='Cachyborne · Bisexual Midnight', default_width=1130, default_height=850)
         self.add_css_class('cachyborne')
@@ -67,7 +69,6 @@ class Preferences(Adw.ApplicationWindow):
         self.setup_process = None
         self.cancelled = False
         self.close_after_setup = False
-        self.complete_editor = None
         self.set_size_request(820, 640)
         shell = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         stripe = Gtk.Box(); stripe.add_css_class('pride-line'); shell.append(stripe)
@@ -81,7 +82,7 @@ class Preferences(Adw.ApplicationWindow):
         body.append(sidebar); body.append(self.stack); shell.append(body)
         self.toasts = Adw.ToastOverlay(child=shell)
         self.set_content(self.toasts)
-        self.build_home(); self.build_performance(); self.build_graphics(); self.build_controls(); self.build_setup()
+        self.build_home(); self.build_performance(); self.build_graphics(); self.build_controls(); self.build_content(); self.build_online(); self.build_advanced(); self.build_setup()
         footer = Gtk.Box(spacing=12); footer.add_css_class('action-bar')
         self.spinner = Gtk.Spinner(); footer.append(self.spinner)
         self.status_text = label('Listo para tu próxima cacería', 'muted small'); self.status_text.set_hexpand(True)
@@ -90,6 +91,10 @@ class Preferences(Adw.ApplicationWindow):
         footer.append(action('Lanzar juego', self.launch, primary=True, icon='media-playback-start-symbolic'))
         shell.append(footer)
         self.connect('close-request', self.on_close)
+        self.autosave_source = None
+        for key, (widget, kind, _) in self.widgets.items():
+            event = {'entry':'changed', 'switch':'notify::active', 'combo':'notify::selected', 'spin':'notify::value'}[kind]
+            widget.connect(event, self.queue_autosave)
         self.refresh_status()
         self.navigate('setup' if '--setup' in sys.argv else 'home')
 
@@ -106,7 +111,10 @@ class Preferences(Adw.ApplicationWindow):
         for key, title, icon in [('home', 'Inicio', 'weather-clear-night-symbolic'),
                                  ('performance', 'Rendimiento', 'speedometer-symbolic'),
                                  ('graphics', 'Imagen y sonido', 'video-display-symbolic'),
-                                 ('controls', 'Controles y extras', 'input-gaming-symbolic'),
+                                 ('controls', 'Controles', 'input-gaming-symbolic'),
+                                 ('content', 'Mods y parches', 'folder-symbolic'),
+                                 ('online', 'Online y cuentas', 'network-workgroup-symbolic'),
+                                 ('advanced', 'Avanzado', 'preferences-system-symbolic'),
                                  ('setup', 'Preparar juego', 'folder-open-symbolic')]:
             button = Gtk.ToggleButton(); button.add_css_class('nav-button')
             row = Gtk.Box(spacing=12); row.append(Gtk.Image.new_from_icon_name(icon)); row.append(label(title))
@@ -146,7 +154,9 @@ class Preferences(Adw.ApplicationWindow):
         return group
 
     def current(self, key):
-        return self.ini.get(key[4:], '') if key.startswith('ini.') else self.settings[key]
+        if key.startswith('ini.'): return self.ini.get(key[4:], '')
+        if key.startswith('legacy.'): return self.settings.get('original_settings', {}).get(key[7:], options.LEGACY_DEFAULTS[key[7:]])
+        return self.settings.get(key, '')
 
     def register(self, key, widget, getter, kind, values=None):
         self.fields[key] = getter
@@ -162,7 +172,8 @@ class Preferences(Adw.ApplicationWindow):
     def entry(self, group, key, title, subtitle=''):
         row = Adw.EntryRow(title=title, text=str(self.current(key)))
         if subtitle: row.set_tooltip_text(subtitle)
-        group.add(row); self.register(key, row, lambda: row.get_text().strip(), 'entry')
+        (group.add_row if isinstance(group, Adw.ExpanderRow) else group.add)(row)
+        self.register(key, row, lambda: row.get_text().strip(), 'entry')
         return row
 
     def combo(self, group, key, title, values, labels):
@@ -204,8 +215,8 @@ class Preferences(Adw.ApplicationWindow):
         page.append(metrics)
         profile = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); profile.add_css_class('info-card')
         profile.append(label('144 FPS · Fluidez', 'info-title'))
-        profile.append(label('FSR 3.1 Quality · salida 1440p · escena 1706 × 960 · P-Cores para el juego. '
-                             'La precarga completa de 30 GB queda desactivada.', 'muted', True))
+        profile.append(label('FSR 4 · objetivo 144 FPS · salida 1440p · P-Cores para el juego. '
+                             'Tu calidad de escalado se conserva. La precarga de 30 GB queda desactivada.', 'muted', True))
         buttons = Gtk.Box(spacing=10)
         buttons.append(action('Usar perfil 144', self.apply_recommended, primary=True))
         buttons.append(action('Preparar y aplicar', lambda: self.navigate('setup')))
@@ -231,7 +242,7 @@ class Preferences(Adw.ApplicationWindow):
         self.entry(scope, 'width', 'Ancho de salida'); self.entry(scope, 'height', 'Alto de salida')
         self.switch(scope, 'hdr', 'HDR'); self.switch(scope, 'vrr', 'Adaptive Sync / VRR')
         self.switch(scope, 'gamescope_fsr', 'FSR espacial de Gamescope')
-        page.append(action('Todos los ajustes de rendimiento y diagnóstico', self.open_complete))
+        page.append(action('Diagnóstico y hardware', lambda: self.navigate('advanced')))
 
     def build_graphics(self):
         page = self.page('graphics', 'Cada detalle, a tu gusto', 'Escalado, presentación y efectos. Sin ocultar el control fino.')
@@ -241,6 +252,7 @@ class Preferences(Adw.ApplicationWindow):
         self.combo(display, 'upscaler', 'Escalador', ['off','taa','fsr3','fsr4','fsr411','dlss'], ['Sin escalado','TAA nativo','FSR 3.1','FSR 4','FSR 4.1.1','DLSS (NVIDIA)'])
         self.combo(display, 'ini.preset', 'Calidad del escalador', ['0','1','2','3','4'], ['Native AA','Quality','Balanced','Performance','Ultra Performance'])
         self.entry(display, 'render_res', 'Resolución interna (WxH)'); self.entry(display, 'output_res', 'Resolución de salida (WxH)')
+        self.native_button(display, 'Calcular resolución interna desde el preset', self.calculate_resolution)
         self.switch(display, 'fullscreen', 'Pantalla completa')
         self.combo(display, 'present_mode', 'Presentación', ['mailbox','fifo','fiforelaxed','immediate'], ['Mailbox','FIFO / VSync','FIFO Relaxed','Immediate (permite tearing)'])
         self.switch(display, 'ini.sharpen', 'Nitidez RCAS'); self.spin(display, 'ini.sharpness', 'Intensidad de nitidez', 0, 2, .05, 2)
@@ -257,7 +269,7 @@ class Preferences(Adw.ApplicationWindow):
         self.combo(effects, 'ini.model_lod', 'Detalle de modelos', ['-2','0','1','2'], ['Máximo','Original','Bajo','Mínimo'])
         audio = self.group(page, 'Audio y assets opcionales')
         self.switch(audio, 'audio', 'Audio activado'); self.entry(audio, 'fsr411_dir', 'Assets de FSR 4.1.1')
-        page.append(action('Pantallas, GPU, relación de aspecto, FSR/DLSS y más', self.open_complete))
+        page.append(action('Pantallas, GPU y assets FSR/DLSS', lambda: self.navigate('advanced')))
 
     def build_controls(self):
         page = self.page('controls', 'Tu forma de jugar', 'Todos los controles originales siguen disponibles.')
@@ -267,26 +279,13 @@ class Preferences(Adw.ApplicationWindow):
         self.switch(controls, 'ini.mouse_look', 'Controlar cámara con el ratón', 'Clic para capturar; F1 para liberar.')
         self.spin(controls, 'ini.mouse_sensitivity', 'Sensibilidad', .1, 10, .05, 2)
         self.switch(controls, 'ini.mouse_invert_y', 'Invertir eje vertical')
-        complete = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14); complete.add_css_class('info-card')
-        complete.append(label('El editor completo de bbport, integrado', 'info-title'))
-        complete.append(label('Reasignación de teclado y mando, idioma, monitor y GPU, relación de aspecto, '
-                              'mods con orden de carga, parches XML, online y cuentas, importación FSR/DLSS, '
-                              'MangoHud, lectura GPU, modelo de memoria y diagnóstico. Todos sus valores se '
-                              'importan al perfil que prepara Cachyborne.', 'muted', True))
-        complete.append(action('Abrir configuración completa', self.open_complete, primary=True, icon='preferences-system-symbolic'))
-        page.append(complete)
-        paths = self.group(page, 'Carpetas y contenido')
-        self.entry(paths, 'user_dir', 'Carpeta de guardados (vacío: predeterminada)')
-        self.switch(paths, 'mods_enabled', 'Activar mods')
-        for key, title in [('mods_dir','Directorio de mods'), ('mods_config','Selección y orden mods.json'),
-                            ('patches_dir','Directorio de parches XML'), ('patches_config','Selección patches.json')]:
-            self.entry(paths, key, title)
+        self.add_native_controls(page)
         page.append(action('Crear accesos de juego y configuración', self.desktop))
 
     def build_setup(self):
         page = self.page('setup', 'Una vez preparado, solo juega', 'Validación y enlace aquí. Lanzamiento directo después.')
         for number, title, text in [('01','Elige tu dump 1.09','Archivos descifrados de Bloodborne con la actualización ya combinada.'),
-                                     ('02','Ajusta tu perfil','144 FPS objetivo, FSR Quality y memoria acotada para 16 GB.'),
+                                     ('02','Ajusta tu perfil','144 FPS objetivo, FSR 4 y memoria acotada para 16 GB.'),
                                      ('03','Valida y prepara','El perfil anterior se conserva si la preparación falla.')]:
             row = Gtk.Box(spacing=14); badge = label(number, 'step-number'); badge.set_valign(Gtk.Align.START)
             row.append(badge); text_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -295,11 +294,14 @@ class Preferences(Adw.ApplicationWindow):
         self.path = Adw.EntryRow(title='Ruta de app0 / CUSA03173')
         previous = core.read_json(core.CONFIG / 'game_profile.json', {})
         self.path.set_text(self.settings.get('game') or previous.get('source_game', previous.get('game', '')))
+        self.register('game', self.path, lambda: self.path.get_text().strip(), 'entry')
         game.add(self.path)
         buttons = Gtk.Box(spacing=10)
         buttons.append(action('Seleccionar carpeta', self.choose, icon='folder-open-symbolic'))
         self.setup_button = action('Validar y preparar', self.prepare, primary=True)
         buttons.append(self.setup_button); page.append(buttons)
+        page.append(action('Guardar como mis predeterminados', lambda: self.save(as_default=True)))
+        page.append(action('Restaurar mis predeterminados', self.restore_defaults))
         self.progress = Gtk.ProgressBar(show_text=True, text='Listo para preparar'); page.append(self.progress)
         self.status = Adw.ActionRow(title='Listo', subtitle='Los cambios se aplican al completar la preparación.')
         status_group = Adw.PreferencesGroup()
@@ -314,17 +316,23 @@ class Preferences(Adw.ApplicationWindow):
         prepared = profile.get('settings', {})
         self.profile_badge.set_text(f"Preparado · {prepared.get('fps', '?')} FPS objetivo" if profile else 'Setup pendiente')
 
-    def collect(self):
+    def collect(self, validate=False):
         settings = copy.deepcopy(self.settings)
         ini = dict(self.ini)
+        original = dict(options.LEGACY_DEFAULTS) | settings.get('original_settings', {})
         for key, getter in self.fields.items():
             value = getter()
             if key.startswith('ini.'):
+                # Explicit defaults override an older prepared INI after resetting a binding.
                 ini[key[4:]] = ('1' if value else '0') if isinstance(value, bool) else str(value)
+            elif key.startswith('legacy.'): original[key[7:]] = value
             else: settings[key] = value
-        settings.update(width=int(settings['width']), height=int(settings['height']),
-                        game=self.path.get_text().strip(), runtime_ini=ini)
-        core.validate_settings(settings)
+        settings.update(game=self.path.get_text().strip(), runtime_ini=ini, original_settings=original)
+        settings.update(self.content_selection())
+        if validate:
+            settings = options.reconcile(settings)
+            settings.update(width=int(settings['width']), height=int(settings['height']))
+            core.validate_settings(settings)
         return settings
 
     def set_widgets(self):
@@ -357,14 +365,50 @@ class Preferences(Adw.ApplicationWindow):
                 self.progress.set_fraction(count / max(total, 1)); self.progress.set_text(f'Verificando archivos · {count:,} / {total:,}')
         return GLib.SOURCE_REMOVE
 
-    def save(self):
+    def queue_autosave(self, *_):
+        if self.autosave_source is not None: GLib.source_remove(self.autosave_source)
+        self.autosave_source = GLib.timeout_add(700, self.autosave)
+
+    def autosave(self):
+        self.autosave_source = None
+        try: core.save_preferences(self.collect())
+        except OSError as error: self.report(f'No se pudo guardar el borrador: {error}')
+        return GLib.SOURCE_REMOVE
+
+    def calculate_resolution(self):
         try:
-            self.settings = self.collect(); self.ini = dict(self.settings['runtime_ini'])
-            core.atomic_json(core.CONFIG / 'settings.json', self.settings)
-            self.report('Ajustes guardados. Prepara el juego para aplicarlos al perfil.')
+            import patches
+            s = self.collect(validate=True)
+            sizes = patches.scaled_sizes(s['runtime_ini'])
+            size = sizes[0] if sizes else patches.render_size(s['runtime_ini']) or patches.output_size(s['runtime_ini'])
+            self.widgets['render_res'][0].set_text(f'{size[0]}x{size[1]}')
+        except (ValueError, TypeError) as error: self.report(str(error))
+
+    def save(self, as_default=False):
+        try:
+            # Store raw widget intent before any conversion/validation can fail.
+            self.settings = core.save_preferences(self.collect(), as_default=as_default)
+            self.ini = dict(self.settings['runtime_ini'])
+            try:
+                normalized = self.collect(validate=True)
+            except (ValueError, TypeError) as error:
+                self.report(f'Borrador guardado. Corrige antes de preparar: {error}')
+                return True
+            self.settings = core.save_preferences(normalized, as_default=as_default)
+            self.ini = dict(self.settings['runtime_ini'])
+            self.report('Ajustes guardados' + (' como predeterminados personales.' if as_default else '. Prepara el juego para aplicarlos.'))
             return True
-        except (OSError, ValueError) as error:
-            self.report(str(error)); return False
+        except OSError as error:
+            self.report(f'No se pudo guardar: {error}'); return False
+
+    def restore_defaults(self):
+        try:
+            defaults = core.read_json(core.CONFIG / 'defaults.json', {})
+            if not defaults: raise ValueError('Aún no hay predeterminados personales guardados.')
+            self.settings = copy.deepcopy(core.DEFAULTS | defaults)
+            self.ini = dict(self.settings['runtime_ini']); self.set_widgets(); self.refresh_content()
+            self.save()
+        except (ValueError, OSError) as error: self.report(str(error))
 
     def choose(self):
         chooser = Gtk.FileChooserNative(title='Seleccionar app0', transient_for=self, action=Gtk.FileChooserAction.SELECT_FOLDER)
@@ -377,6 +421,9 @@ class Preferences(Adw.ApplicationWindow):
         if self.busy:
             self.cancel_setup(); return
         if not self.save(): return
+        try: self.collect(validate=True)
+        except (ValueError, TypeError) as error:
+            self.report(f'Ajustes conservados. Corrige antes de preparar: {error}'); return
         self.busy = True; self.cancelled = False
         self.setup_button.set_label('Cancelar preparación'); self.spinner.start()
         self.progress.set_fraction(0); self.progress.set_text('Validando el ejecutable…')
@@ -418,7 +465,9 @@ class Preferences(Adw.ApplicationWindow):
     def on_close(self, _window):
         if self.busy:
             self.close_after_setup = True; self.cancel_setup(); return True
-        if self.complete_editor: self.complete_editor.close()
+        if self.autosave_source is not None:
+            GLib.source_remove(self.autosave_source); self.autosave_source = None
+        self.save()
         return False
 
     def launch(self):
@@ -434,36 +483,6 @@ class Preferences(Adw.ApplicationWindow):
             self.report('Accesos de juego y configuración creados en el escritorio.')
         except (OSError, ValueError) as error: self.report(str(error))
 
-    def open_complete(self):
-        if self.complete_editor:
-            self.complete_editor.present(); return
-        if not self.save(): return
-        from cachyborne_original import seed_editor, import_editor
-        module = seed_editor(self.settings)
-        parent = self
-        class CompleteEditor(module.LauncherWindow):
-            def update_launch_button(self):
-                super().update_launch_button()
-                self.launch_button.set_label('Aplicar a Cachyborne')
-                self.launch_button.add_css_class('primary-action')
-            def on_launch(self, _button):
-                self.store()
-                try:
-                    parent.settings = import_editor(parent.settings, self.settings, self.ini)
-                    parent.ini = dict(parent.settings['runtime_ini']); parent.set_widgets()
-                    parent.path.set_text(parent.settings['game']); parent.save()
-                    self.toasts.add_toast(Adw.Toast(title='Importado. Prepara el juego en Cachyborne.'))
-                except (OSError, ValueError) as error: parent.report(str(error))
-            def on_close(self, window):
-                self.on_launch(None)
-                parent.complete_editor = None
-                return super().on_close(window)
-        self.complete_editor = CompleteEditor(self.get_application())
-        self.complete_editor.set_default_size(1000, 860)
-        self.complete_editor.set_title('Cachyborne · Configuración completa bbport')
-        self.complete_editor.add_css_class('cachyborne')
-        self.complete_editor.set_transient_for(self)
-        self.complete_editor.present()
 
 
 class App(Adw.Application):

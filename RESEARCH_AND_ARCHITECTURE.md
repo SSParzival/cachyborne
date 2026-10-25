@@ -309,3 +309,27 @@ outside the Git checkout and its CLI, shell scripts, pinned submodules, CSS and
 FSR patch state checked; SHA-256 matched. The supplied game dump validated with
 zero damaged DCX files and the 144 target profile was prepared. Sustained gameplay
 frame rates remain a separate measurement, not a release claim.
+
+## 0.7.1: native settings migration and setup failure analysis
+
+The 0.7.0 complete-editor adapter required a second GTK window. All original
+controls now belong to native Midnight pages, with a separate pure projection
+module (`cachyborne_options.py`) and native panel mixin. Original source constants
+are compared in tests so a missing setting/binding becomes a regression failure.
+
+The post-DCX failure was a type-contract mismatch: `mods.selected()` returns
+folder-name strings while `mods.build_overlay()` consumes `(name, root)` pairs.
+Unpacking a long name raised “too many values to unpack”; a two-character name
+could unpack silently into incorrect paths. A shared `layers_for_game()` resolver
+now supplies pairs to both entry points, preserving sibling/direct overlays,
+selection, disable switches and load order. Pipeline regression tests exercise
+real resolution/overlay creation after simulated successful DCX validation.
+
+Draft persistence precedes normalization and validation. Incomplete widgets can
+be saved without running ingestion; preparation validates them separately and
+publishes one successful generation last. Personal defaults include original
+settings, INI/bindings and content selections. FSR 4 is the distribution default,
+with explicit preflight asset checks. The local user's FSR 4 Native AA selection
+is preserved rather than replaced with a lower preset. Full RAM staging remains
+off for 16 GB, and a native internal image above 1080p still uses the larger
+9152 MiB direct pool; RAM, PCIe and GPU work retain physical latency.
