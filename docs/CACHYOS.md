@@ -2,7 +2,7 @@
 
 Run `./cachyborne-install.sh` as your desktop user. It installs dependencies with
 `sudo pacman -Syu --needed`, builds using Clang + mold + native CPU instructions
-and ThinLTO, and registers commands in `~/.local/bin`, menu entries and a desktop shortcut. Keep the checkout in place.
+and ThinLTO, and registers commands in `~/.local/bin`, menu entries and separate game/configuration desktop shortcuts. Keep the checkout in place.
 The binary is specific to the machine where it was compiled. Header dependencies
 not packaged in the current repositories (magic_enum, VMA, Xbyak) are fetched by
 CMake at pinned versions. Installation needs network access. Neither setup nor
@@ -49,7 +49,8 @@ manually while the game is stopped, retaining the directory named in the profile
 The default `16gb` profile keeps the roughly 30 GB game on disk and disables
 full RAM staging. Direct memory is 5056 MiB for internal resolutions up to 1080p;
 higher internal resolutions retain the 9152 MiB pool required by the resolution
-patches. The port's extra pool remains 512 MiB. Two pipeline compiler workers
+patches. The port's extra pool and render resource cache are paired at 256 MiB
+each. Two pipeline compiler workers
 limit concurrent compiler memory, and MADV_WILLNEED is disabled through the launch
 environment to avoid unnecessary sparse-pool prefetch. Huge-page advice remains
 available. The 4G Mesa cache budget is disk storage, not reserved system RAM.
@@ -111,8 +112,8 @@ helper. Original online tooling remains in the repository for separate use.
 ## Desktop and verification
 
 The GUI's Crear Acceso Directo action (also
-`python3 launcher/cachyborne.py desktop --desktop`) creates a desktop entry that directly
-runs `cachyborne-launch`. Installer entries provide separate settings and play
+`python3 launcher/cachyborne.py desktop --desktop --download-icon`) creates separate game and configuration entries in both the menu and desktop.
+The game entry directly runs `cachyborne-launch`. Installer entries provide separate settings and play
 commands. Add the direct launch command as a non-Steam game if desired.
 
 ```bash

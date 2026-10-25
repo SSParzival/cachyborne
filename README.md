@@ -21,7 +21,7 @@ git submodule update --init --recursive
 
 The installer uses `sudo pacman -Syu --needed`, builds with Clang/LLVM, mold,
 `-march=native -mtune=native -O3`, and ThinLTO, then registers commands in
-`~/.local/bin`, menu entries and a direct game shortcut on your XDG desktop.
+`~/.local/bin`, menu entries and game/configuration shortcuts on your XDG desktop.
 The resulting binary targets the CPU on which it was built. Keep the checkout
 and its `out/` directory in place.
 
@@ -62,12 +62,12 @@ this prepared launch path. A clean installation must complete setup first.
 cachyborne-launch --dry-run             # inspect command and environment
 cachyborne-gui                          # GTK4 / Libadwaita settings
 cachyborne-setup --gui                  # open the setup interface
-python3 launcher/cachyborne.py desktop --desktop
+python3 launcher/cachyborne.py desktop --desktop --download-icon
 ```
 
 The GUI has separate setup, play and shortcut actions. Save preferences and run
-Setup to publish them; Play uses the last successfully prepared profile. The
-desktop shortcut launches the game directly without opening the settings hub.
+Setup to publish them; Play uses the last successfully prepared profile. The two desktop entries open the game and settings separately. The game
+shortcut launches directly without opening the settings hub.
 It can also be added to Steam as a non-Steam application.
 
 ## The 16 GB memory profile
@@ -77,8 +77,8 @@ It can also be added to Steam as a non-Steam application.
 - Direct memory uses **5056 MiB** at internal resolutions up to 1080p. Higher
   internal resolutions retain the 9152 MiB pool needed by the resolution patches;
   they increase memory pressure on a 16 GB system.
-- The port retains a 512 MiB extra direct pool and uses two asynchronous pipeline
-  compiler workers. Pool prefetch is disabled by default through
+- The port pairs a 256 MiB extra direct pool with a 256 MiB render resource cache
+  and uses two asynchronous pipeline compiler workers. Pool prefetch is disabled by default through
   `BB_MEMORY_WILLNEED=0`; transparent huge-page advice remains enabled.
 - The persistent Mesa shader cache has a **4G disk budget**. This is disk storage,
   not a reservation of system RAM. Saves and caches remain persistent.
@@ -86,6 +86,14 @@ It can also be added to Steam as a non-Steam application.
 Close memory-heavy applications before playing. Optional RAM staging remains
 available for smaller asset trees or machines with sufficient free memory; it
 checks both tmpfs capacity and available RAM, retaining an 8 GiB reserve.
+
+The installer downloads Bloodborne artwork from the official
+[PlayStation page](https://www.playstation.com/en-us/games/bloodborne/) for your
+local game icon. The artwork remains in your user icon directory and is not
+bundled in the repository. `--download-icon` refreshes it explicitly; an offline
+failure preserves the previous icon and does not prevent shortcut installation.
+The GUI's shortcut action creates both game and configuration entries on the
+desktop and in the application menu.
 
 ## CPU, GPU and display
 

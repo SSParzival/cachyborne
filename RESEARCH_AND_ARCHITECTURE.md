@@ -232,3 +232,39 @@ The README documents the actual supported installer, setup and direct-launch
 commands. Its local documentation links, desktop entry syntax, installed GUI
 profile, shell syntax and repository whitespace checks were verified. Runtime
 logs and raw test results are kept in ignored out/ files.
+
+
+## Follow-up: desktop integration and memory pressure
+
+The user confirmed the game runs. The two desktop/menu entries now come from one
+implementation, including the GUI's shortcut button. The game uses Bloodborne
+artwork downloaded from Sony's image CDN linked by the official PlayStation page;
+the configuration entry opens cachyborne-gui with a settings icon. Downloaded
+artwork lives only under the user's XDG icon directory. The CDN returns JPEG for
+the .png URL, so GdkPixbuf decodes it and writes a 512x512 PNG. A failed download
+preserves the previous image and still installs the shortcuts.
+
+For 16 GB, the extra direct pool and render resource cache now both default to
+256 MiB, saving 256 MiB of potential backing compared with the original 512 MiB
+extension while retaining a larger cache than the game's native 160 MiB. The two
+values must change together: reducing only the pool would force the cache back
+to its native size. The 5056 MiB base pool, two pipeline workers, disk shader cache
+and disabled full RAM preload remain in place. This configuration is published
+for the next launch, without changing a running game's memory allocations.
+
+Additional fixes reject reversed/out-of-range host CPU lists, handle empty setup
+log lines in the GUI, escape both layers of desktop Exec syntax, and link a new
+bb-probe inode before replacing the executable. The latter avoids ETXTBSY when
+an existing process is running. Tests exercise shortcuts, preserved icons on
+network/error responses, JPEG-to-PNG decoding and the GUI callbacks.
+
+
+Follow-up verification: 150 Python tests pass, alongside the existing 14 CTest
+GPU/C++ targets, native C/online regressions, SPIR-V checks and Vulkan readback.
+An independently started CPU-only synthetic bb-probe stayed alive throughout the
+full rebuild; its executable inode was replaced without interrupting the process.
+The installed GTK window and empty-log callback were also exercised. Both desktop
+files pass desktop-file-validate. The active profile was refreshed into a new
+prepared generation while preserving the existing INI and validated game artifacts;
+the reduced extra pool/cache defaults will apply on the next launch. The user's
+running game was not terminated by these changes.
