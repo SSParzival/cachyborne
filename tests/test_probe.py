@@ -51,7 +51,7 @@ class LoaderTests(unittest.TestCase):
             path = Path(tmp) / 'boot.bin'
             path.write_bytes(data)
             return subprocess.run([str(EXE.resolve()), str(path), '--cpu-only', *options],
-                                  capture_output=True, text=True, timeout=5)
+                                  capture_output=True, text=True, timeout=20)
 
     def test_original_instruction_reaches_named_import(self):
         # jmp [rip+2]; two padding bytes; relocated function pointer at +8

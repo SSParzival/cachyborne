@@ -268,3 +268,44 @@ files pass desktop-file-validate. The active profile was refreshed into a new
 prepared generation while preserving the existing INI and validated game artifacts;
 the reduced extra pool/cache defaults will apply on the next launch. The user's
 running game was not terminated by these changes.
+
+## 0.7.0: Midnight control center and original configuration parity
+
+The preferences grid was replaced by a GTK4/Libadwaita application window with a
+sidebar, a prepared-profile dashboard, hardware/display/control pages and a
+progress-aware setup workflow. Colors match the active BiMidnight desktop:
+#140e1a, #1b1526 and #241e34 surfaces; #f7eafb text; #ea59a3, #ab6ef6 and #608cf6
+accents. Styling is scoped to Cachyborne windows, retains the user's font and
+leaves native high-contrast rendering available. No desktop theme files are edited.
+
+The complete original GTK editor is integrated as a themed child window rather
+than dropping its controls. Its 41 settings defaults, 24 INI defaults and 44
+keyboard/gamepad assignments remain accessible. An adapter imports all settings,
+full INI data, user/save directories, mod order, patch switches and environment
+into the prepared profile. Game-side INI changes newer than a saved GUI draft
+remain visible. Setup now passes that environment to patch compilation, handles
+fixed/live resolution consistently and prepares online routing without network
+probes. Advanced dry-run output redacts credentials; enabled diagnostic logging
+and MangoHud work on the direct launch path. The renderer handles FIFO Relaxed.
+
+The recommended default is a 144 FPS target, FSR 3.1 Quality, 1706x960 internal
+render size and 2560x1440 output. It retains the 16 GB memory limits and disables
+motion blur, DoF and chromatic aberration. A 60 target remains available. Full RAM
+preload stays off. This is not evidence of sustained 144 FPS gameplay. The local
+displays expose 1440p/180 Hz modes; no display settings are changed by setup.
+
+A source-release packager includes tracked source and pinned submodules, excludes
+local saves/binaries and emits SHA256SUMS. Publication is gated on the native,
+Vulkan, Python, GUI and archive checks. The loader boundary test's process timeout
+was raised from 5 to 20 seconds after the heavily loaded desktop produced a
+cold-start timeout; the test still checks the same explicit loader errors.
+
+
+Final 0.7.0 checks passed: 164 Python tests, 14 C++/Vulkan targets, all native C
+regressions, SPIR-V validation and Vulkan readback. The complete editor was
+constructed, its 44 binding rows and 11 effects inspected, settings imported and
+Midnight pages rendered to local screenshots. The source archive was extracted
+outside the Git checkout and its CLI, shell scripts, pinned submodules, CSS and
+FSR patch state checked; SHA-256 matched. The supplied game dump validated with
+zero damaged DCX files and the 144 target profile was prepared. Sustained gameplay
+frame rates remain a separate measurement, not a release claim.

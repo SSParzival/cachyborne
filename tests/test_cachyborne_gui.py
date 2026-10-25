@@ -21,6 +21,7 @@ finally:
 class GuiCallbackTests(unittest.TestCase):
     def test_empty_setup_log_line_does_not_crash_or_clear_status(self):
         view = SimpleNamespace(status=MagicMock(), log=MagicMock())
+        view.log.get_buffer.return_value.get_line_count.return_value = 1
         gui.Preferences.report(view, '')
         view.status.set_title.assert_not_called()
         view.log.get_buffer.return_value.insert.assert_called_once()
@@ -31,3 +32,18 @@ class GuiCallbackTests(unittest.TestCase):
             gui.Preferences.desktop(view)
         install.assert_called_once_with(on_desktop=True)
         view.report.assert_called_once()
+
+    def test_cancel_targets_only_the_setup_process_group(self):
+        process = MagicMock(pid=12345)
+        process.poll.return_value = None
+        view = SimpleNamespace(setup_process=process, cancelled=False, report=MagicMock())
+        with patch.object(gui.os, 'killpg') as stop:
+            gui.Preferences.cancel_setup(view)
+        stop.assert_called_once_with(12345, gui.signal.SIGTERM)
+        self.assertTrue(view.cancelled)
+
+    def test_setup_progress_line_updates_real_fraction(self):
+        view = SimpleNamespace(status=MagicMock(), status_text=MagicMock(), log=MagicMock(), progress=MagicMock())
+        view.log.get_buffer.return_value.get_line_count.return_value = 1
+        gui.Preferences.report(view, '1000 of 2000 checked')
+        view.progress.set_fraction.assert_called_once_with(0.5)

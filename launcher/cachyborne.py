@@ -21,10 +21,14 @@ RAM_ROOT = Path('/dev/shm') / f'cachyborne_ram_{os.getuid()}'
 CACHE = Path(os.environ.get('XDG_CACHE_HOME', Path.home() / '.cache')) / 'cachyborne'
 DEFAULTS = dict(memory_profile='16gb', pinning=True, p_cpus='0-11', e_cpus='12-19', ramdisk=False,
                 gamemode=False, radv=True, gamescope=False, hdr=False, vrr=False,
-                gamescope_fsr=False, width=2560, height=1440, fps='60',
-                upscaler='off', output_res='2560x1440', render_res='1920x1080',
+                gamescope_fsr=False, width=2560, height=1440, fps='144', fps_limit=0,
+                upscaler='fsr3', output_res='2560x1440', render_res='1706x960',
                 fullscreen=True, present_mode='mailbox', audio=True, gamepad='',
-                scheduler='current', fsr411_dir='', mods_dir='', mods_config='', patches_dir='', patches_config='')
+                scheduler='current', fsr411_dir='', mods_dir='', mods_enabled=True, mods_config='',
+                patches_dir='', patches_config='', user_dir='', runtime_env={}, original_settings={},
+                runtime_ini={'preset': '1', 'sharpen': '1', 'sharpness': '0.35', 'object_motion': '1',
+                             'show_fps': '1', 'live_resolution': '0', 'effect_chromatic_aberration': '0', 'effect_dof': '0',
+                             'effect_motion_blur': '0', 'skip_intro': '1'})
 ICON_URL = ('https://image.api.playstation.com/vulcan/img/rnd/202010/2614/'
             'O2Z66UWrZH8zcejxopwWxhGu.png?w=512&h=512')
 ARTIFACTS = ('boot-linked.bin', 'patches.bin', 'content.bin', 'bbport.ini')
@@ -55,8 +59,42 @@ def atomic_json(path, value):
 
 
 def preferences():
-    prepared = read_json(CONFIG / 'game_profile.json', {}).get('settings', {})
-    return DEFAULTS | prepared | read_json(CONFIG / 'settings.json', {})
+    profile = read_json(CONFIG / 'game_profile.json', {})
+    prepared = profile.get('settings', {})
+    draft = read_json(CONFIG / 'settings.json', {})
+    active_ini = {}
+    path = Path(profile.get('prepared', DATA / 'missing')) / 'bbport.ini'
+    if path.is_file():
+        for line in path.read_text().splitlines():
+            if '=' in line and not line.lstrip().startswith(('#', ';')):
+                key, value = line.split('=', 1)
+                active_ini[key.strip()] = value.strip()
+    result = DEFAULTS | prepared | draft
+    draft_path = CONFIG / 'settings.json'
+    active_is_newer = path.is_file() and (not draft_path.is_file() or path.stat().st_mtime_ns > draft_path.stat().st_mtime_ns)
+    changes = (draft.get('runtime_ini', {}) | active_ini) if active_is_newer else (active_ini | draft.get('runtime_ini', {}))
+    result['runtime_ini'] = dict(DEFAULTS['runtime_ini']) | prepared.get('runtime_ini', {}) | changes
+    for key in ('upscaler', 'output_res'):
+        if key in active_ini and (active_is_newer or key not in draft):
+            result[key] = active_ini[key]
+    return result
+
+
+def performance_settings(current=None, target='144'):
+    """A target, not a frame-rate guarantee; preserve bindings, mods and user directories."""
+    import copy
+    settings = copy.deepcopy(DEFAULTS if current is None else DEFAULTS | current)
+    settings.update(fps=target, fps_limit=0, upscaler='fsr3', output_res='2560x1440',
+                    render_res='1706x960' if target == '144' else '1920x1080',
+                    pinning=True, ramdisk=False, radv=True, gamescope=False)
+    settings['runtime_ini'].update(DEFAULTS['runtime_ini'])
+    settings['runtime_ini']['preset'] = '1' if target == '144' else '0'
+    settings['runtime_ini'].update(upscaler='fsr3', output_res='2560x1440')
+    # Clear conflicting old editor overrides when explicitly applying a recommended preset.
+    for key in ('BB_FPS', 'BB_FPS_LIMIT', 'BB_UPSCALER', 'BB_UPSCALE_PRESET', 'BB_RENDER_RES',
+                'BB_OUTPUT_RES', 'BB_PC_MODEL', 'BB_GUEST_IN_PLACE', 'BB_AS_0_3'):
+        settings['runtime_env'].pop(key, None)
+    return settings
 
 
 def validate_settings(s):
@@ -72,13 +110,21 @@ def validate_settings(s):
         raise ValueError('Unsupported memory profile; expected 16gb')
     if s['fps'] not in ('30', '60', '90', '120', '144', '165', 'uncap'):
         raise ValueError('Unsupported FPS')
-    if s['upscaler'] not in ('off', 'fsr3', 'fsr411'):
+    if not 0 <= int(s.get('fps_limit', 0)) <= 1000:
+        raise ValueError('Invalid custom FPS limit')
+    for key, value in s.get('runtime_env', {}).items():
+        if not re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]*', key) or not isinstance(value, str) or '\0' in value:
+            raise ValueError(f'Invalid runtime environment variable: {key}')
+    for key, value in s.get('runtime_ini', {}).items():
+        if not re.fullmatch(r'[A-Za-z_][A-Za-z_0-9.]*', key) or any(c in str(value) for c in '\r\n\0'):
+            raise ValueError(f'Invalid game setting: {key}')
+    if s['upscaler'] not in ('off', 'fsr3', 'fsr4', 'fsr411', 'dlss', 'taa'):
         raise ValueError('Unsupported upscaler')
     for key in ('output_res', 'render_res'):
         match = re.fullmatch(r'(\d+)x(\d+)', s[key])
         if not match or not (320 <= int(match[1]) <= 16384 and 200 <= int(match[2]) <= 16384):
             raise ValueError(f'Invalid resolution: {key}')
-    if s['present_mode'] not in ('fifo', 'mailbox', 'immediate'):
+    if s['present_mode'] not in ('fifo', 'fiforelaxed', 'mailbox', 'immediate'):
         raise ValueError('Unsupported presentation mode')
     if s['scheduler'] not in ('current', 'scx_lavd', 'scx_bpfland'):
         raise ValueError('Unsupported scheduler')
@@ -87,10 +133,69 @@ def validate_settings(s):
             raise ValueError(f'Invalid Gamescope {key}')
 
 
+def prepare_online_settings(settings, user):
+    env = settings.get('runtime_env', {})
+    if env.get('BB_ONLINE') != '1':
+        return
+    module = ROOT / 'out/gpu/libbbnet20.so'
+    if not module.is_file():
+        raise RuntimeError('The online module must be built before enabling online play.')
+    sys.path.insert(0, str(ROOT / 'scripts'))
+    import online
+    if env.get('BB_NET_BACKEND') == 'thd':
+        if not env.get('BB_THD_TOKEN') or not env.get('BB_THD_ONLINE_ID'):
+            raise RuntimeError("Sign in to The Hunter's Dream in the complete editor first.")
+        path, base = online.write_thd_overrides(user, env.get('BB_COMMUNITY_SERVER'))
+        env.update(BB_THD_SERVER=f'{base}:18671', BB_THD_AUTH=base)
+    else:
+        custom = user / 'host_overrides.custom.json'
+        path = custom if custom.is_file() else user / 'host_overrides.json'
+        if not custom.is_file():
+            community = online.community_address(env.get('BB_COMMUNITY_SERVER'))
+            host = community.split('://', 1)[1]
+            overrides = {online.GAME_SERVER: community}
+            webapi = env.get('BB_SHADNET_WEBAPI', '')
+            if webapi:
+                overrides.update({f'{scheme}://{host}:{online.COMMUNITY_API_PORT}/summon_messenger': webapi
+                                  for scheme in ('http', 'https')})
+            user.mkdir(parents=True, exist_ok=True)
+            atomic_json(path, overrides)
+    env.update(SHADPS4_HTTP_HOST_OVERRIDES_JSON=str(path), BB_NET_MODULE=str(module), BB_NET_GEN='20')
+
+
+def shell_logging_lines(profile):
+    logs = shlex.quote(str(DATA / 'logs'))
+    return ['if [[ ${BB_SAVE_LOG:-0} == 1 ]]; then',
+            f'    logs={logs}; mkdir -p -- "$logs"',
+            '    printf -v stamp "%(%Y%m%d_%H%M%S)T" -1; stamp="${stamp}_$$"',
+            '    export BB_FRAME_STATS=1 BB_FRAME_LOG="$logs/$stamp.frames.csv" BB_READBACK_LOG="$logs/$stamp.readbacks.csv"',
+            '    exec >> "$logs/$stamp.log" 2>&1', 'fi']
+
+
+def configure_logging(profile, env):
+    if env.get('BB_SAVE_LOG') != '1':
+        return
+    logs = DATA / 'logs'
+    logs.mkdir(parents=True, exist_ok=True)
+    stamp = time.strftime('%Y%m%d_%H%M%S') + f'_{os.getpid()}'
+    env.update(BB_FRAME_STATS='1', BB_FRAME_LOG=str(logs / (stamp + '.frames.csv')),
+               BB_READBACK_LOG=str(logs / (stamp + '.readbacks.csv')))
+    with (logs / (stamp + '.log')).open('a') as stream:
+        os.dup2(stream.fileno(), 1)
+        os.dup2(stream.fileno(), 2)
+
+
+def public_environment(env):
+    return {key: ('[redacted]' if any(secret in key.upper() for secret in ('TOKEN', 'PASSWORD', 'AUTH')) else value)
+            for key, value in env.items() if key.startswith(('BB_', 'RADV_', 'MESA_', 'AMD_VULKAN', 'VK_'))}
+
+
 def setup(game, settings=None):
-    s = preferences() if settings is None else settings.copy()
+    import copy
+    s = copy.deepcopy(preferences() if settings is None else settings)
     validate_settings(s)
-    if os.environ.get('BB_SKIP_GAME_CHECK') == '1':
+    setup_env = os.environ | s.get('runtime_env', {})
+    if setup_env.get('BB_SKIP_GAME_CHECK') == '1':
         raise RuntimeError('Setup requires validation; unset BB_SKIP_GAME_CHECK.')
     game = Path(game).expanduser().resolve(strict=True)
     if not (ROOT / 'out/bb-probe').is_file():
@@ -101,12 +206,19 @@ def setup(game, settings=None):
     problem = game_check.problem(game, image_hash)
     if problem:
         raise RuntimeError(game_check.explain(*problem))
-    subprocess.run([sys.executable, str(ROOT / 'scripts/game_check.py'), str(game)], check=True)
+    subprocess.run([sys.executable, str(ROOT / 'scripts/game_check.py'), str(game)], check=True, env=setup_env)
+    live = str(s.get('runtime_ini', {}).get('live_resolution', '0'))
+    if live == 'auto':
+        probe = ROOT / 'out/bb-gpu-capabilities'
+        detected = subprocess.check_output([str(probe), '--live-resolution'], text=True, env=setup_env).strip()
+        s.setdefault('runtime_ini', {})['live_resolution'] = '1' if detected == '1' else '0'
+    if s['upscaler'] == 'taa':
+        s.setdefault('runtime_ini', {})['live_resolution'] = '1'
     if s['upscaler'] == 'fsr411':
         assets = Path(s['fsr411_dir'] or ROOT / 'fsr4_411').expanduser().resolve()
         # The full replay asset set is checked by the renderer; do not advertise absent assets.
         from bbport_assets import fsr411_problem
-        issue = fsr411_problem(assets, s['output_res'], 1)
+        issue = fsr411_problem(assets, s['output_res'], int(s.get('runtime_ini', {}).get('preset', '1')))
         if issue:
             raise RuntimeError(f'FSR 4.1.1: {issue}. Use tools/fsr4cap/build_assets.sh.')
         s['fsr411_dir'] = str(assets)
@@ -118,7 +230,7 @@ def setup(game, settings=None):
     out.mkdir(mode=0o700)
     try:
         source_game = game
-        if s['mods_dir']:
+        if s['mods_dir'] and s.get('mods_enabled', True):
             import mods
             selection = mods.selected(Path(s['mods_dir']).expanduser(),
                                       Path(s['mods_config']).expanduser() if s['mods_config'] else CONFIG / 'mods.json')
@@ -128,10 +240,13 @@ def setup(game, settings=None):
             if problem:
                 raise RuntimeError(game_check.explain(*problem))
         ini = out / 'bbport.ini'
-        ini.write_text(f"upscaler={s['upscaler']}\noutput_res={s['output_res']}\nlive_resolution=0\n")
+        ini_values = dict(s.get('runtime_ini', {}))
+        ini_values.update(upscaler=s['upscaler'], output_res=s['output_res'])
+        ini_values.setdefault('live_resolution', '0')
+        ini.write_text(''.join(f'{key}={value}\n' for key, value in ini_values.items()))
         for script in ('prepare.py', 'link_libc.py', 'link_modules.py', 'content_profile.py'):
             subprocess.run([sys.executable, str(ROOT / 'scripts' / script), str(game), '--out', str(out)],
-                           cwd=ROOT, check=True)
+                           cwd=ROOT, check=True, env=setup_env)
         fps = s['fps'] if s['fps'] in ('30', '60', '90') else 'uncap'
         patch_args = []
         if s['patches_dir']:
@@ -140,13 +255,15 @@ def setup(game, settings=None):
             patch_args += ['--patches-config', str(Path(s['patches_config']).expanduser())]
         subprocess.run([sys.executable, str(ROOT / 'scripts/patches.py'), '--out', str(out),
                         '--game-dir', str(game), '--fps', fps, '--settings', str(ini),
-                        '--render-res', s['render_res'], '--output-res', s['output_res'], *patch_args], cwd=ROOT, check=True)
+                        '--render-res', '' if str(ini_values['live_resolution']) == '1' else s['render_res'], '--output-res', s['output_res'], *patch_args], cwd=ROOT, check=True, env=setup_env)
         for name in ARTIFACTS:
             if not (out / name).is_file() or not (out / name).stat().st_size:
                 raise RuntimeError(f'Setup did not create {name}')
-        user = DATA / 'user'
-        user.mkdir(exist_ok=True)
+        user = Path(s.get('user_dir') or DATA / 'user').expanduser().resolve()
+        user.mkdir(parents=True, exist_ok=True)
         CACHE.mkdir(parents=True, exist_ok=True, mode=0o700)
+        prepare_online_settings(s, user)
+        s['runtime_ini'] = ini_values
         profile = dict(version=1, generation=generation, game=str(game), image_sha256=image_hash,
                        source_game=str(source_game), prepared=str(out), probe=str(ROOT / 'out/bb-probe'), user=str(user),
                        cache=str(CACHE), settings=s)
@@ -228,6 +345,7 @@ def launch_command(profile, app0=None, extra=(), base_env=None):
     s = profile['settings']
     validate_settings(s)
     env = (os.environ if base_env is None else base_env).copy()
+    env.update(s.get('runtime_env', {}))
     out = Path(profile['prepared'])
     render_width, render_height = map(int, s['render_res'].split('x'))
     direct_mb = '5056' if render_width * render_height <= 1920 * 1080 else '9152'
@@ -235,18 +353,24 @@ def launch_command(profile, app0=None, extra=(), base_env=None):
                   MESA_SHADER_CACHE_DIR=profile['cache'], MESA_SHADER_CACHE_MAX_SIZE='4G',
                   BB_CPU_PINNING='1' if s['pinning'] else '0', BB_P_CPUS=s['p_cpus'], BB_E_CPUS=s['e_cpus'],
                   BB_RENDER_RES=s['render_res'], BB_OUTPUT_RES=s['output_res'],
-                  BB_FULLSCREEN='1' if s['fullscreen'] else '0', BB_PRESENT_MODE=s['present_mode'].capitalize(),
-                  BB_FPS=s['fps'], BB_FPS_LIMIT='0' if s['fps'] == 'uncap' else s['fps'],
+                  BB_FULLSCREEN='1' if s['fullscreen'] else '0', BB_HDR='1' if s['hdr'] else '0', BB_PRESENT_MODE={'fiforelaxed': 'FifoRelaxed'}.get(s['present_mode'], s['present_mode'].capitalize()),
+                  BB_FPS=s['fps'], BB_FPS_LIMIT=str(s.get('fps_limit') or ('0' if s['fps'] == 'uncap' else s['fps'])),
                   BB_VBLANK_HZ='60' if s['fps'] == '30' else '1000', BB_DMEM_MB=direct_mb,
                   BB_DMEM_EXTRA_MB='256', BB_RENDER_RESOURCE_CACHE_MB='256', BB_MEMORY_WILLNEED='0', BB_ASYNC_PIPELINE_THREADS='2',
                   BB_PC_MODEL='1', BB_GUEST_IN_PLACE='1', BB_PREUPLOAD='1',
                   BB_COPY_GPU_BUFFERS='1', BB_GPU_WRITE_TWINS='1', BB_GPU_WRITE_TWINS_MAX='65536',
                   BB_UFFD='0', BB_AUDIO='auto' if s['audio'] else 'none', BB_GAMEPAD=s['gamepad'])
+    if str(s.get('runtime_ini', {}).get('live_resolution', '0')) == '1':
+        values['BB_RENDER_RES'] = values['BB_OUTPUT_RES'] = ''
+    if env.get('BB_PC_MODEL') == '0' or env.get('BB_AS_0_3') == '1':
+        values['BB_GUEST_IN_PLACE'] = '0'
+    if env.get('BB_AS_0_3') == '1':
+        values.update(BB_PC_MODEL='0', BB_HOST_COPY_WAITS='all', BB_PRODUCER_CHECK='1')
     if s['fsr411_dir']:
         values['BB_FSR411_DIR'] = s['fsr411_dir']
     if s['radv']:
         values.update(AMD_VULKAN_ICD='RADV', RADV_PERFTEST='sam', RADV_TEX_ANISO='16',
-                      VK_LOADER_LAYERS_DISABLE='~implicit~')
+                      VK_LOADER_LAYERS_DISABLE='' if env.get('MANGOHUD') == '1' else '~implicit~')
         for name in ('radeon_icd.x86_64.json', 'radeon_icd.json'):
             icd = Path('/usr/share/vulkan/icd.d') / name
             if icd.is_file():
@@ -314,6 +438,7 @@ def publish_profile(profile):
                   '    ' + shlex.join(diagnostic + ['--stage']), 'fi']
         # Change only the app0 argument, not any arbitrary equal path in a wrapper.
         command[command.index('--app0') + 1] = str(target)
+    lines += shell_logging_lines(profile)
     lines += ['cd -- ' + quote(str(ROOT)), '[[ ${1:-} != -- ]] || shift', 'exec ' + shlex.join(command) + ' "$@"']
     (out / 'launch.sh').write_text('\n'.join(lines) + '\n')
     CONFIG.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -426,14 +551,26 @@ def install_shortcuts(on_desktop=False, download_icon=False):
     return entries
 
 
+def cancellable_setup(game, settings):
+    import signal
+    def interrupted(*_):
+        raise KeyboardInterrupt
+    previous = signal.signal(signal.SIGTERM, interrupted)
+    try:
+        return setup(game, settings)
+    finally:
+        signal.signal(signal.SIGTERM, previous)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='action', required=True)
     prepare = commands.add_parser('setup')
     prepare.add_argument('game', nargs='?')
     prepare.add_argument('--gui', action='store_true')
+    prepare.add_argument('--performance-profile', choices=['144', '60'])
     prepare.add_argument('--fps', choices=['30', '60', '90', '120', '144', '165', 'uncap'])
-    prepare.add_argument('--upscaler', choices=['off', 'fsr3', 'fsr411'])
+    prepare.add_argument('--upscaler', choices=['off', 'fsr3', 'fsr4', 'fsr411', 'taa', 'dlss'])
     for key in ('render-res', 'output-res', 'fsr411-dir', 'mods-dir', 'mods-config', 'patches-dir', 'patches-config'):
         prepare.add_argument('--' + key)
     for key in ('ramdisk', 'gamemode', 'gamescope', 'pinning'):
@@ -455,7 +592,9 @@ def main(argv=None):
                 parser.error('setup requires GAME_DIR or --gui')
             settings = preferences()
             settings.update({k: v for k, v in vars(args).items() if k in DEFAULTS and v is not None})
-            setup(args.game, settings)
+            if args.performance_profile:
+                settings = performance_settings(settings, args.performance_profile)
+            cancellable_setup(args.game, settings)
         elif args.action == 'desktop':
             install_shortcuts(on_desktop=args.desktop, download_icon=args.download_icon)
         else:
@@ -470,12 +609,15 @@ def main(argv=None):
                 extra = extra[1:]
             command, env = launch_command(profile, app0, extra)
             if args.dry_run:
-                print(json.dumps(dict(command=command, environment={k: v for k, v in env.items()
-                      if k.startswith(('BB_', 'RADV_', 'MESA_', 'AMD_VULKAN', 'VK_'))}), indent=2))
+                print(json.dumps(dict(command=command, environment=public_environment(env)), indent=2))
                 return 0
             check_runtime_requirements(profile)
+            configure_logging(profile, env)
             os.chdir(ROOT)
             os.execvpe(command[0], command, env)
+    except KeyboardInterrupt:
+        print('Cachyborne: preparación cancelada; perfil anterior conservado.', file=sys.stderr)
+        return 130
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
         print(f'Cachyborne: {error}', file=sys.stderr)
         return 1

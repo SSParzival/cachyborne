@@ -25,6 +25,9 @@ vk::PresentModeKHR RequestedPresentMode() {
     if (name == "Fifo") {
         return vk::PresentModeKHR::eFifo;
     }
+    if (name == "FifoRelaxed") {
+        return vk::PresentModeKHR::eFifoRelaxed;
+    }
     if (name == "Immediate") {
         return vk::PresentModeKHR::eImmediate;
     }

@@ -1,0 +1,62 @@
+/* Bisexual Midnight: active BiMidnight palette, scoped to Cachyborne windows. */
+@define-color midnight_bg #140e1a;
+@define-color midnight_panel #1b1526;
+@define-color midnight_card #241e34;
+@define-color midnight_text #f7eafb;
+@define-color midnight_muted #b4a4c3;
+@define-color midnight_pink #ea59a3;
+@define-color midnight_purple #ab6ef6;
+@define-color midnight_blue #608cf6;
+.cachyborne {
+  background: @midnight_bg; color: @midnight_text;
+  --window-bg-color: #140e1a; --window-fg-color: #f7eafb;
+  --view-bg-color: #140e1a; --view-fg-color: #f7eafb;
+  --headerbar-bg-color: #1b1526; --headerbar-fg-color: #f7eafb;
+  --card-bg-color: #241e34; --card-fg-color: #f7eafb;
+  --popover-bg-color: #241e34; --popover-fg-color: #f7eafb;
+  --dialog-bg-color: #1b1526; --dialog-fg-color: #f7eafb;
+  --accent-bg-color: #763c73; --accent-fg-color: #ffffff; --accent-color: #ea59a3;
+  --sidebar-bg-color: #1b1526; --sidebar-fg-color: #f7eafb;
+}
+.cachyborne headerbar { background: @midnight_panel; box-shadow: none; }
+.cachyborne .pride-line { min-height: 4px; background: linear-gradient(to right, #ea59a3 0%, #ea59a3 33%, #ab6ef6 33%, #ab6ef6 66%, #608cf6 66%, #608cf6 100%); }
+.cachyborne .sidebar { background: @midnight_panel; border-right: 1px solid alpha(@midnight_purple,.14); padding: 26px 16px; }
+.cachyborne .brand { font-weight: 900; font-size: 17px; letter-spacing: 2px; }
+.cachyborne .eyebrow { font-size: 10px; letter-spacing: 2px; font-weight: 800; color: @midnight_pink; }
+.cachyborne .muted { color: @midnight_muted; }
+.cachyborne .small { font-size: 11px; }
+.cachyborne .nav-button { background: transparent; border: none; box-shadow: none; padding: 13px 12px; border-radius: 12px; color: @midnight_muted; }
+.cachyborne .nav-button:hover { background: alpha(@midnight_purple,.08); color: @midnight_text; }
+.cachyborne .nav-button:checked { background: alpha(@midnight_pink,.14); color: #f8c0e1; box-shadow: inset 3px 0 @midnight_pink; }
+.cachyborne .sidebar-foot { padding: 16px 10px; border-top: 1px solid alpha(@midnight_purple,.15); }
+.cachyborne .page-title { font-size: 28px; font-weight: 800; letter-spacing: -.5px; }
+.cachyborne .hero { padding: 30px; border-radius: 22px; background: linear-gradient(120deg, #381e39, #211932 55%, #19223b); border: 1px solid alpha(@midnight_pink,.26); }
+.cachyborne .hero-title { font-size: 36px; font-weight: 900; letter-spacing: -1px; }
+.cachyborne .hero-art { border-radius: 16px; opacity: .85; }
+.cachyborne .pill { border-radius: 20px; background: alpha(@midnight_purple,.12); color: #ddc6fc; padding: 6px 12px; font-size: 11px; font-weight: 600; }
+.cachyborne .ready { color: #9ee0bc; background: alpha(#7cd1a3,.09); }
+.cachyborne .metric { padding: 21px; border-radius: 16px; background: @midnight_panel; border: 1px solid alpha(@midnight_purple,.16); }
+.cachyborne .metric-value { font-size: 29px; font-weight: 800; }
+.cachyborne .pink { color: @midnight_pink; }
+.cachyborne .purple { color: @midnight_purple; }
+.cachyborne .blue { color: @midnight_blue; }
+.cachyborne .info-card { background: @midnight_panel; border: 1px solid alpha(@midnight_purple,.16); border-radius: 16px; padding: 20px; }
+.cachyborne .info-title { font-size: 16px; font-weight: 700; }
+.cachyborne .primary-action { background: linear-gradient(to right, #a64283, #763c93); color: white; border: 1px solid alpha(@midnight_pink,.5); border-radius: 12px; padding: 12px 22px; font-weight: 700; box-shadow: none; }
+.cachyborne .primary-action:hover { background: linear-gradient(to right, #bc4c94, #8950aa); }
+.cachyborne .secondary-action { background: @midnight_card; color: @midnight_text; border: 1px solid alpha(@midnight_purple,.25); border-radius: 10px; padding: 10px 16px; box-shadow: none; }
+.cachyborne button:focus-visible { outline: 2px solid @midnight_blue; outline-offset: 2px; }
+.cachyborne .action-bar { background: @midnight_panel; padding: 14px 24px; border-top: 1px solid alpha(@midnight_purple,.15); }
+.cachyborne .boxed-list { background: @midnight_card; border: 1px solid alpha(@midnight_purple,.12); border-radius: 14px; box-shadow: none; }
+.cachyborne .boxed-list > row { padding: 10px 12px; min-height: 40px; background: transparent; color: @midnight_text; border-bottom-color: alpha(@midnight_purple,.10); }
+.cachyborne .boxed-list > row:hover { background: alpha(@midnight_purple,.05); }
+.cachyborne .boxed-list .title { font-size: 14px; font-weight: 500; }
+.cachyborne .boxed-list .subtitle { color: @midnight_muted; font-size: 12px; font-weight: 400; }
+.cachyborne switch:checked { background: #9e477f; border-color: @midnight_pink; }
+.cachyborne .console { background: #100b16; color: #d6c4e6; padding: 14px; font-family: monospace; font-size: 11px; border-radius: 12px; }
+.cachyborne .console text { background: #100b16; color: #d6c4e6; }
+.cachyborne progressbar progress { background: linear-gradient(to right, @midnight_pink, @midnight_purple, @midnight_blue); }
+.cachyborne progressbar trough { background: @midnight_card; min-height: 5px; border-radius: 8px; }
+.cachyborne .step-number { color: @midnight_pink; background: alpha(@midnight_pink,.10); border-radius: 18px; padding: 8px 13px; font-weight: 800; }
+
+.cachyborne scrollbar slider { min-width: 6px; min-height: 6px; margin: 0; border: none; }

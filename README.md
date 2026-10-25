@@ -1,4 +1,4 @@
-# Cachyborne — Bloodborne native for CachyOS
+# Cachyborne 0.7.0 — Bisexual Midnight for CachyOS
 
 Linux-native Bloodborne runtime specialized for **CachyOS, 16 GB of system RAM,
 Intel Core i5-14600KF and AMD Radeon RX 9070 XT with Mesa RADV**. Based on
@@ -40,8 +40,7 @@ versions during the build; the first build needs network access.
 ## Prepare once, launch directly
 
 ```bash
-cachyborne-setup /path/to/CUSA03173 --no-ramdisk --fps 60 \
-    --upscaler fsr3 --render-res 1920x1080 --output-res 2560x1440
+cachyborne-setup /path/to/CUSA03173 --performance-profile 144
 cachyborne-launch
 ```
 
@@ -69,6 +68,33 @@ The GUI has separate setup, play and shortcut actions. Save preferences and run
 Setup to publish them; Play uses the last successfully prepared profile. The two desktop entries open the game and settings separately. The game
 shortcut launches directly without opening the settings hub.
 It can also be added to Steam as a non-Steam application.
+
+## The Midnight control center
+
+The GTK4/Libadwaita interface matches the BiMidnight palette: near-black violet
+surfaces, lavender text and pink, purple and blue accents. A sidebar separates
+home, performance, graphics/audio, controls and setup. Native high-contrast mode
+keeps its accessible appearance. GTK 4.16+ and Libadwaita 1.6+ are required;
+current CachyOS packages provide them.
+
+**Controles y extras → Abrir configuración completa** opens the complete original
+bbport GTK editor with the same theme. All original settings remain available:
+controller/keyboard remapping and mouse options, game/UI language, display/GPU,
+aspect ratio, effects/LOD, FSR/DLSS asset tools, custom FPS limits, mod ordering,
+XML patches, online accounts and diagnostics. Choose **Aplicar a Cachyborne**,
+then **Validar y preparar** in the main window. The full INI and environment are
+carried into setup and direct launch; the complete editor does not start a second
+launch workflow. See the [configuration catalog](docs/CONFIGURATION.md).
+
+The recommended profile targets **144 FPS**, with 1440p output and FSR 3.1 Quality
+at 1706×960 internally. Motion blur, chromatic aberration and depth of field are
+disabled. The native FPS counter is enabled. This is a target, not a guarantee
+of sustained frame rate in every area. `--performance-profile 60` provides a
+lower target; all individual options remain editable.
+
+Setup shows file-validation progress and supports cancellation. A failed or
+cancelled preparation retains the previous profile. Game-side INI changes newer
+than the GUI draft are kept when loading settings, including custom bindings.
 
 ## The 16 GB memory profile
 
@@ -152,6 +178,16 @@ See [research and architecture](RESEARCH_AND_ARCHITECTURE.md) and the
 [CachyOS guide](docs/CACHYOS.md) for implementation details and measured limits.
 Launcher overhead measurements exclude game initialization and cold asset copies;
 they do not establish gameplay FPS or prove stutter-free traversal.
+
+## Releases
+
+[Version 0.7.0 notes](docs/RELEASE_0.7.0.md) and the
+[validation record](docs/VALIDATION_0.7.0.md) describe the source distribution and
+validation scope. Source release assets include the pinned submodules and a
+SHA256SUMS file. Extract the source archive and run `./cachyborne-install.sh`;
+the installer builds for the local CPU. Game files, saves and account data are
+never included. `python3 scripts/package-release.py` packages tracked sources
+and submodules only.
 
 ## Credits and license
 

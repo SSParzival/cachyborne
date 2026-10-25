@@ -10,8 +10,7 @@ launch installs packages or compiles the project. `./cachyborne-install.sh --use
 uses existing system/private-prefix dependencies without administrator access.
 
 ```bash
-cachyborne-setup /path/to/decrypted/app0 --fps 120 --upscaler fsr3 \
-    --render-res 1920x1080 --output-res 2560x1440
+cachyborne-setup /path/to/decrypted/app0 --performance-profile 144
 cachyborne-launch --dry-run
 cachyborne-launch
 ```
@@ -32,6 +31,12 @@ setup. Mod generations retain a symlink view of the source assets; keep both
 the original app0 and the selected mod files in place. They are never modified.
 FSR 4.1.1 selection checks the relevant replay assets; prepare these separately
 with `tools/fsr4cap/build_assets.sh` using your own required inputs.
+
+The Midnight GTK control center also exposes the complete original bbport editor
+through Controles y extras. Apply those settings to Cachyborne, then run Setup;
+all INI keys, bindings, mod/patch selections and launch variables are preserved.
+See [the configuration catalog](CONFIGURATION.md). The recommended 144 FPS target
+uses FSR 3.1 Quality at 1706x960 with 2560x1440 output; sustained FPS must be measured.
 
 Setup publishes a symlink to a generation containing both the JSON profile and
 a safely quoted Bash execution plan. Warm direct launch does not start Python.
@@ -106,8 +111,11 @@ already active scx_lavd/scx_bpfland. Enable it through CachyOS's scheduler manag
 before launch. The runner does not replace the system scheduler or start privileged
 services. Existing ananicy-cpp rules can identify the executable as `bb-probe`.
 
-The new direct path is offline and starts no community server or authentication
-helper. Original online tooling remains in the repository for separate use.
+The default direct path is offline and starts no community server or authentication
+helper. Online accounts and options are available in the complete editor. When
+enabled, setup prepares routing files and selects the online module; server
+connections occur when the game runs. Local server fallback processes are not
+started automatically.
 
 ## Desktop and verification
 

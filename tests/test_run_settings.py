@@ -59,7 +59,7 @@ class PreparedLaunchTests(unittest.TestCase):
         runner.atomic_json(self.config / 'settings.json', dict(fps='165'))
         with patch.object(runner, 'CONFIG', self.config):
             self.assertEqual(runner.preferences()['fps'], '165')
-            self.assertEqual(runner.load_profile()['settings']['fps'], '60')
+            self.assertEqual(runner.load_profile()['settings']['fps'], '144')
 
     def test_wrappers_keep_argument_boundaries_and_environment_overrides(self):
         self.profile['settings'].update(gamemode=True, gamescope=True, hdr=True, vrr=True, fps='165')
@@ -269,3 +269,73 @@ class PreparedLaunchTests(unittest.TestCase):
              patch('urllib.request.urlopen', return_value=response):
             path = runner.download_desktop_icon()
         self.assertEqual(path.read_bytes()[:8], b'\x89PNG\r\n\x1a\n')
+
+    def test_recommended_144_profile_preserves_user_bindings_and_paths(self):
+        settings = runner.DEFAULTS | {'mods_dir': '/mods', 'user_dir': '/saves',
+                                     'runtime_ini': {'key.cross': 'X', 'mouse_sensitivity': '1.5'},
+                                     'runtime_env': {'BB_FPS': '60', 'BB_LANGUAGE': '3'}}
+        recommended = runner.performance_settings(settings)
+        self.assertEqual(recommended['fps'], '144')
+        self.assertEqual(recommended['render_res'], '1706x960')
+        self.assertEqual(recommended['upscaler'], 'fsr3')
+        self.assertEqual(recommended['runtime_ini']['preset'], '1')
+        self.assertEqual(recommended['runtime_ini']['key.cross'], 'X')
+        self.assertEqual(recommended['user_dir'], '/saves')
+        self.assertNotIn('BB_FPS', recommended['runtime_env'])
+        self.assertEqual(recommended['runtime_env']['BB_LANGUAGE'], '3')
+        self.assertEqual(settings['runtime_env']['BB_FPS'], '60')
+
+    def test_complete_editor_environment_reaches_prepared_launch(self):
+        self.profile['settings']['runtime_env'] = {'BB_LANGUAGE': '3', 'BB_DISPLAY': 'MSI',
+                                                   'BB_DRAW_PIPE': '0', 'BB_READBACKS': '2',
+                                                   'BB_PC_MODEL': '0', 'MANGOHUD': '1'}
+        _, env = runner.launch_command(self.profile, base_env={})
+        self.assertEqual(env['BB_LANGUAGE'], '3')
+        self.assertEqual(env['BB_DISPLAY'], 'MSI')
+        self.assertEqual(env['BB_DRAW_PIPE'], '0')
+        self.assertEqual(env['BB_GUEST_IN_PLACE'], '0')
+        self.assertEqual(env['VK_LOADER_LAYERS_DISABLE'], '')
+
+    def test_live_resolution_unsets_fixed_guest_dimensions(self):
+        self.profile['settings']['runtime_ini'] = {'live_resolution': '1'}
+        _, env = runner.launch_command(self.profile, base_env={})
+        self.assertEqual(env['BB_RENDER_RES'], '')
+        self.assertEqual(env['BB_OUTPUT_RES'], '')
+
+    def test_runtime_settings_cannot_inject_ini_lines_or_shell_assignments(self):
+        for key, value in [('runtime_env', {'BAD;name': 'value'}),
+                           ('runtime_ini', {'key.cross': 'X\nupscaler=off'})]:
+            settings = runner.DEFAULTS | {key: value}
+            with self.assertRaises(ValueError):
+                runner.validate_settings(settings)
+
+    def test_dry_run_redacts_online_credentials(self):
+        result = runner.public_environment({'BB_THD_TOKEN': 'private', 'BB_SHADNET_PASSWORD': 'password',
+                                            'BB_FPS': '144'})
+        self.assertEqual(result['BB_THD_TOKEN'], '[redacted]')
+        self.assertEqual(result['BB_SHADNET_PASSWORD'], '[redacted]')
+        self.assertEqual(result['BB_FPS'], '144')
+
+    def test_in_game_ini_changes_are_loaded_without_discarding_bindings(self):
+        (self.out / 'bbport.ini').write_text('upscaler=taa\noutput_res=1920x1080\nkey.cross=Z\nmouse_sensitivity=1.75\n')
+        with patch.object(runner, 'CONFIG', self.config):
+            settings = runner.preferences()
+        self.assertEqual(settings['upscaler'], 'taa')
+        self.assertEqual(settings['runtime_ini']['key.cross'], 'Z')
+        self.assertEqual(settings['runtime_ini']['mouse_sensitivity'], '1.75')
+
+    def test_advanced_validation_bypass_is_rejected_before_ingestion(self):
+        settings = runner.DEFAULTS | {'runtime_env': {'BB_SKIP_GAME_CHECK': '1'}}
+        with self.assertRaisesRegex(RuntimeError, 'validation'):
+            runner.setup(self.game, settings)
+
+    def test_newer_in_game_bindings_override_stale_editor_draft(self):
+        runner.atomic_json(self.config / 'settings.json', {'runtime_ini': {'key.cross': 'X'}})
+        (self.out / 'bbport.ini').write_text('key.cross=Z\n')
+        os.utime(self.config / 'settings.json', ns=(1000, 1000))
+        os.utime(self.out / 'bbport.ini', ns=(2000, 2000))
+        with patch.object(runner, 'CONFIG', self.config):
+            self.assertEqual(runner.preferences()['runtime_ini']['key.cross'], 'Z')
+        os.utime(self.config / 'settings.json', ns=(3000, 3000))
+        with patch.object(runner, 'CONFIG', self.config):
+            self.assertEqual(runner.preferences()['runtime_ini']['key.cross'], 'X')
