@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Cachyborne — Bloodborne
+Exec=cachyborne-launch
+Icon=applications-games
+Terminal=false
+Categories=Game;

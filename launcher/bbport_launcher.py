@@ -9,6 +9,11 @@ Russian, English, Brazilian Portuguese and Simplified Chinese (bbport_i18n: the 
 text is the key).
 """
 
+if __name__ == "__main__":
+    import os as _os, sys as _sys
+    from pathlib import Path as _Path
+    _os.execv(_sys.executable, [_sys.executable, str(_Path(__file__).with_name("cachyborne_gui.py")), *_sys.argv[1:]])
+
 import json
 import math
 import shutil

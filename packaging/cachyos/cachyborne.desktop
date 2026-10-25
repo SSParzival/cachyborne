@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Cachyborne — Configuración
+Exec=cachyborne-gui
+Icon=applications-games
+Terminal=false
+Categories=Game;Settings;
