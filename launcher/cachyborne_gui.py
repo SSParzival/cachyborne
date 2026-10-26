@@ -92,9 +92,12 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         shell.append(footer)
         self.connect('close-request', self.on_close)
         self.autosave_source = None
+        self.updating_widgets = False
         for key, (widget, kind, _) in self.widgets.items():
             event = {'entry':'changed', 'switch':'notify::active', 'combo':'notify::selected', 'spin':'notify::value'}[kind]
             widget.connect(event, self.queue_autosave)
+            if key in ('ini.preset', 'upscaler', 'output_res'):
+                widget.connect(event, self.on_scaling_changed)
         self.refresh_status()
         self.navigate('setup' if '--setup' in sys.argv else 'home')
 
@@ -295,6 +298,7 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         previous = core.read_json(core.CONFIG / 'game_profile.json', {})
         self.path.set_text(self.settings.get('game') or previous.get('source_game', previous.get('game', '')))
         self.register('game', self.path, lambda: self.path.get_text().strip(), 'entry')
+        self.path.connect('changed', self.update_languages)
         game.add(self.path)
         buttons = Gtk.Box(spacing=10)
         buttons.append(action('Seleccionar carpeta', self.choose, icon='folder-open-symbolic'))
@@ -336,12 +340,15 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         return settings
 
     def set_widgets(self):
+        self.updating_widgets = True
         for key, (widget, kind, values) in self.widgets.items():
             value = self.current(key)
             if kind == 'switch': widget.set_active(value == '1' if key.startswith('ini.') else bool(value))
             elif kind == 'entry': widget.set_text(str(value))
             elif kind == 'spin': widget.set_value(float(value or 0))
             elif kind == 'combo': widget.set_selected(values.index(value) if value in values else 0)
+
+        self.updating_widgets = False
 
     def apply_recommended(self):
         try:
@@ -374,6 +381,9 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         try: core.save_preferences(self.collect())
         except OSError as error: self.report(f'No se pudo guardar el borrador: {error}')
         return GLib.SOURCE_REMOVE
+
+    def on_scaling_changed(self, *_):
+        if not self.updating_widgets: self.calculate_resolution()
 
     def calculate_resolution(self):
         try:

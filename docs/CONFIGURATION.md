@@ -12,11 +12,11 @@ editable settings; the menu language field does not translate the GTK interface.
 | Save, mod and patch paths | Mods y parches | Persistent save directory; selected content |
 | Monitor and Vulkan GPU | Avanzado | SDL display name/index and Vulkan device selection; hardware detection button lists valid values |
 | Fullscreen, HDR, presentation | Imagen y sonido / Rendimiento | Native presentation and optional Gamescope wrapper |
-| Output/internal resolution, aspect ratio, live resolution | Imagen y sonido / Avanzado | Explicit internal resolution; use Calcular resolución interna desde el preset after changing quality to derive it |
+| Output/internal resolution, aspect ratio, live resolution | Imagen y sonido / Avanzado | Preset changes derive internal dimensions automatically; custom sizes remain editable; AMD GTT capacity checked |
 | FPS mode and custom cap | Imagen y sonido | Original 30/60/90 modes and uncapped patch with custom cap for higher targets |
 | FSR 3.1, FSR 4, FSR 4.1.1, TAA, DLSS, quality and RCAS | Imagen y sonido / Avanzado | INI and external asset selection; FSR 4 download, DLL-based FSR 4.1.1 preparation, Linux DLSS import/removal |
 | Motion vectors, FPS counter, LOD and all 11 original effect/debug switches | Imagen y sonido / Avanzado | Original settings and patch compiler |
-| Game and game-menu language | Avanzado | PS4 language code and menu locale |
+| Game and game-menu language | Avanzado | Installed message archives only; Spanish default and separate menu locale |
 | Controller and all 44 keyboard/pad bindings | Controles | SDL names, native capture/reset buttons, sensitivity/inversion; empty binding explicitly unassigns |
 | Mods and load order | Mods y parches | Ordered switches and move buttons; last enabled mod wins |
 | XML patch selection | Mods y parches | Version-filtered switches; selection snapshotted per setup generation |

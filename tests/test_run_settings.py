@@ -23,6 +23,10 @@ class PreparedLaunchTests(unittest.TestCase):
         self.game = self.root / 'game with spaces'
         self.game.mkdir()
         (self.game / 'eboot.bin').write_bytes(b'game')
+        messages = self.game / 'dvdroot_ps4/msg/spaar'
+        messages.mkdir(parents=True)
+        for archive in ('item.msgbnd.dcx', 'menu.msgbnd.dcx'):
+            (messages / archive).write_bytes(b'messages')
         self.out = self.root / 'prepared'
         self.out.mkdir()
         for name in runner.ARTIFACTS:
@@ -72,6 +76,25 @@ class PreparedLaunchTests(unittest.TestCase):
         self.assertIn(str(self.game), command)
         self.assertEqual(env['RADV_PERFTEST'], 'custom')
         self.assertEqual(env['BB_FPS_LIMIT'], '165')
+
+    def test_high_fps_targets_use_free_timestep_hook_and_separate_cap(self):
+        for target in ('120', '144', '165'):
+            self.profile['settings'] = runner.DEFAULTS | {'fps': target, 'runtime_env': {}}
+            _, env = runner.launch_command(self.profile, base_env={})
+            self.assertEqual(env['BB_FPS'], 'uncap')
+            self.assertEqual(env['BB_FPS_LIMIT'], target)
+
+    def test_generated_direct_plan_rejects_a_shrinking_gtt_budget(self):
+        budget = self.root / 'gtt-budget'
+        budget.write_text(str(16 * 1024**3))
+        self.profile['settings'] = runner.DEFAULTS | {'render_res': '2560x1440', 'runtime_env': {}}
+        with patch.object(runner, 'CONFIG', self.config), \
+             patch.object(runner, 'amd_gtt_budget', return_value=(16 * 1024**3, budget)):
+            runner.publish_profile(self.profile)
+        budget.write_text('1024')
+        result = subprocess.run(['bash', str(self.out / 'launch.sh')], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('Insufficient AMD GTT budget', result.stderr)
 
     def test_failed_setup_preserves_previous_profile(self):
         sys.path.insert(0, str(ROOT / 'scripts'))

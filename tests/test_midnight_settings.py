@@ -129,6 +129,10 @@ class MidnightSettingsTests(unittest.TestCase):
                 game = root / "CUSA03173"
                 game.mkdir()
                 (game / "eboot.bin").write_bytes(b"eboot")
+                messages = game / "dvdroot_ps4/msg/spaar"
+                messages.mkdir(parents=True)
+                for archive in ("item.msgbnd.dcx", "menu.msgbnd.dcx"):
+                    (messages / archive).write_bytes(b"messages")
                 asset = game / "dvdroot_ps4/chr/a.dcx"
                 asset.parent.mkdir(parents=True)
                 asset.write_bytes(b"base")
@@ -249,10 +253,13 @@ for name in ('A','Long mod name'):
     (mods/name/'dvdroot_ps4').mkdir(parents=True)
 patches=gui.core.DATA/'patches'; patches.mkdir()
 (patches/'test.xml').write_text('<Patches><Metadata Name="Patch" AppVer="01.09" AppElf="eboot.bin"/></Patches>')
-s.update(mods_dir=str(mods),patches_dir=str(patches))
+game=gui.core.DATA/'dump'; messages=game/'dvdroot_ps4/msg/spaar'; messages.mkdir(parents=True)
+for name in ('item','menu'): (messages/(name+'.msgbnd.dcx')).write_bytes(b'data')
+s.update(game=str(game),mods_dir=str(mods),patches_dir=str(patches))
 gui.core.save_preferences(s)
 w=gui.Preferences(app)
 assert len(w.mod_rows)==2 and len(w.patch_rows)==1
+assert w.language_values==['20']
 w.move_mod('Long mod name',-1)
 w.mod_rows[0][1].set_active(False)
 w.patch_rows[0][1].set_active(True)
@@ -278,6 +285,10 @@ assert w.save()
 s=w.collect(validate=True)
 assert s['upscaler']=='fsr4' and s['runtime_ini']['preset']=='0'
 assert s['runtime_env']['BB_READBACKS']=='2'
+w.widgets['ini.preset'][0].set_selected(1)
+assert w.fields['render_res']()=='1706x960'
+w.widgets['ini.preset'][0].set_selected(0)
+assert w.fields['render_res']()=='2560x1440'
 assert s['mod_selection']==selection['mod_selection']
 # Reset must survive reloading an older prepared INI containing a custom value.
 prepared=gui.core.DATA/'prepared-test'; prepared.mkdir()

@@ -199,6 +199,33 @@ def public_environment(env):
             for key, value in env.items() if key.startswith(('BB_', 'RADV_', 'MESA_', 'AMD_VULKAN', 'VK_'))}
 
 
+def direct_memory_mb(settings):
+    width, height = map(int, settings['render_res'].split('x'))
+    return 5056 if width * height <= 1920 * 1080 else 9152
+
+
+def amd_gtt_budget(sysfs=Path('/sys/class/drm')):
+    budgets = []
+    for card in sysfs.glob('card[0-9]*'):
+        try:
+            if (card / 'device/vendor').read_text().strip() == '0x1002':
+                budgets.append((int((card / 'device/mem_info_gtt_total').read_text()), card / 'device/mem_info_gtt_total'))
+        except (OSError, ValueError): pass
+    return max(budgets, default=(0, None))
+
+
+def check_memory_budget(settings):
+    env = settings.get('runtime_env', {})
+    if env.get('BB_GUEST_VRAM') == '1' or env.get('BB_PC_MODEL') == '0' or env.get('BB_GUEST_IN_PLACE') == '0': return
+    budget, _ = amd_gtt_budget()
+    required = (direct_memory_mb(settings) + 256 + 512) * 1024**2
+    if budget and required > budget:
+        raise ValueError(f'La resolución interna requiere un pool GPU de {direct_memory_mb(settings)} MiB, '
+                         f'pero GTT dispone de {budget // 1024**2} MiB. '
+                         'Usa como máximo 1916x1078 internos con salida 2560x1440 y FSR 4; '
+                         '1440p nativo supera el presupuesto de este perfil de memoria.')
+
+
 def setup(game, settings=None):
     import copy
     s = copy.deepcopy(preferences() if settings is None else settings)
@@ -224,6 +251,9 @@ def setup(game, settings=None):
     mod_layers = mods.layers_for_game(game, s['mods_dir'] or DATA / 'mods',
                                      s.get('mod_selection', Path(s['mods_config']).expanduser() if s['mods_config'] else CONFIG / 'mods.json'),
                                      s.get('mods_enabled', True))
+    from cachyborne_options import validate_game_language
+    validate_game_language(s, game)
+    check_memory_budget(s)
     image_hash = game_check.image_sha256(game)
     problem = game_check.problem(game, image_hash)
     if problem:
@@ -370,14 +400,13 @@ def launch_command(profile, app0=None, extra=(), base_env=None):
     env = (os.environ if base_env is None else base_env).copy()
     env.update(s.get('runtime_env', {}))
     out = Path(profile['prepared'])
-    render_width, render_height = map(int, s['render_res'].split('x'))
-    direct_mb = '5056' if render_width * render_height <= 1920 * 1080 else '9152'
+    direct_mb = str(direct_memory_mb(s))
     values = dict(BB_CONFIG=str(out / 'bbport.ini'), BB_GPU_USER_DIR=profile['user'],
                   MESA_SHADER_CACHE_DIR=profile['cache'], MESA_SHADER_CACHE_MAX_SIZE='4G',
                   BB_CPU_PINNING='1' if s['pinning'] else '0', BB_P_CPUS=s['p_cpus'], BB_E_CPUS=s['e_cpus'],
                   BB_RENDER_RES=s['render_res'], BB_OUTPUT_RES=s['output_res'],
                   BB_FULLSCREEN='1' if s['fullscreen'] else '0', BB_HDR='1' if s['hdr'] else '0', BB_PRESENT_MODE={'fiforelaxed': 'FifoRelaxed'}.get(s['present_mode'], s['present_mode'].capitalize()),
-                  BB_FPS=s['fps'], BB_FPS_LIMIT=str(s.get('fps_limit') or ('0' if s['fps'] == 'uncap' else s['fps'])),
+                  BB_FPS=s['fps'] if s['fps'] in ('30', '60', '90') else 'uncap', BB_FPS_LIMIT=str(s.get('fps_limit') or ('0' if s['fps'] == 'uncap' else s['fps'])),
                   BB_VBLANK_HZ='60' if s['fps'] == '30' else '1000', BB_DMEM_MB=direct_mb,
                   BB_DMEM_EXTRA_MB='256', BB_RENDER_RESOURCE_CACHE_MB='256', BB_MEMORY_WILLNEED='0', BB_ASYNC_PIPELINE_THREADS='2',
                   BB_PC_MODEL='1', BB_GUEST_IN_PLACE='1', BB_PREUPLOAD='1',
@@ -461,6 +490,14 @@ def publish_profile(profile):
                   '    ' + shlex.join(diagnostic + ['--stage']), 'fi']
         # Change only the app0 argument, not any arbitrary equal path in a wrapper.
         command[command.index('--app0') + 1] = str(target)
+    gtt_budget, gtt_file = amd_gtt_budget()
+    if gtt_budget:
+        required = (direct_memory_mb(profile['settings']) + 256 + 512) * 1024**2
+        lines += ['if [[ ${BB_GUEST_VRAM:-0} != 1 && ${BB_PC_MODEL:-1} != 0 && ${BB_GUEST_IN_PLACE:-1} != 0 && -r ' + quote(str(gtt_file)) + ' ]]; then',
+                  '    gtt_budget=',
+                  '    IFS= read -r gtt_budget < ' + quote(str(gtt_file)) + ' || true',
+                  '    [[ $gtt_budget =~ ^[0-9]+$ && $gtt_budget -ge ' + str(required) + ' ]] || { echo "Insufficient AMD GTT budget; use 1916x1078 internal resolution and run setup." >&2; exit 1; }',
+                  'fi']
     lines += shell_logging_lines(profile)
     lines += ['cd -- ' + quote(str(ROOT)), '[[ ${1:-} != -- ]] || shift', 'exec ' + shlex.join(command) + ' "$@"']
     (out / 'launch.sh').write_text('\n'.join(lines) + '\n')
@@ -475,6 +512,7 @@ def publish_profile(profile):
 
 def check_runtime_requirements(profile):
     s = profile['settings']
+    check_memory_budget(s)
     for key, tool in (('gamemode', 'gamemoderun'), ('gamescope', 'gamescope')):
         if s[key] and not shutil.which(tool):
             raise RuntimeError(f'Missing optional wrapper: {tool}')

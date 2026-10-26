@@ -333,3 +333,27 @@ with explicit preflight asset checks. The local user's FSR 4 Native AA selection
 is preserved rather than replaced with a lower preset. Full RAM staging remains
 off for 16 GB, and a native internal image above 1080p still uses the larger
 9152 MiB direct pool; RAM, PCIe and GPU work retain physical latency.
+
+## 0.7.2: actual game launch and memory-budget correction
+
+A real retail launch reproduced exit 23 with Vulkan device loss, accompanied
+by AMD kernel command-submission out-of-memory messages. Native 1440p selected
+a 9152 MiB guest pool and committed more than the target machine's roughly
+7.68 GiB GTT budget. Disabling full preupload alone was insufficient. Setup
+and newly generated direct plans now check the AMD budget before accepting or
+starting such a configuration. The separate custom internal-resolution field
+also remained native after selecting Quality; preset changes now derive it
+automatically while preserving custom sizes on reload.
+
+Real-game trials used isolated saves and covered the title, character creation,
+opening cinematic and first playable room. A 1916x1078 scene loaded with the
+5056 MiB pool, but a 1706x960 FSR 4 Quality scene better met the 144 FPS priority
+in the measured room. The installed default uses the latter with 1440p output,
+HDR off and preupload off. Game-wide 144 FPS and stutter-free cold caches are
+not certified. A new startup smoke tool requires GPU readback content and
+presented-frame samples rather than treating successful setup as launch proof.
+
+Spanish defaults and language selection are now driven by the actual paired
+item/menu message archives in the chosen dump. The supplied dump has all 21
+catalogued text languages, including both Spanish variants. Unknown directories,
+missing archive pairs and empty files never become selectable languages.

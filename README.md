@@ -1,4 +1,4 @@
-# Cachyborne 0.7.1 — Bisexual Midnight for CachyOS
+# Cachyborne 0.7.2 — Bisexual Midnight for CachyOS
 
 Linux-native Bloodborne runtime specialized for **CachyOS, 16 GB of system RAM,
 Intel Core i5-14600KF and AMD Radeon RX 9070 XT with Mesa RADV**. Based on
@@ -90,9 +90,14 @@ selectable. Sustained 144 FPS depends on the scene and must be measured.
 
 **Usar perfil 144** preserves your selected upscaler, quality, resolution, HDR,
 bindings and content selection. `--performance-profile 60` changes the target
-without discarding those choices. The existing local user's **FSR 4 Native AA,
-2560×1440, HDR and LOD 2** selection was preserved; it uses more GPU and memory
-than Quality and is not a frame-rate guarantee.
+without discarding those choices. Native 1440p uses a larger guest-memory pool
+that exceeds GTT capacity on this 16 GB machine. Setup now rejects that profile
+with a clear error. **FSR 4 with a lower internal resolution and 1440p output**
+was tested with the real game; the original settings were backed up locally.
+The installed personal default uses Quality (1706×960), HDR off and preupload
+off; the first playable room reached 144 FPS in warmed test intervals.
+Changing the quality preset automatically recalculates the internal size;
+custom internal dimensions remain editable.
 
 Widget changes are automatically saved as a draft after a short pause. **Guardar
 ajustes** also saves incomplete forms; invalid fields must be corrected before
@@ -100,6 +105,11 @@ setup, but do not erase the draft or previous prepared game. **Preparar juego �
 Guardar como mis predeterminados** writes `~/.config/cachyborne/defaults.json`;
 **Restaurar mis predeterminados** restores that private snapshot. Drafts,
 credentials and personal defaults are never included in releases.
+
+Setup defaults to **Spanish (Latin America)** when its message archives are
+installed, then falls back to another installed Spanish variant. The language
+selector lists only complete item/menu archive pairs actually present in the
+selected dump. Game text availability does not imply dubbed audio.
 
 Setup shows file-validation progress and supports cancellation. A failed or
 cancelled preparation retains the previous profile. Game-side INI changes newer
@@ -192,8 +202,8 @@ they do not establish gameplay FPS or prove stutter-free traversal.
 
 ## Releases
 
-[Version 0.7.1 notes](docs/RELEASE_0.7.1.md) and the
-[validation record](docs/VALIDATION_0.7.1.md) describe the source distribution and
+[Version 0.7.2 notes](docs/RELEASE_0.7.2.md) and the
+[validation record](docs/VALIDATION_0.7.2.md) describe the source distribution and
 validation scope. Source release assets include the pinned submodules and a
 SHA256SUMS file. Extract the source archive and run `./cachyborne-install.sh`;
 the installer builds for the local CPU. Game files, saves and account data are
@@ -205,3 +215,12 @@ and submodules only.
 This fork builds on bbport, its native runtime and the Vulkan renderer derived
 from shadPS4, plus the third-party projects identified in their source directories
 and `gpu/VENDOR.txt`. Preserve their licenses and attribution. See [LICENSE](LICENSE).
+
+### Real-game startup check
+
+After setup, run `python3 scripts/smoke-game.py --seconds 60`. It copies the save
+directory into a private test directory under `out/`, starts the actual prepared
+game, and requires visible GPU output plus frame statistics without an early
+exit. `--replay /path/to/route` accepts a recorded input route. This requires
+the user's own dump and an active graphical session. It does not certify a full
+playthrough or sustained 144 FPS in every area.

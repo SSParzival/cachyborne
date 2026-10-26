@@ -36,13 +36,13 @@ CONTROL_BINDINGS = [
 ]
 
 LEGACY_DEFAULTS = dict(
-    ui_language="en",
+    ui_language="es",
     game_dir="",
     user_dir="",
     mods_dir="",
     mods_enabled=True,
     patches_dir="",
-    language="1",
+    language="20",
     fullscreen=True,
     hdr=False,
     present_mode="Mailbox",
@@ -313,3 +313,103 @@ def fsr4_problem(directory, output, preset):
             except (ValueError, OSError):
                 return f"Manifiesto FSR 4 dañado: {name}"
     return None
+
+
+# PS4 system-language IDs mapped to the retail game's message archives.
+LANGUAGE_FOLDERS = dict(
+    zip(
+        (
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
+            "11",
+            "12",
+            "13",
+            "14",
+            "15",
+            "16",
+            "17",
+            "18",
+            "19",
+            "20",
+        ),
+        (
+            "jpnjp",
+            "engus",
+            "frafr",
+            "spaes",
+            "deude",
+            "itait",
+            "nldnl",
+            "porpt",
+            "rusru",
+            "korkr",
+            "zhotw",
+            "zhocn",
+            "finfi",
+            "swese",
+            "dandk",
+            "norno",
+            "polpl",
+            "porbr",
+            "enggb",
+            "turtr",
+            "spaar",
+        ),
+    )
+)
+
+
+def available_languages(game):
+    """Only languages with both nonempty item and menu archives in this dump."""
+    root = Path(game).expanduser() / "dvdroot_ps4/msg" if game else None
+    if root is None:
+        return []
+
+    def present(code):
+        folder = root / LANGUAGE_FOLDERS[code]
+        return all(
+            any(
+                (folder / (name + suffix)).is_file()
+                and (folder / (name + suffix)).stat().st_size > 0
+                for suffix in (".msgbnd.dcx", ".msgbnd")
+            )
+            for name in ("item", "menu")
+        )
+
+    return [(code, title) for code, title in LANGUAGES if present(code)]
+
+
+def validate_game_language(settings, game):
+    choices = available_languages(game)
+    if not choices:
+        raise ValueError("No hay archivos de idioma completos en dvdroot_ps4/msg.")
+    available = {code for code, _ in choices}
+    old = settings.setdefault("original_settings", {})
+    requested = str(
+        old.get("language")
+        or settings.get("runtime_env", {}).get("BB_LANGUAGE")
+        or "20"
+    )
+    if requested not in available:
+        if requested in ("3", "20"):
+            requested = next(
+                (code for code in ("20", "3", "1") if code in available), choices[0][0]
+            )
+        else:
+            raise ValueError(
+                f"El idioma {requested} no está disponible en este dump; selecciona uno instalado."
+            )
+    old.update(language=requested, ui_language=old.get("ui_language") or "es")
+    settings.setdefault("runtime_env", {}).update(
+        BB_LANGUAGE=requested, BB_MENU_LANGUAGE=old["ui_language"]
+    )
+    return choices

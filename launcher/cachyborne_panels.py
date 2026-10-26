@@ -341,13 +341,16 @@ class NativePanels:
             "Todos los controles originales en la misma interfaz Midnight.",
         )
         hardware = self.group(page, "Idioma y dispositivo")
-        self.combo(
+        choices = options.available_languages(self.settings.get("game", ""))
+        self.language_values = [code for code, _ in choices] or [""]
+        self.language_row = self.combo(
             hardware,
             "legacy.language",
             "Idioma del juego",
-            [v for v, _ in options.LANGUAGES],
-            [t for _, t in options.LANGUAGES],
+            self.language_values,
+            [name for _, name in choices] or ["Selecciona primero un dump"],
         )
+        self.language_row.set_sensitive(bool(choices))
         self.entry(
             hardware,
             "legacy.ui_language",
@@ -549,3 +552,23 @@ class NativePanels:
             self.report("Biblioteca DLSS local actualizada.")
         except (OSError, ValueError) as error:
             self.report(str(error))
+
+    def update_languages(self, *_):
+        choices = options.available_languages(self.path.get_text().strip())
+        current = self.fields["legacy.language"]()
+        self.language_values[:] = [code for code, _ in choices] or [""]
+        self.language_row.set_model(
+            Gtk.StringList.new(
+                [name for _, name in choices] or ["Selecciona primero un dump"]
+            )
+        )
+        preferred = (
+            current
+            if current in self.language_values
+            else next(
+                (code for code in ("20", "3", "1") if code in self.language_values),
+                self.language_values[0],
+            )
+        )
+        self.language_row.set_selected(self.language_values.index(preferred))
+        self.language_row.set_sensitive(bool(choices))

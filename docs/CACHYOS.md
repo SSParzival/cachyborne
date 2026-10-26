@@ -41,6 +41,10 @@ pages, including all bindings, mods/patches, online/account tools and diagnostic
 Save your settings, then run Setup; no separate editor or import step is needed.
 See [the configuration catalog](CONFIGURATION.md). The recommended 144 FPS target
 uses FSR 4 Quality at 1706x960 with 2560x1440 output; sustained FPS must be measured.
+The 9152 MiB native-1440p pool exceeds the GTT capacity on the 16 GB target;
+setup now rejects it. A 1916x1078 custom internal scene also fits the smaller
+pool and was tested in the real game. Spanish selection is restricted to
+complete message-archive pairs present in the chosen dump.
 
 Setup publishes a symlink to a generation containing both the JSON profile and
 a safely quoted Bash execution plan. Warm direct launch does not start Python.
