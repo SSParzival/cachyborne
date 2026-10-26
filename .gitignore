@@ -26,6 +26,7 @@ mods.json
 patches.json
 # Local: game logs, messages and archives from users, internal plans
 /logs/
+/CUSA03173
 /message*.txt
 /*.zip
 /docs/ISSUE_ACTION_PLAN_*.md
