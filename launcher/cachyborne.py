@@ -19,7 +19,7 @@ CONFIG = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'cac
 DATA = Path(os.environ.get('XDG_DATA_HOME', Path.home() / '.local/share')) / 'cachyborne'
 RAM_ROOT = Path('/dev/shm') / f'cachyborne_ram_{os.getuid()}'
 CACHE = Path(os.environ.get('XDG_CACHE_HOME', Path.home() / '.cache')) / 'cachyborne'
-DEFAULTS = dict(memory_profile='16gb', pinning=True, p_cpus='0-11', e_cpus='12-19', ramdisk=False,
+DEFAULTS = dict(voice_language='eng', memory_profile='16gb', pinning=True, p_cpus='0-11', e_cpus='12-19', ramdisk=False,
                 gamemode=False, radv=True, gamescope=False, hdr=False, vrr=False,
                 gamescope_fsr=False, width=2560, height=1440, fps='144', fps_limit=0,
                 upscaler='fsr4', output_res='2560x1440', render_res='1706x960',
@@ -27,7 +27,7 @@ DEFAULTS = dict(memory_profile='16gb', pinning=True, p_cpus='0-11', e_cpus='12-1
                 scheduler='current', fsr4_dir='', fsr411_dll='', fsr411_loader='', dlss_library='', fsr411_dir='', mods_dir='', mods_enabled=True, mods_config='',
                 patches_dir='', patches_config='', user_dir='', runtime_env={}, original_settings={},
                 runtime_ini={'preset': '1', 'sharpen': '1', 'sharpness': '0.35', 'object_motion': '1',
-                             'show_fps': '1', 'live_resolution': '0', 'effect_chromatic_aberration': '0', 'effect_dof': '0',
+                             'show_fps': '1', 'menu_language': 'es', 'live_resolution': '0', 'effect_chromatic_aberration': '0', 'effect_dof': '0',
                              'effect_motion_blur': '0', 'skip_intro': '1'})
 ICON_URL = ('https://image.api.playstation.com/vulcan/img/rnd/202010/2614/'
             'O2Z66UWrZH8zcejxopwWxhGu.png?w=512&h=512')
@@ -97,11 +97,16 @@ def performance_settings(current=None, target='144'):
     settings = copy.deepcopy(DEFAULTS if current is None else DEFAULTS | current)
     settings['runtime_ini'] = dict(DEFAULTS['runtime_ini']) | settings.get('runtime_ini', {})
     settings.update(fps=target, fps_limit=int(target), pinning=True, ramdisk=False, radv=True)
-    settings['upscaler'] = current.get('upscaler', 'fsr4') if current else 'fsr4'
+    settings.update(upscaler='fsr4', output_res='2560x1440', render_res='1706x960',
+                    width=2560, height=1440, p_cpus='0-11', e_cpus='12-19',
+                    voice_language='eng', present_mode='mailbox')
+    settings['original_settings'] = dict(settings.get('original_settings', {})) | dict(language='20', ui_language='es', memory_model='auto', as_0_3=False)
+    settings['runtime_ini'].update(menu_language='es', preset='1', effect_chromatic_aberration='0', effect_dof='0', effect_motion_blur='0', live_resolution='0')
     settings['runtime_ini'].update(upscaler=settings['upscaler'], output_res=settings['output_res'])
     # Clear conflicting old editor overrides when explicitly applying a recommended preset.
     for key in ('BB_FPS', 'BB_FPS_LIMIT', 'BB_UPSCALER', 'BB_UPSCALE_PRESET', 'BB_RENDER_RES',
-                'BB_OUTPUT_RES', 'BB_PC_MODEL', 'BB_GUEST_IN_PLACE', 'BB_AS_0_3'):
+                'BB_OUTPUT_RES', 'BB_PC_MODEL', 'BB_GUEST_IN_PLACE', 'BB_AS_0_3', 'BB_VOICE_LANGUAGE',
+                'BB_LANGUAGE', 'BB_MENU_LANGUAGE', 'BB_PRESENT_MODE', 'BB_P_CPUS', 'BB_E_CPUS'):
         settings['runtime_env'].pop(key, None)
     return settings
 
@@ -115,6 +120,9 @@ def validate_settings(s):
             bounds = list(map(int, span.split('-')))
             if not (0 <= bounds[0] <= bounds[-1] < 1024):
                 raise ValueError(f'Invalid CPU range: {key}={span}')
+    from cachyborne_options import VOICE_LANGUAGES
+    if s.get('voice_language', 'eng') not in dict(VOICE_LANGUAGES):
+        raise ValueError('Idioma de voces no compatible')
     if s['memory_profile'] != '16gb':
         raise ValueError('Unsupported memory profile; expected 16gb')
     if s['fps'] not in ('30', '60', '90', '120', '144', '165', 'uncap'):
@@ -215,6 +223,8 @@ def amd_gtt_budget(sysfs=Path('/sys/class/drm')):
 
 
 def check_memory_budget(settings):
+    if settings.get('memory_profile') == '16gb' and direct_memory_mb(settings) > 5056:
+        raise ValueError('El perfil de 16 GB admite hasta 1920x1080 internos (o 1916x1078); usa FSR para salida 1440p/4K. El pool de 9152 MiB excede el presupuesto seguro.')
     env = settings.get('runtime_env', {})
     if env.get('BB_GUEST_VRAM') == '1' or env.get('BB_PC_MODEL') == '0' or env.get('BB_GUEST_IN_PLACE') == '0': return
     budget, _ = amd_gtt_budget()
@@ -224,6 +234,27 @@ def check_memory_budget(settings):
                          f'pero GTT dispone de {budget // 1024**2} MiB. '
                          'Usa como máximo 1916x1078 internos con salida 2560x1440 y FSR 4; '
                          '1440p nativo supera el presupuesto de este perfil de memoria.')
+
+
+def preparation_status(settings):
+    """Cheap preliminary checks for the GUI; setup still validates the full dump."""
+    game = Path(settings.get('game') or '').expanduser()
+    for relative in ('eboot.bin', 'sce_sys/param.sfo', 'dvdroot_ps4'):
+        if not (game / relative).exists():
+            return f'Falta {relative}. Selecciona un dump descifrado con la actualización 1.09.'
+    from cachyborne_options import available_languages, fsr4_problem
+    if not available_languages(game):
+        return 'Faltan archivos completos de textos en dvdroot_ps4/msg.'
+    try:
+        check_memory_budget(settings)
+    except ValueError as error:
+        return str(error)
+    if settings.get('upscaler') == 'fsr4':
+        assets = settings.get('fsr4_dir') or settings.get('runtime_env', {}).get('BB_FSR4_DIR') or ROOT / 'fsr4_shaders'
+        issue = fsr4_problem(Path(assets).expanduser(), settings['output_res'], settings.get('runtime_ini', {}).get('preset', '1'))
+        if issue:
+            return issue + '. Al preparar se usará FSR 3.1.'
+    return 'Archivos básicos e idiomas disponibles. Preparar verificará identidad y todos los assets DCX.'
 
 
 def setup(game, settings=None):
@@ -240,8 +271,13 @@ def setup(game, settings=None):
         from cachyborne_options import fsr4_problem
         assets = Path(s.get('fsr4_dir') or s.get('runtime_env', {}).get('BB_FSR4_DIR') or ROOT / 'fsr4_shaders').expanduser().resolve()
         issue = fsr4_problem(assets, s['output_res'], s.get('runtime_ini', {}).get('preset', '1'))
-        if issue: raise RuntimeError(issue + '. Ejecuta tools/fetch_fsr4_assets.sh o selecciona otro escalador.')
-        s.setdefault('runtime_env', {})['BB_FSR4_DIR'] = str(assets)
+        if issue:
+            print(issue + '. Se usará FSR 3.1; instala assets con tools/fetch_fsr4_assets.sh para FSR 4.', file=sys.stderr)
+            s['upscaler'] = 'fsr3'
+            s.setdefault('runtime_ini', {})['upscaler'] = 'fsr3'
+            s.setdefault('runtime_env', {}).pop('BB_UPSCALER', None)
+        else:
+            s.setdefault('runtime_env', {})['BB_FSR4_DIR'] = str(assets)
     game = Path(game).expanduser().resolve(strict=True)
     if not (ROOT / 'out/bb-probe').is_file():
         raise RuntimeError('Build first: bash build.sh')
@@ -253,6 +289,7 @@ def setup(game, settings=None):
                                      s.get('mods_enabled', True))
     from cachyborne_options import validate_game_language
     validate_game_language(s, game)
+    setup_env = os.environ | s.get('runtime_env', {})
     check_memory_budget(s)
     image_hash = game_check.image_sha256(game)
     problem = game_check.problem(game, image_hash)
@@ -402,14 +439,18 @@ def launch_command(profile, app0=None, extra=(), base_env=None):
     out = Path(profile['prepared'])
     direct_mb = str(direct_memory_mb(s))
     values = dict(BB_CONFIG=str(out / 'bbport.ini'), BB_GPU_USER_DIR=profile['user'],
-                  MESA_SHADER_CACHE_DIR=profile['cache'], MESA_SHADER_CACHE_MAX_SIZE='4G',
+                  MESA_SHADER_CACHE_DIR=str(Path(profile['cache']) / 'mesa'), MESA_SHADER_CACHE_MAX_SIZE='4G',
                   BB_CPU_PINNING='1' if s['pinning'] else '0', BB_P_CPUS=s['p_cpus'], BB_E_CPUS=s['e_cpus'],
                   BB_RENDER_RES=s['render_res'], BB_OUTPUT_RES=s['output_res'],
                   BB_FULLSCREEN='1' if s['fullscreen'] else '0', BB_HDR='1' if s['hdr'] else '0', BB_PRESENT_MODE={'fiforelaxed': 'FifoRelaxed'}.get(s['present_mode'], s['present_mode'].capitalize()),
                   BB_FPS=s['fps'] if s['fps'] in ('30', '60', '90') else 'uncap', BB_FPS_LIMIT=str(s.get('fps_limit') or ('0' if s['fps'] == 'uncap' else s['fps'])),
                   BB_VBLANK_HZ='60' if s['fps'] == '30' else '1000', BB_DMEM_MB=direct_mb,
                   BB_DMEM_EXTRA_MB='256', BB_RENDER_RESOURCE_CACHE_MB='256', BB_MEMORY_WILLNEED='0', BB_ASYNC_PIPELINE_THREADS='2',
-                  BB_PC_MODEL='1', BB_GUEST_IN_PLACE='1', BB_PREUPLOAD='1',
+                  BB_PC_MODEL='1', BB_GUEST_IN_PLACE='1', BB_LAYER_MEMORY='1', BB_PREUPLOAD='1',
+                  BB_ASYNC_SUBMIT='1', BB_VK_RECORD_THREADS='3',
+                  BB_VOICE_LANGUAGE=s.get('voice_language', 'eng'),
+                  BB_LANGUAGE=str(s.get('original_settings', {}).get('language', '20')), BB_MENU_LANGUAGE='es',
+                  BB_ICON_BMP=str(ROOT / 'assets/icons/cachyborne.bmp'), SDL_APP_ID='cachyborne-play',
                   BB_COPY_GPU_BUFFERS='1', BB_GPU_WRITE_TWINS='1', BB_GPU_WRITE_TWINS_MAX='65536',
                   BB_UFFD='0', BB_AUDIO='auto' if s['audio'] else 'none', BB_GAMEPAD=s['gamepad'])
     if str(s.get('runtime_ini', {}).get('live_resolution', '0')) == '1':
@@ -528,10 +569,28 @@ def icon_path():
     return data_home / 'icons/hicolor/512x512/apps/cachyborne.png'
 
 
+def install_bundled_icon():
+    """Install the original square icon offline; no game or third-party artwork required."""
+    path = icon_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(dir=path.parent, prefix='.cachyborne-icon-')
+    try:
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write((ROOT / 'assets/icons/cachyborne.png').read_bytes())
+        os.chmod(temporary, 0o644)
+        os.replace(temporary, path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+    scalable = path.parents[2] / 'scalable/apps/cachyborne.svg'
+    scalable.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(ROOT / 'assets/icons/cachyborne.svg', scalable)
+    return path
+
+
 def download_desktop_icon():
     """Download official artwork for the user's local shortcuts; never bundle it."""
     import urllib.request
-    request = urllib.request.Request(ICON_URL, headers={'User-Agent': 'Cachyborne/1.0'})
+    request = urllib.request.Request(ICON_URL.split('?', 1)[0], headers={'User-Agent': 'Cachyborne/1.0'})
     with urllib.request.urlopen(request, timeout=20) as response:
         data = response.read(5 * 1024**2 + 1)
     # Sony's CDN may serve JPEG even when the source URL ends in .png.
@@ -542,13 +601,19 @@ def download_desktop_icon():
     from gi.repository import GdkPixbuf, GLib
     try:
         loader = GdkPixbuf.PixbufLoader.new()
-        loader.set_size(512, 512)
         loader.write(data)
         loader.close()
         pixbuf = loader.get_pixbuf()
         if pixbuf is None:
             raise ValueError('Downloaded icon has no image data.')
-        success, data = pixbuf.save_to_bufferv('png', [], [])
+        # Contain the source instead of asking the CDN to stretch its dimensions.
+        ratio = min(512 / pixbuf.get_width(), 512 / pixbuf.get_height())
+        width, height = max(1, round(pixbuf.get_width() * ratio)), max(1, round(pixbuf.get_height() * ratio))
+        scaled = pixbuf.scale_simple(width, height, GdkPixbuf.InterpType.HYPER)
+        square = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 512, 512)
+        square.fill(0x101018ff)
+        scaled.copy_area(0, 0, width, height, square, (512 - width) // 2, (512 - height) // 2)
+        success, data = square.save_to_bufferv('png', [], [])
         if not success:
             raise ValueError('Could not encode the desktop icon.')
     except GLib.Error as error:
@@ -589,18 +654,21 @@ def desktop(on_desktop=False, configuration=False):
     directory.mkdir(parents=True, exist_ok=True)
     executable = ROOT / ('cachyborne-gui' if configuration else 'cachyborne-launch.sh')
     path = directory / ('cachyborne.desktop' if configuration else 'cachyborne-play.desktop')
-    name = 'Cachyborne — Configuración' if configuration else 'Cachyborne'
-    icon = 'preferences-system' if configuration else (str(icon_path()) if icon_path().is_file() else 'applications-games')
+    name = 'Cachyborne — Configuración' if configuration else 'Bloodborne — Cachyborne'
+    icon = str(icon_path()) if icon_path().is_file() else str(ROOT / 'assets/icons/cachyborne.png')
     categories = 'Settings;' if configuration else 'Game;'
     path.write_text('[Desktop Entry]\nType=Application\n' +
                     f'Name={name}\nExec={desktop_exec(executable)}\nIcon={desktop_value(icon)}\n' +
-                    f'Terminal=false\nCategories={categories}\n')
+                    f'Terminal=false\nCategories={categories}\nStartupNotify=true\n' +
+                    f'StartupWMClass={"org.cachyborne.Preferences" if configuration else "cachyborne-play"}\n')
     path.chmod(0o755)
     print(path)
     return path
 
 
 def install_shortcuts(on_desktop=False, download_icon=False):
+    if not download_icon:
+        install_bundled_icon()
     if download_icon:
         try:
             download_desktop_icon()
@@ -632,6 +700,8 @@ def main(argv=None):
     prepare.add_argument('--performance-profile', choices=['144', '60'])
     prepare.add_argument('--fps', choices=['30', '60', '90', '120', '144', '165', 'uncap'])
     prepare.add_argument('--upscaler', choices=['off', 'fsr3', 'fsr4', 'fsr411', 'taa', 'dlss'])
+    from cachyborne_options import VOICE_LANGUAGES
+    prepare.add_argument('--voice-language', choices=list(dict(VOICE_LANGUAGES)))
     for key in ('render-res', 'output-res', 'fsr411-dir', 'mods-dir', 'mods-config', 'patches-dir', 'patches-config'):
         prepare.add_argument('--' + key)
     for key in ('ramdisk', 'gamemode', 'gamescope', 'pinning'):

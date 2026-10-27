@@ -89,7 +89,7 @@ F Game(u64 va) {
 // ---- Texts: ids from IdBase up, looked up by the game like its own messages. ----
 constexpr u32 IdBase = 0x7f0000;
 struct Text {
-    std::u16string english, russian;
+    std::u16string english, russian, spanish;
 };
 std::vector<Text> texts;
 
@@ -118,19 +118,13 @@ std::u16string Utf16(const char* utf8) {
     return out;
 }
 u32 AddText(const char* english, const char* russian) {
-    texts.push_back({Utf16(english), Utf16(russian)});
+    texts.push_back({Utf16(english), Utf16(russian), Utf16(BbSettings::SpanishText(english))});
     return IdBase + u32(texts.size() - 1);
 }
-/// The game's own language decides (its "Screen/Sound" text in Cyrillic: Russian, else English);
-/// the port's menu language until the game has looked that text up.
-enum class GameLanguage { Unknown, English, Russian };
-std::atomic<GameLanguage> game_language{GameLanguage::Unknown};
-
+// Menu locale is explicit and independent of voices. Latin-script text does not
+// identify English: Spanish, French and other locales use the same script.
 bool RussianTexts() {
-    const GameLanguage game = game_language.load();
-    return game == GameLanguage::Unknown
-               ? BbSettings::Get().menu_language == BbSettings::MenuLanguage::Russian
-               : game == GameLanguage::Russian;
+    return BbSettings::Get().menu_language == BbSettings::MenuLanguage::Russian;
 }
 
 // Texts that change while the game runs (the chosen aspect ratio's resolutions, "Auto (21:9)"):
@@ -138,7 +132,7 @@ bool RussianTexts() {
 constexpr u32 DynamicBase = IdBase + 0x8000;
 constexpr std::size_t DynamicLength = 40;
 struct DynamicText {
-    char16_t english[DynamicLength]{}, russian[DynamicLength]{};
+    char16_t english[DynamicLength]{}, russian[DynamicLength]{}, spanish[DynamicLength]{};
 };
 constexpr u32 OutputSlots = 12; ///< BbSettings::OutputList
 std::array<DynamicText, 1 + OutputSlots> dynamic_texts{};
@@ -153,10 +147,11 @@ void Store16(char16_t (&out)[DynamicLength], const char* utf8) {
     }
     __atomic_store_n(&out[n], char16_t(0), __ATOMIC_RELAXED);
 }
-void SetDynamic(u32 id, const char* english, const char* russian) {
+void SetDynamic(u32 id, const char* english, const char* russian, const char* spanish = nullptr) {
     DynamicText& t = dynamic_texts[id - DynamicBase];
     Store16(t.english, english);
     Store16(t.russian, russian);
+    Store16(t.spanish, spanish ? spanish : BbSettings::SpanishText(english));
 }
 
 bool OurText(u32 id) {
@@ -167,9 +162,11 @@ const char16_t* TextOf(u32 id) {
     const bool russian = RussianTexts();
     if (id >= DynamicBase) {
         const DynamicText& t = dynamic_texts[id - DynamicBase];
+        if (BbSettings::Get().menu_language == BbSettings::MenuLanguage::Spanish) return t.spanish;
         return russian ? t.russian : t.english;
     }
     const Text& t = texts[id - IdBase];
+    if (BbSettings::Get().menu_language == BbSettings::MenuLanguage::Spanish) return t.spanish.c_str();
     return russian ? t.russian.c_str() : t.english.c_str();
 }
 
@@ -209,7 +206,8 @@ int MenuOutputIndex(int aspect, BbSettings::OutputSize output) {
 /// The resolution row's texts for `aspect`, "Auto (..)" for the monitor's aspect ratio.
 void RefreshOutputs(int aspect) {
     const std::string group = BbSettings::AspectKey(BbSettings::ResolvedAspect(BbSettings::AspectAuto));
-    SetDynamic(AutoText, ("Auto (" + group + ")").c_str(), ("Авто (" + group + ")").c_str());
+    SetDynamic(AutoText, ("Auto (" + group + ")").c_str(), ("Авто (" + group + ")").c_str(),
+               ("Automático (" + group + ")").c_str());
     for (int i = 0; i < int(OutputSlots); ++i) {
         const auto o = MenuOutput(aspect, i);
         const std::string text = std::to_string(o.width) + " x " + std::to_string(o.height);
@@ -656,11 +654,7 @@ const char16_t* PS4_SYSV_ABI LookupHook(void* repository, u32 table, u32 categor
     }
     if (category == TextName && id == ScreenSoundItem && text) {
         screen_sound_text = text;
-        bool cyrillic = false;
-        for (const char16_t* c = text; *c; ++c) {
-            cyrillic = cyrillic || (*c >= 0x400 && *c < 0x500);
-        }
-        game_language = cyrillic ? GameLanguage::Russian : GameLanguage::English;
+
     }
     return text;
 }

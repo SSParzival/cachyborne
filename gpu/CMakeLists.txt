@@ -302,9 +302,15 @@ target_include_directories(srt-walker-fault-test PRIVATE . shim ${SHADER_INCLUDE
 target_compile_options(srt-walker-fault-test PRIVATE -UNDEBUG -Wall -Wextra)
 target_link_libraries(srt-walker-fault-test PRIVATE bbgpu)
 
+add_executable(spanish-game-menu-test EXCLUDE_FROM_ALL ../tests/test_spanish_game_menu.cpp
+    ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(spanish-game-menu-test PRIVATE . shim)
+target_compile_options(spanish-game-menu-test PRIVATE -UNDEBUG -Wall -Wextra)
+target_link_libraries(spanish-game-menu-test PRIVATE bbgpu)
+
 # All project-owned regression targets are explicit, including assertions in Release builds.
 enable_testing()
-set(CACHYBORNE_TEST_TARGETS motion-history-test motion-shader-test ui-composition-test
+set(CACHYBORNE_TEST_TARGETS spanish-game-menu-test motion-history-test motion-shader-test ui-composition-test
     cp-decoder-test fx-init-clear-test effect-flags-test settings-test scene-resolution-test
     taa-shader-test camera-motion-test translation-memory-test upscaler-support-test
     shader-corpus-test srt-walker-fault-test)

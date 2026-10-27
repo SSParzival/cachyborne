@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
+#include <string>
 #include <limits>
 
 #include "core/emulator_settings.h"
@@ -21,17 +23,18 @@ constexpr vk::SurfaceFormatKHR HdrFormat{
 };
 
 vk::PresentModeKHR RequestedPresentMode() {
-    const auto name = EmulatorSettings.GetPresentMode();
-    if (name == "Fifo") {
+    std::string name{EmulatorSettings.GetPresentMode()};
+    std::ranges::transform(name, name.begin(), [](unsigned char c) { return std::tolower(c); });
+    if (name == "fifo") {
         return vk::PresentModeKHR::eFifo;
     }
-    if (name == "FifoRelaxed") {
+    if (name == "fiforelaxed") {
         return vk::PresentModeKHR::eFifoRelaxed;
     }
-    if (name == "Immediate") {
+    if (name == "immediate") {
         return vk::PresentModeKHR::eImmediate;
     }
-    if (name != "Mailbox") {
+    if (name != "mailbox") {
         LOG_ERROR(Render_Vulkan, "Unknown present mode {}, using Mailbox", name);
     }
     return vk::PresentModeKHR::eMailbox;

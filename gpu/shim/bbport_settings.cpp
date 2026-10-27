@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "bbport_settings.h"
+#include "bbport_spanish.h"
 #include <cmath>
 
 #include <algorithm>
@@ -30,8 +31,9 @@ void Set(Values& v, const std::string& key, const std::string& value) {
     if (key == "menu_language") {
         if (value == "en") v.menu_language = MenuLanguage::English;
         else if (value == "ru") v.menu_language = MenuLanguage::Russian;
-        else std::printf("Settings: unknown menu_language '%s' (expected en or ru)\n", value.c_str());
-        v.menu_language_chosen = value == "en" || value == "ru";
+        else if (value == "es") v.menu_language = MenuLanguage::Spanish;
+        else std::printf("Settings: unknown menu_language '%s' (expected en, es or ru)\n", value.c_str());
+        v.menu_language_chosen = value == "en" || value == "ru" || value == "es";
     } else if (key == "upscaler") {
         for (int u = 0; u < UpscalerCount; ++u) {
             if (value == UpscalerName(u)) {
@@ -213,7 +215,14 @@ Values& Get() {
     return values;
 }
 
+const char* SpanishText(const char* english) {
+    for (const auto& [source, translated] : SpanishTranslations)
+        if (source == english) return translated;
+    return english; // Technical names such as FSR and resolution strings are unchanged.
+}
+
 const char* MenuText(const char* english, const char* russian) {
+    if (Get().menu_language == MenuLanguage::Spanish) return SpanishText(english);
     return Get().menu_language == MenuLanguage::Russian ? russian : english;
 }
 
@@ -236,7 +245,8 @@ void Load() {
         }
         v.menu_language = lang && (lang[0] == 'r' || lang[0] == 'R') && (lang[1] == 'u' || lang[1] == 'U')
                               ? MenuLanguage::Russian
-                              : MenuLanguage::English;
+                              : lang && (lang[0] == 'e' || lang[0] == 'E') && (lang[1] == 's' || lang[1] == 'S')
+                                    ? MenuLanguage::Spanish : MenuLanguage::English;
     }
     if (FILE* file = std::fopen(Path(), "r")) {
         char line[256];
@@ -251,6 +261,9 @@ void Load() {
         }
         std::fclose(file);
         std::printf("Settings: %s\n", Path());
+    }
+    if (const char* lang = std::getenv("BB_MENU_LANGUAGE"); lang && *lang) {
+        Set(v, "menu_language", lang);
     }
     // Environment overrides (scripts, A/B tests).
     if (const char* env = std::getenv("BB_UPSCALER")) {
@@ -349,7 +362,8 @@ void Save() {
     };
     const auto flag = [](bool value) { return std::string(value ? "1" : "0"); };
     if (v.menu_language_chosen) {
-        put("menu_language", v.menu_language == MenuLanguage::Russian ? "ru" : "en");
+        put("menu_language", v.menu_language == MenuLanguage::Russian ? "ru" :
+                             v.menu_language == MenuLanguage::Spanish ? "es" : "en");
     }
     put("upscaler", UpscalerName(v.upscaler));
     put("preset", std::to_string(v.preset.load()));

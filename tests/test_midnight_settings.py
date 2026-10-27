@@ -96,7 +96,7 @@ class MidnightSettingsTests(unittest.TestCase):
         self.assertEqual(env["BB_FPS_LIMIT"], "144")
         self.assertIn("MANGOHUD", s["runtime_env"])
 
-    def test_144_profile_preserves_selected_fsr4_native_hdr_mods_and_bindings(self):
+    def test_144_profile_applies_safe_resolution_and_preserves_hdr_mods_and_bindings(self):
         s = copy.deepcopy(core.DEFAULTS) | dict(
             upscaler="fsr4",
             render_res="2560x1440",
@@ -105,9 +105,11 @@ class MidnightSettingsTests(unittest.TestCase):
             runtime_ini={"preset": "0", "key.cross": "X", "model_lod": "2"},
         )
         result = core.performance_settings(s)
-        for key in ("upscaler", "render_res", "hdr", "mod_selection"):
+        for key in ("upscaler", "hdr", "mod_selection"):
             self.assertEqual(result[key], s[key])
-        self.assertEqual(result["runtime_ini"]["preset"], "0")
+        self.assertEqual(result["runtime_ini"]["preset"], "1")
+        self.assertEqual(result["render_res"], "1706x960")
+        self.assertEqual(result["voice_language"], "eng")
         self.assertEqual(result["runtime_ini"]["key.cross"], "X")
         self.assertEqual(result["fps_limit"], 144)
         self.assertFalse(result["ramdisk"])
@@ -144,7 +146,7 @@ class MidnightSettingsTests(unittest.TestCase):
                 (root / "out/bb-probe").touch()
                 (root / "out/bb-probe").chmod(0o755)
                 s = copy.deepcopy(core.DEFAULTS) | dict(
-                    upscaler="fsr3",
+                    upscaler="fsr3" if name == "AB" else "fsr4",
                     mods_dir=str(modroot),
                     mod_selection={"order": [name], "disabled": []},
                     patch_selection={"enabled": ["x"], "disabled": ["y"]},
@@ -172,6 +174,7 @@ class MidnightSettingsTests(unittest.TestCase):
                     patch.object(core.subprocess, "run", side_effect=tool),
                 ):
                     profile = core.setup(game, s)
+                    self.assertEqual(profile["settings"]["upscaler"], "fsr3")
                     self.assertEqual(
                         (Path(profile["game"]) / "dvdroot_ps4/chr/a.dcx").read_bytes(),
                         b"modified",
@@ -275,16 +278,20 @@ w.widgets['upscaler'][0].set_selected(3)
 w.widgets['ini.preset'][0].set_selected(0)
 w.widgets['legacy.readbacks'][0].set_selected(2)
 w.widgets['ini.key.cross'][0].set_text('X')
+w.widgets['voice_language'][0].set_selected(1)
 w.widgets['width'][0].set_text('')
 assert w.save(as_default=True)
 s=gui.core.preferences()
 assert s['width']=='' and s['runtime_ini']['key.cross']=='X'
 assert s['original_settings']['readbacks']=='2'
+assert s['voice_language']=='esa'
 w.widgets['width'][0].set_text('2560')
 assert w.save()
 s=w.collect(validate=True)
 assert s['upscaler']=='fsr4' and s['runtime_ini']['preset']=='0'
 assert s['runtime_env']['BB_READBACKS']=='2'
+assert s['runtime_env']['BB_VOICE_LANGUAGE']=='esa'
+assert s['runtime_env']['BB_LANGUAGE']=='20'
 w.widgets['ini.preset'][0].set_selected(1)
 assert w.fields['render_res']()=='1706x960'
 w.widgets['ini.preset'][0].set_selected(0)

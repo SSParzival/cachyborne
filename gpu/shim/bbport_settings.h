@@ -19,7 +19,7 @@ inline bool IsFsr4(int upscaler) {
 }
 enum Preset : int { NativeAA = 0, Quality, Balanced, Performance, UltraPerformance, PresetCount };
 enum DebugView : int { DebugNone = 0, DebugReactive = 1, DebugMotion = 2, DebugViewCount };
-enum class MenuLanguage { English, Russian };
+enum class MenuLanguage { English, Russian, Spanish };
 
 /// Game effects switched by the community patches at start (patches.py EFFECTS): ini key,
 /// menu label, default (the game's own behaviour).
@@ -88,7 +88,7 @@ OutputSize CurrentOutput();
 std::string SizeText(OutputSize size);
 
 struct Values {
-    std::atomic<MenuLanguage> menu_language{MenuLanguage::Russian};
+    std::atomic<MenuLanguage> menu_language{MenuLanguage::Spanish};
     /// Chosen in the menu (or already in bbport.ini): only then is it saved, so the language
     /// the menu merely started with keeps following the launcher's (#134).
     std::atomic<bool> menu_language_chosen{false};
@@ -145,6 +145,7 @@ struct Values {
 
 Values& Get();
 /// Localized overlay text; the Language selector itself stays in English.
+const char* SpanishText(const char* english);
 const char* MenuText(const char* english, const char* russian);
 
 /// Reads the file, then the environment overrides. Called once at start.

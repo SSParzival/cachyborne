@@ -305,7 +305,8 @@ class PreparedLaunchTests(unittest.TestCase):
         self.assertEqual(recommended['runtime_ini']['key.cross'], 'X')
         self.assertEqual(recommended['user_dir'], '/saves')
         self.assertNotIn('BB_FPS', recommended['runtime_env'])
-        self.assertEqual(recommended['runtime_env']['BB_LANGUAGE'], '3')
+        self.assertNotIn('BB_LANGUAGE', recommended['runtime_env'])
+        self.assertEqual(recommended['original_settings']['language'], '20')
         self.assertEqual(settings['runtime_env']['BB_FPS'], '60')
 
     def test_complete_editor_environment_reaches_prepared_launch(self):
@@ -362,3 +363,38 @@ class PreparedLaunchTests(unittest.TestCase):
         os.utime(self.config / 'settings.json', ns=(3000, 3000))
         with patch.object(runner, 'CONFIG', self.config):
             self.assertEqual(runner.preferences()['runtime_ini']['key.cross'], 'X')
+
+
+class ApplicationIconTests(unittest.TestCase):
+    def test_offline_icon_and_wayland_desktop_identity(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_DATA_HOME': directory}), patch('builtins.print'):
+            runner.install_shortcuts()
+            self.assertTrue((Path(directory) / 'icons/hicolor/scalable/apps/cachyborne.svg').is_file())
+            data = runner.icon_path().read_bytes()
+            import struct
+            self.assertEqual(struct.unpack('>II', data[16:24]), (512, 512))
+            desktop = (Path(directory) / 'applications/cachyborne-play.desktop').read_text()
+            self.assertIn('StartupWMClass=cachyborne-play', desktop)
+            self.assertIn('Name=Bloodborne — Cachyborne', desktop)
+            self.assertIn(str(runner.icon_path()), desktop)
+
+    def test_portrait_art_is_contained_in_square_without_stretching(self):
+        import gi
+        gi.require_version('GdkPixbuf', '2.0')
+        from gi.repository import GdkPixbuf
+        from unittest.mock import MagicMock
+        portrait = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, 2, 4)
+        portrait.fill(0x44bbccff)
+        _, image = portrait.save_to_bufferv('png', [], [])
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = image
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_DATA_HOME': directory}), patch('urllib.request.urlopen', return_value=response):
+            icon = GdkPixbuf.Pixbuf.new_from_file(str(runner.download_desktop_icon()))
+            data = icon.get_pixels()
+            def rgb(x, y):
+                offset = y * icon.get_rowstride() + x * icon.get_n_channels()
+                return tuple(data[offset:offset+3])
+            self.assertEqual((icon.get_width(), icon.get_height()), (512, 512))
+            self.assertEqual(rgb(256, 256), (0x44, 0xbb, 0xcc))
+            self.assertEqual(rgb(0, 256), (0x10, 0x10, 0x18))
+            self.assertEqual(rgb(511, 256), (0x10, 0x10, 0x18))

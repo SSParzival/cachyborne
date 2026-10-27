@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>Cachyborne — Hunter's vigil</title>
+  <desc>Original silver hunter sigil over a blood moon, on a charcoal square. Designed to remain clear at small icon sizes.</desc>
+  <defs>
+    <linearGradient id="night" x2="0.8" y2="1"><stop stop-color="#24232c"/><stop offset="1" stop-color="#090a10"/></linearGradient>
+    <radialGradient id="moon"><stop stop-color="#ac3946"/><stop offset="0.72" stop-color="#702333"/><stop offset="1" stop-color="#371623"/></radialGradient>
+    <linearGradient id="silver" x1="0" y1="0" x2="0.7" y2="1"><stop stop-color="#fff0d3"/><stop offset="0.45" stop-color="#d8d6cf"/><stop offset="1" stop-color="#8d9ba5"/></linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="104" fill="url(#night)"/>
+  <rect x="17" y="17" width="478" height="478" rx="103" fill="none" stroke="#c3b4ac" stroke-opacity=".22" stroke-width="2"/>
+  <circle cx="256" cy="228" r="163" fill="url(#moon)"/>
+  <circle cx="256" cy="228" r="148" fill="none" stroke="#cf7776" stroke-opacity=".2" stroke-width="2"/>
+  <path d="M81 365 164 342 196 367 230 355 269 371 311 346 358 360 431 338 431 442 81 442Z" fill="#101018" opacity=".66"/>
+  <path d="m256 77 14 59-5 69 57-70-13 54-44 49 2 26 80-51-17 37-62 40 1 65-13 69-13-69 1-65-62-40-17-37 80 51 2-26-44-49-13-54 57 70-5-69Z" fill="#070911" opacity=".65" transform="translate(0 7)"/>
+  <path d="m256 77 14 59-5 69 57-70-13 54-44 49 2 26 80-51-17 37-62 40 1 65-13 69-13-69 1-65-62-40-17-37 80 51 2-26-44-49-13-54 57 70-5-69Z" fill="url(#silver)"/>
+  <path d="m256 119 2 216-2 46-2-46Z" fill="#ffffff" opacity=".4"/>
+  <path d="M248 441q8-16 8-23 0 7 8 23a8 8 0 1 1-16 0Z" fill="#bc3f50"/>
+</svg>

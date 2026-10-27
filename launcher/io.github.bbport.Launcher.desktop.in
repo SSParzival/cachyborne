@@ -3,5 +3,6 @@ Type=Application
 Name=Bloodborne
 Comment=Native Bloodborne port launcher
 Exec=@LAUNCHER@
-Icon=applications-games
+Icon=cachyborne
+StartupWMClass=cachyborne-play
 Categories=Game;

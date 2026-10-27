@@ -12,7 +12,8 @@ if [[ -x $local_prefix/bin/mold ]]; then
 fi
 export VK_LOADER_LAYERS_DISABLE=${VK_LOADER_LAYERS_DISABLE:-'~implicit~'}
 bash -n build.sh run.sh cachyborne-install.sh cachyborne-setup.sh cachyborne-launch.sh cachyborne-gui launcher/bb-launcher.sh scripts/check-all.sh
-python3 -m py_compile launcher/cachyborne.py launcher/cachyborne_gui.py launcher/cachyborne_options.py launcher/cachyborne_panels.py launcher/cachyborne_original.py launcher/bbport_launcher.py scripts/smoke-game.py
+export PYTHONDONTWRITEBYTECODE=1
+python3 -c 'import ast, pathlib, sys; [ast.parse(pathlib.Path(f).read_bytes(), filename=f) for f in sys.argv[1:]]' launcher/cachyborne.py launcher/cachyborne_gui.py launcher/cachyborne_options.py launcher/cachyborne_panels.py launcher/cachyborne_original.py launcher/bbport_launcher.py scripts/smoke-game.py
 bash build.sh --test
 cmake --build out/gpu --target cachyborne-tests --parallel "${BB_BUILD_JOBS:-4}"
 ctest --test-dir out/gpu --output-on-failure -L cachyborne

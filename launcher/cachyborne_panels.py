@@ -334,28 +334,31 @@ class NativePanels:
 
         threading.Thread(target=worker, daemon=True).start()
 
+    def add_language_controls(self, page):
+        hardware = self.group(page, "Textos y voces")
+        choices = options.available_languages(self.settings.get("game", ""))
+        self.language_values = [code for code, _ in choices] or [""]
+        self.language_row = self.combo(
+            hardware,
+            "legacy.language",
+            "Idioma de interfaz y textos",
+            self.language_values,
+            [name for _, name in choices] or ["Selecciona primero un dump"],
+        )
+        self.language_row.set_sensitive(bool(choices))
+        self.combo(hardware, "voice_language", "Idioma de voces",
+                   [code for code, _ in options.VOICE_LANGUAGES],
+                   [name for _, name in options.VOICE_LANGUAGES])
+        self.combo(hardware, "legacy.ui_language", "Idioma del menú propio del port",
+                   ["es", "en", "ru"], ["Español", "English", "Русский"])
+
     def build_advanced(self):
         page = self.page(
             "advanced",
             "Hardware y diagnóstico",
             "Todos los controles originales en la misma interfaz Midnight.",
         )
-        hardware = self.group(page, "Idioma y dispositivo")
-        choices = options.available_languages(self.settings.get("game", ""))
-        self.language_values = [code for code, _ in choices] or [""]
-        self.language_row = self.combo(
-            hardware,
-            "legacy.language",
-            "Idioma del juego",
-            self.language_values,
-            [name for _, name in choices] or ["Selecciona primero un dump"],
-        )
-        self.language_row.set_sensitive(bool(choices))
-        self.entry(
-            hardware,
-            "legacy.ui_language",
-            "Idioma del menú del juego (en / es / ru / …)",
-        )
+        hardware = self.group(page, "Pantalla y dispositivo")
         self.entry(hardware, "legacy.display", "Monitor SDL (vacío: automático)")
         self.entry(hardware, "legacy.gpu", "GPU Vulkan (nombre detectado)")
         self.native_button(

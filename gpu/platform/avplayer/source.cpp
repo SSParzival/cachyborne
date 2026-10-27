@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cstring>
 #include <string>
+#include "../../../src/cachy_voice.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -187,6 +188,7 @@ Source::~Source() {
 bool Source::Open(const AvPlayerInitData& init, std::string_view path) {
     allocator = init.memory_replacement;
     video_buffer_count = u32(std::clamp(init.num_output_video_framebuffers, 2, 16));
+    source_path = path;
     const std::string guest_path{path};
     format = avformat_alloc_context();
     if (!format) {
@@ -225,6 +227,11 @@ bool Source::FindStreams() {
     if (!format || avformat_find_stream_info(format, nullptr) < 0) {
         return false;
     }
+    const s64 bytes = file_size ? s64(file_size) : (format->pb ? avio_size(format->pb) : -1);
+    bool retail_layout = format->nb_streams == 9 &&
+        format->streams[0]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO;
+    for (u32 i=1; retail_layout && i<format->nb_streams; ++i)
+        retail_layout = format->streams[i]->codecpar->codec_id == AV_CODEC_ID_AAC;
     for (u32 i = 0; i < format->nb_streams; ++i) {
         const AVStream& stream = *format->streams[i];
         if (!Playable(stream)) {
@@ -245,6 +252,11 @@ bool Source::FindStreams() {
             info.details.audio.sample_rate = u32(codec.sample_rate);
             info.details.audio.size = 0;
             CopyLanguage(stream, info.details.audio.language_code);
+            auto* language = info.details.audio.language_code;
+            if (retail_layout && (!language[0] || !std::strcmp(language,"und"))) {
+                if (const char* voice = cachy_opening_voice(source_path.c_str(),bytes,i-1))
+                    std::memcpy(language,voice,4);
+            }
         }
         streams.push_back({int(i), info});
     }

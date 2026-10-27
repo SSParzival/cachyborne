@@ -82,14 +82,13 @@ class GameProfileValidationTests(unittest.TestCase):
             core.check_memory_budget(settings)
         self.assertEqual(core.direct_memory_mb(settings), 5056)
 
-    def test_unknown_gtt_and_explicit_other_memory_backends_are_not_misclassified(self):
+    def test_16gb_pool_limit_applies_without_sysfs_or_with_other_backends(self):
         settings = copy.deepcopy(core.DEFAULTS) | {"render_res": "2560x1440"}
-        with patch.object(core, "amd_gtt_budget", return_value=(0, None)):
-            core.check_memory_budget(settings)
-        for key in ("BB_GUEST_VRAM", "BB_PC_MODEL", "BB_GUEST_IN_PLACE"):
-            settings["runtime_env"] = {key: "1" if key == "BB_GUEST_VRAM" else "0"}
-            with patch.object(core, "amd_gtt_budget", return_value=(1024, None)):
-                core.check_memory_budget(settings)
+        for env in ({}, {"BB_GUEST_VRAM": "1"}, {"BB_PC_MODEL": "0"}, {"BB_GUEST_IN_PLACE": "0"}):
+            settings["runtime_env"] = env
+            with patch.object(core, "amd_gtt_budget", return_value=(0, None)):
+                with self.assertRaisesRegex(ValueError, "9152"):
+                    core.check_memory_budget(settings)
 
     def test_sysfs_budget_only_uses_amd_cards_and_survives_missing_attributes(self):
         with tempfile.TemporaryDirectory() as directory:

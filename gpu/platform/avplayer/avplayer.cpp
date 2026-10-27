@@ -128,6 +128,7 @@ s32 PS4_SYSV_ABI sceAvPlayerGetStreamInfo(Handle player, u32 index, AvPlayerStre
 }
 
 s32 PS4_SYSV_ABI sceAvPlayerEnableStream(Handle player, u32 index) {
+    // Player applies BB_VOICE_LANGUAGE to explicit audio selections too.
     return player ? Result(player->EnableStream(index)) : ErrorInvalidParams;
 }
 

@@ -5,6 +5,7 @@
  * Paths containing ".." components are rejected rather than normalized. */
 #define _GNU_SOURCE
 #include "runtime.h"
+#include "cachy_voice.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -104,12 +105,55 @@ void runtime_file_configure(const char *app0,const char *user) {
         runtime_file_mount(guest,path);
     }
 }
+/* The EU executable can request English/Spain assets even for PS4 language 20.
+ * Resolve the selected text locale independently of speech, for both messages
+ * and locale-specific Scaleform layouts/fonts. Shared directories stay intact. */
+static void redirect_text(const char *guest,char *out,size_t size) {
+    static const char *const folders[]={"jpnjp","engus","frafr","spaes","deude","itait","nldnl","porpt","rusru","korkr","zhotw","zhocn","finfi","swese","dandk","norno","polpl","porbr","enggb","turtr","spaar"};
+    const char *id=getenv("BB_LANGUAGE");
+    char *end;
+    long language=id && *id ? strtol(id,&end,10) : 20;
+    if (id && *id && *end) return;
+    if (language<0 || language>=21) return;
+    const char *tail=NULL;
+    if (!strncmp(guest,"/app0/",6)) tail=guest+5;
+    else if (!strncmp(guest,"/hostapp/",9)) tail=guest+8;
+    if (!tail) return;
+    const char *section=NULL;
+    if (!strncmp(tail,"/dvdroot_ps4/msg/",17)) section="/dvdroot_ps4/msg/";
+    else if (!strncmp(tail,"/dvdroot_ps4/menu/",18)) section="/dvdroot_ps4/menu/";
+    if (!section) return;
+    const char *requested=tail+strlen(section), *slash=strchr(requested,'/');
+    if (!slash) return;
+    int known=0;
+    for (unsigned i=0;i<21;++i)
+        if (strlen(folders[i])==(size_t)(slash-requested) && !strncmp(requested,folders[i],(size_t)(slash-requested))) known=1;
+    if (!known) return;
+    /* out ends in tail, so no assumptions about the host mount's directory name. */
+    size_t prefix=strlen(out)-strlen(tail)+strlen(section);
+    const int candidates[]={(int)language,3,1};
+    for (unsigned i=0;i<(language==20 ? 3u : 1u);++i) {
+        const char *folder=folders[candidates[i]];
+        char alternative[1024];
+        int n=snprintf(alternative,sizeof(alternative),"%.*s%s/%s",(int)prefix,out,folder,slash+1);
+        if (n<0 || (size_t)n>=sizeof(alternative) || (size_t)n>=size) continue;
+        struct stat info;
+        if (!stat(alternative,&info) && S_ISREG(info.st_mode) && info.st_size>0) {
+            const char *trace=getenv("BB_FILE_TRACE");
+            if (strcmp(out,alternative) && trace && !strcmp(trace,"1"))
+                fprintf(stderr,"Runtime: text redirect %s -> %s\n",out,alternative);
+            memcpy(out,alternative,(size_t)n+1);
+            break;
+        }
+    }
+}
 /* Resolve a guest path to a host path; returns 0 or a host errno. */
 static int translate(const char *guest,char *out,size_t size) {
     if (!guest || !*guest) return ENOENT;
     char buffer[1024];
-    if (guest[0]!='/') snprintf(buffer,sizeof(buffer),"/app0/%s",guest);
-    else snprintf(buffer,sizeof(buffer),"%s",guest);
+    int length = guest[0]!='/' ? snprintf(buffer,sizeof(buffer),"/app0/%s",guest)
+                                : snprintf(buffer,sizeof(buffer),"%s",guest);
+    if (length<0 || (size_t)length>=sizeof(buffer)) return ENAMETOOLONG;
     for (const char *p=buffer;(p=strstr(p,".."));p+=2)
         if ((p==buffer || p[-1]=='/') && (p[2]==0 || p[2]=='/')) return EACCES;
     pthread_mutex_lock(&lock);
@@ -122,6 +166,32 @@ static int translate(const char *guest,char *out,size_t size) {
     if (!m) result=ENOENT;
     else if ((size_t)snprintf(out,size,"%s%s",m->host,buffer+best)>=size) result=ENAMETOOLONG;
     pthread_mutex_unlock(&lock);
+    if (!result) redirect_text(buffer,out,size);
+    /* Only retail sound banks: leave saves, message archives and unknown suffixes alone. */
+    if (!result && (!strncmp(buffer,"/app0/dvdroot_ps4/sound/",24) ||
+                    !strncmp(buffer,"/hostapp/dvdroot_ps4/sound/",27))) {
+        size_t n=strlen(out);
+        if (n>=8 && !strcasecmp(out+n-4,".fsb") && out[n-8]=='_') {
+            static const char *const codes[]={"eng","esa","ese","ded","frf","iti","jaj","ptb"};
+            const char *voice=cachy_voice_language();
+            for (unsigned i=0;i<sizeof(codes)/sizeof(codes[0]);++i) {
+                if (strncasecmp(out+n-7,codes[i],3)) continue;
+                if (!strncasecmp(out+n-7,voice,3)) break;
+                char alternative[1024];
+                if (n>=sizeof(alternative)) break;
+                memcpy(alternative,out,n+1);
+                memcpy(alternative+n-7,voice,3);
+                struct stat info;
+                if (!stat(alternative,&info) && S_ISREG(info.st_mode) && info.st_size>0) {
+                    const char *audio_trace=getenv("BB_AUDIO_TRACE");
+                    if (audio_trace && !strcmp(audio_trace,"1"))
+                        fprintf(stderr,"Runtime: audio redirect %s -> %s\n",out,alternative);
+                    memcpy(out,alternative,n+1);
+                }
+                break;
+            }
+        }
+    }
     if (result==ENOENT) fprintf(stderr,"Runtime: no mount for guest path %s\n",guest);
     /* BB_FILE_TRACE=1: every guest path the game opens, stats or checks (mods, missing files). */
     static int trace=-1;

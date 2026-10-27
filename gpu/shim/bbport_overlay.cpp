@@ -395,11 +395,10 @@ void Menu() {
         }
     }
     // Always readable, even when the rest of the menu is in Russian.
-    static const char* languages[] = {"English", "Русский"};
-    int language = s.menu_language == BbSettings::MenuLanguage::Russian ? 1 : 0;
-    if (ImGui::Combo("Language", &language, languages, 2)) {
-        s.menu_language =
-            language == 1 ? BbSettings::MenuLanguage::Russian : BbSettings::MenuLanguage::English;
+    static const char* languages[] = {"English", "Русский", "Español"};
+    int language = int(s.menu_language.load());
+    if (ImGui::Combo(BbSettings::MenuText("Language", "Язык"), &language, languages, 3)) {
+        s.menu_language = BbSettings::MenuLanguage(language);
         s.menu_language_chosen = true;
         BbSettings::Save();
     }
@@ -504,7 +503,7 @@ void Menu() {
     ImGui::BeginDisabled(taa);
     int preset = taa ? BbSettings::NativeAA : s.preset.load();
     char preset_label[64];
-    std::snprintf(preset_label, sizeof(preset_label), "%s (x%.1f)", BbSettings::PresetName(preset),
+    std::snprintf(preset_label, sizeof(preset_label), "%s (x%.1f)", BbSettings::MenuText(BbSettings::PresetName(preset), BbSettings::PresetName(preset)),
                   BbSettings::PresetScale(preset));
     if (ImGui::BeginCombo(BbSettings::MenuText("Preset", "Пресет"), preset_label)) {
         for (int i = 0; i < BbSettings::PresetCount; ++i) {
@@ -514,7 +513,7 @@ void Menu() {
             std::snprintf(
                 label, sizeof(label),
                 BbSettings::MenuText("%s (x%.1f, render %dx%d)", "%s (x%.1f, рендер %dx%d)"),
-                BbSettings::PresetName(i), scale, int(std::lround(output.width / scale / 2) * 2),
+                BbSettings::MenuText(BbSettings::PresetName(i), BbSettings::PresetName(i)), scale, int(std::lround(output.width / scale / 2) * 2),
                 int(std::lround(output.height / scale / 2) * 2));
             if (ImGui::Selectable(label, i == preset)) {
                 Store(s.preset, i, true);
@@ -535,7 +534,7 @@ void Menu() {
         s.active_render_width.load(), s.active_render_height.load());
     if (BbSettings::FixedRenderSession()) {
         ImGui::Text(BbSettings::MenuText("Startup preset: %s", "Пресет при запуске: %s"),
-                    BbSettings::PresetName(s.startup_preset));
+                    BbSettings::MenuText(BbSettings::PresetName(s.startup_preset), BbSettings::PresetName(s.startup_preset)));
         if (const char* automatic = std::getenv("BB_AUTO_RENDER_RES");
             automatic && automatic[0] == '1') {
             Hint(BbSettings::MenuText(
@@ -890,7 +889,7 @@ void TextPrompt() {
     ImGui::Separator();
     ImGui::Text("%s_", text.c_str());
     ImGui::Separator();
-    ImGui::TextUnformatted("Keyboard: type, Backspace = delete, Enter = OK, Esc = cancel");
+    ImGui::TextUnformatted(BbSettings::MenuText("Keyboard: type, Backspace = delete, Enter = OK, Esc = cancel", "Keyboard: type, Backspace = delete, Enter = OK, Esc = cancel"));
     ImGui::End();
 }
 

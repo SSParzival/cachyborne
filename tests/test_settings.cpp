@@ -52,7 +52,7 @@ int main() {
     assert(s.menu_x == 0.625f && s.menu_y == 0.125f && s.upscaler == BbSettings::UpscalerFsr411);
     assert(saved.find("menu_language=") == std::string::npos); // only started with it (#134)
 
-    // A language chosen in the menu is saved and wins over the launcher's from then on.
+    // Saved locales survive reloads; an explicit launcher locale overrides stale choices.
     s.menu_language = BbSettings::MenuLanguage::Russian;
     s.menu_language_chosen = true;
     BbSettings::Save();
@@ -60,7 +60,19 @@ int main() {
     setenv("BB_MENU_LANGUAGE", "en", 1);
     s.menu_language_chosen = false;
     BbSettings::Load();
-    assert(s.menu_language == BbSettings::MenuLanguage::Russian && s.menu_language_chosen);
+    assert(s.menu_language == BbSettings::MenuLanguage::English && s.menu_language_chosen);
+    setenv("BB_MENU_LANGUAGE", "es", 1);
+    BbSettings::Load();
+    assert(s.menu_language == BbSettings::MenuLanguage::Spanish);
+    assert(std::string(BbSettings::MenuText("Display", "ru")) == "Pantalla");
+    assert(std::string(BbSettings::MenuText("Motion blur", "ru")) == "Desenfoque de movimiento");
+    assert(std::string(BbSettings::MenuText("FSR 4", "ru")) == "FSR 4");
+    BbSettings::Save();
+    assert(Read(path).find("menu_language=es\n") != std::string::npos);
+    unsetenv("BB_MENU_LANGUAGE");
+    s.menu_language = BbSettings::MenuLanguage::English;
+    BbSettings::Load();
+    assert(s.menu_language == BbSettings::MenuLanguage::Spanish && s.menu_language_chosen);
     unlink(path);
     std::puts("PASS: settings save keeps other keys, menu position, menu language");
 }

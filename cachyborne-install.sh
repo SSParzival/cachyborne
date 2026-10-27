@@ -34,7 +34,7 @@ ln -sfn "$here/cachyborne-setup.sh" "$bin/cachyborne-setup"
 ln -sfn "$here/cachyborne-launch.sh" "$bin/cachyborne-launch"
 ln -sfn "$here/cachyborne-gui" "$bin/cachyborne-gui"
 # One implementation generates both menu and desktop entries and preserves local artwork.
-python3 launcher/cachyborne.py desktop --desktop --download-icon
+python3 launcher/cachyborne.py desktop --desktop
 if command -v update-desktop-database >/dev/null; then update-desktop-database "$apps"; fi
 printf 'Installed. Keep this checkout at %s and add ~/.local/bin to PATH.\n' "$here"
 printf 'Prepare: cachyborne-setup /path/to/app0\nPlay: cachyborne-launch\nSettings: cachyborne-gui\n'

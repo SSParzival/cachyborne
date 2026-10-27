@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include <chrono>
 #include <cstring>
+#include "../../../src/cachy_voice.h"
 
 #include "common/logging/log.h"
 #include "common/thread.h"
@@ -123,8 +124,10 @@ void Player::AutoStart() {
             continue;
         }
         s32& slot = chosen[u32(info.type)];
-        if (slot == -1 || (default_language[0] != '\0' &&
-                           std::strncmp(default_language, language, sizeof(default_language)) == 0)) {
+        const bool preferred = info.type == AvPlayerStreamType::Audio
+            ? cachy_voice_matches(language)
+            : (default_language[0] != '\0' && std::strncmp(default_language, language, sizeof(default_language)) == 0);
+        if (slot == -1 || preferred) {
             slot = i;
         }
     }
@@ -262,7 +265,24 @@ bool Player::StreamInfo(u32 index, AvPlayerStreamInfo& info) {
 
 bool Player::EnableStream(u32 index) {
     std::shared_lock lock{source_mutex};
-    return source && source->EnableStream(index);
+    if (!source) return false;
+    AvPlayerStreamInfo requested{};
+    if (!source->StreamInfo(index, requested)) return false;
+    // Manual guest selections follow the same voice policy as automatic startup.
+    if (requested.type == AvPlayerStreamType::Audio) {
+        for (s32 i=0; i<source->StreamCount(); ++i) {
+            AvPlayerStreamInfo candidate{};
+            if (source->StreamInfo(u32(i), candidate) && candidate.type == AvPlayerStreamType::Audio &&
+                cachy_voice_matches(candidate.details.audio.language_code)) {
+                index=u32(i);
+                break;
+            }
+        }
+    }
+    const char* trace = std::getenv("BB_AUDIO_TRACE");
+    if (requested.type == AvPlayerStreamType::Audio && trace && !std::strcmp(trace,"1"))
+        LOG_INFO(Lib_AvPlayer, "audio voice {}: selected stream {}", cachy_voice_language(), index);
+    return source->EnableStream(index);
 }
 
 bool Player::Start() {

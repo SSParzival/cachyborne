@@ -29,8 +29,10 @@ def apply_style():
     provider.load_from_path(str(Path(__file__).with_name('styles') / 'midnight.css'))
     if errors:
         raise RuntimeError('Midnight stylesheet: ' + '; '.join(errors))
-    display = Gdk.Display.get_default()
     def update(*_):
+        display = Gdk.Display.get_default()
+        if display is None:
+            return
         Gtk.StyleContext.remove_provider_for_display(display, provider)
         if not manager.get_high_contrast():
             Gtk.StyleContext.add_provider_for_display(display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
@@ -61,6 +63,7 @@ def action(text, callback, primary=False, icon=None):
 class Preferences(NativePanels, Adw.ApplicationWindow):
     def __init__(self, app):
         super().__init__(application=app, title='Cachyborne · Bisexual Midnight', default_width=1130, default_height=850)
+        self.set_icon_name('cachyborne')
         self.add_css_class('cachyborne')
         self.settings = core.preferences()
         self.ini = dict(self.settings.get('runtime_ini', {}))
@@ -98,6 +101,11 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
             widget.connect(event, self.queue_autosave)
             if key in ('ini.preset', 'upscaler', 'output_res'):
                 widget.connect(event, self.on_scaling_changed)
+        self.asset_check_source = None
+        for key in ('game', 'fsr4_dir', 'render_res', 'upscaler', 'output_res', 'ini.preset'):
+            widget, kind, _ = self.widgets[key]
+            widget.connect('changed' if kind == 'entry' else 'notify::selected', self.queue_asset_check)
+        self.queue_asset_check()
         self.refresh_status()
         self.navigate('setup' if '--setup' in sys.argv else 'home')
 
@@ -205,7 +213,7 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         hero.append(copy_box)
         if core.icon_path().is_file():
             picture = Gtk.Picture.new_for_filename(str(core.icon_path()))
-            picture.set_content_fit(Gtk.ContentFit.COVER); picture.set_size_request(175, 210)
+            picture.set_content_fit(Gtk.ContentFit.CONTAIN); picture.set_size_request(192, 192)
             picture.add_css_class('hero-art'); picture.set_overflow(Gtk.Overflow.HIDDEN); hero.append(picture)
         page.append(hero)
         metrics = Gtk.Box(spacing=12, homogeneous=True)
@@ -221,7 +229,7 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         profile.append(label('FSR 4 · objetivo 144 FPS · salida 1440p · P-Cores para el juego. '
                              'Tu calidad de escalado se conserva. La precarga de 30 GB queda desactivada.', 'muted', True))
         buttons = Gtk.Box(spacing=10)
-        buttons.append(action('Usar perfil 144', self.apply_recommended, primary=True))
+        buttons.append(action('Perfil recomendado para este PC (1440p · 144 FPS)', self.apply_recommended, primary=True))
         buttons.append(action('Preparar y aplicar', lambda: self.navigate('setup')))
         profile.append(buttons); page.append(profile)
         page.append(label('El objetivo de 144 FPS no es una garantía. Usa el contador y las estadísticas '
@@ -272,6 +280,7 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         self.combo(effects, 'ini.model_lod', 'Detalle de modelos', ['-2','0','1','2'], ['Máximo','Original','Bajo','Mínimo'])
         audio = self.group(page, 'Audio y assets opcionales')
         self.switch(audio, 'audio', 'Audio activado'); self.entry(audio, 'fsr411_dir', 'Assets de FSR 4.1.1')
+        self.add_language_controls(page)
         page.append(action('Pantallas, GPU y assets FSR/DLSS', lambda: self.navigate('advanced')))
 
     def build_controls(self):
@@ -300,6 +309,9 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         self.register('game', self.path, lambda: self.path.get_text().strip(), 'entry')
         self.path.connect('changed', self.update_languages)
         game.add(self.path)
+        self.asset_status = Adw.ActionRow(title='Comprobando archivos…')
+        self.asset_status.set_title_lines(4)
+        game.add(self.asset_status)
         buttons = Gtk.Box(spacing=10)
         buttons.append(action('Seleccionar carpeta', self.choose, icon='folder-open-symbolic'))
         self.setup_button = action('Validar y preparar', self.prepare, primary=True)
@@ -314,6 +326,19 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         self.log.add_css_class('console')
         scroll = Gtk.ScrolledWindow(min_content_height=180, child=self.log)
         page.append(scroll)
+
+    def queue_asset_check(self, *_):
+        if self.asset_check_source is not None:
+            GLib.source_remove(self.asset_check_source)
+        self.asset_check_source = GLib.timeout_add(350, self.check_assets)
+
+    def check_assets(self):
+        self.asset_check_source = None
+        try:
+            self.asset_status.set_title(core.preparation_status(self.collect()))
+        except (OSError, ValueError, TypeError) as error:
+            self.asset_status.set_title(f'Revisa los ajustes: {error}')
+        return GLib.SOURCE_REMOVE
 
     def refresh_status(self):
         profile = core.read_json(core.CONFIG / 'game_profile.json', {})
@@ -477,6 +502,8 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
             self.close_after_setup = True; self.cancel_setup(); return True
         if self.autosave_source is not None:
             GLib.source_remove(self.autosave_source); self.autosave_source = None
+        if self.asset_check_source is not None:
+            GLib.source_remove(self.asset_check_source); self.asset_check_source = None
         self.save()
         return False
 

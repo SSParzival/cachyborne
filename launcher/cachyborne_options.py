@@ -94,6 +94,10 @@ CANONICAL_FIELDS = dict(
 COMPUTED_FIELDS = {"present_mode", "fps_mode", "gamepad_name"}
 NATIVE_LEGACY_FIELDS = set(LEGACY_DEFAULTS) - set(CANONICAL_FIELDS) - COMPUTED_FIELDS
 
+VOICE_LANGUAGES = [("eng", "Inglés (predeterminado)"), ("esa", "Español Latinoamericano"),
+                   ("ese", "Español España"), ("jaj", "Japonés"), ("ded", "Alemán"),
+                   ("frf", "Francés"), ("iti", "Italiano"), ("ptb", "Portugués (Brasil)")]
+
 LANGUAGES = [
     ("1", "English"),
     ("18", "English (UK)"),
@@ -126,6 +130,7 @@ PRESENCE_FLAGS = {
 }
 KNOWN_ENV = set(PRESENCE_FLAGS.values()) | {
     "BB_LANGUAGE",
+    "BB_VOICE_LANGUAGE",
     "BB_MENU_LANGUAGE",
     "BB_DISPLAY",
     "BB_GPU_ID",
@@ -182,6 +187,7 @@ def reconcile(settings):
     }
     env.update(
         BB_LANGUAGE=old["language"],
+        BB_VOICE_LANGUAGE=s.get("voice_language", "eng"),
         BB_MENU_LANGUAGE=old["ui_language"] or "en",
         BB_SKIP_NETWORK_CHOICE="1" if old["skip_network_choice"] else "0",
         BB_HDR="1" if s["hdr"] else "0",
@@ -254,7 +260,7 @@ def reconcile(settings):
         for key, value in s.get("runtime_ini", {}).items()
         if value is not None or key in binding_defaults
     }
-    s["runtime_ini"].update(upscaler=s["upscaler"], output_res=s["output_res"])
+    s["runtime_ini"].update(upscaler=s["upscaler"], output_res=s["output_res"], menu_language=old["ui_language"] or "es")
     return s
 
 

@@ -134,6 +134,10 @@ void TellMonitor(SDL_Window* window) {
 } // namespace
 
 WindowSDL::WindowSDL(s32 width_, s32 height_, const char* title) : width{width_}, height{height_} {
+    // Match the installed desktop filename: Wayland resolves the task-manager
+    // icon through app_id, while X11 uses WM_CLASS and the window surface icon.
+    SDL_SetAppMetadata("Bloodborne — Cachyborne", nullptr, "cachyborne-play");
+    SDL_SetHint(SDL_HINT_APP_ID, "cachyborne-play");
     // Gamepads are sampled by runtime_pad.c; their events are pumped here with the window's.
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
         UNREACHABLE_MSG("Failed to initialize SDL video: {}", SDL_GetError());
@@ -153,6 +157,13 @@ WindowSDL::WindowSDL(s32 width_, s32 height_, const char* title) : width{width_}
     window = SDL_CreateWindowWithProperties(props);
     SDL_DestroyProperties(props);
     ASSERT_MSG(window, "Failed to create window: {}", SDL_GetError());
+    if (const char* icon_path = std::getenv("BB_ICON_BMP"); icon_path && *icon_path) {
+        if (SDL_Surface* icon = SDL_LoadBMP(icon_path)) {
+            if (!SDL_SetWindowIcon(window, icon))
+                std::printf("Window icon: compositor uses desktop app_id (%s)\n", SDL_GetError());
+            SDL_DestroySurface(icon);
+        }
+    }
     // The cursor over the game: the port's own (BB_CURSOR=0: the system's).
     if (SDL_Cursor* cursor = BbCursor::Create()) {
         SDL_SetCursor(cursor);

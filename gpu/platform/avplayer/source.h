@@ -11,6 +11,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -197,6 +198,7 @@ private:
     int file_fd = -1;
     u64 file_size = 0;
     u64 file_position = 0;
+    std::string source_path;
     AVIOContext* avio = nullptr;
     AVFormatContext* format = nullptr;
     std::vector<StreamEntry> streams;
