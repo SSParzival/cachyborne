@@ -1,3 +1,5 @@
+> Historical validation record. See [0.7.4 results](VALIDATION_0.7.4.md) for the current changes and measurements.
+
 # 0.7.0 validation record
 
 Environment: CachyOS, i5-14600KF, Radeon RX 9070 XT / RADV GFX1201,

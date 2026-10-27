@@ -1,4 +1,6 @@
-# Cachyborne 0.7.2 — Bisexual Midnight for CachyOS
+# Cachyborne 0.7.4 — Bisexual Midnight for CachyOS
+
+[Español](README.es.md)
 
 Linux-native Bloodborne runtime specialized for **CachyOS, 16 GB of system RAM,
 Intel Core i5-14600KF and AMD Radeon RX 9070 XT with Mesa RADV**. Based on
@@ -61,7 +63,7 @@ this prepared launch path. A clean installation must complete setup first.
 cachyborne-launch --dry-run             # inspect command and environment
 cachyborne-gui                          # GTK4 / Libadwaita settings
 cachyborne-setup --gui                  # open the setup interface
-python3 launcher/cachyborne.py desktop --desktop --download-icon
+python3 launcher/cachyborne.py desktop --desktop
 ```
 
 The GUI has separate setup, play and shortcut actions. Save preferences and run
@@ -85,12 +87,14 @@ and 1706×960 internally. Motion blur, chromatic aberration and depth of field a
 disabled; full RAM staging is off for 16 GB systems. FSR 4 requires separately
 downloaded assets: use **Avanzado → Descargar assets FSR 4** or run
 `bash tools/fetch_fsr4_assets.sh` before setup. Missing assets produce a clear
-error instead of silently accepting an unusable FSR 4 profile. FSR 3.1 remains
-selectable. Sustained 144 FPS depends on the scene and must be measured.
+warning and automatically prepare FSR 3.1 instead. Sustained 144 FPS depends on
+the scene and must be measured.
 
-**Usar perfil 144** preserves your selected upscaler, quality, resolution, HDR,
-bindings and content selection. `--performance-profile 60` changes the target
-without discarding those choices. Native 1440p uses a larger guest-memory pool
+**Perfil recomendado para este PC (1440p · 144 FPS)** applies FSR 4 Quality,
+1706×960 → 2560×1440, Mailbox, English voices, Spanish text and the P/E CPU
+lists. It resets costly effects while preserving HDR, bindings, paths and
+content selection. `--performance-profile 60` applies the same preset at 60 FPS.
+Native 1440p uses a larger guest-memory pool
 that exceeds GTT capacity on this 16 GB machine. Setup now rejects that profile
 with a clear error. **FSR 4 with a lower internal resolution and 1440p output**
 was tested with the real game; the original settings were backed up locally.
@@ -107,9 +111,16 @@ Guardar como mis predeterminados** writes `~/.config/cachyborne/defaults.json`;
 credentials and personal defaults are never included in releases.
 
 Setup defaults to **Spanish (Latin America)** when its message archives are
-installed, then falls back to another installed Spanish variant. The language
+installed, then falls back to Spanish (Spain), then English. The language
 selector lists only complete item/menu archive pairs actually present in the
-selected dump. Game text availability does not imply dubbed audio.
+selected dump. Voice language is independent: `voice_language` defaults to `eng`
+and is exported as `BB_VOICE_LANGUAGE=eng`, alongside `BB_LANGUAGE=20` and
+`BB_MENU_LANGUAGE=es`. Select **Idioma de voces** in the native GUI or pass
+`--voice-language eng` to setup. Runtime FSB interception redirects known language
+suffixes only when the alternative bank exists; `BB_AUDIO_TRACE=1` logs redirects.
+Cutscene audio selection follows the same policy, including explicit guest stream
+selection. GTK stylesheet registration safely skips a missing display in headless
+tests and high-contrast callbacks. Game text availability does not imply dubbed audio.
 
 Setup shows file-validation progress and supports cancellation. A failed or
 cancelled preparation retains the previous profile. Game-side INI changes newer
@@ -132,13 +143,14 @@ Close memory-heavy applications before playing. Optional RAM staging remains
 available for smaller asset trees or machines with sufficient free memory; it
 checks both tmpfs capacity and available RAM, retaining an 8 GiB reserve.
 
-The installer downloads Bloodborne artwork from the official
-[PlayStation page](https://www.playstation.com/en-us/games/bloodborne/) for your
-local game icon. The artwork remains in your user icon directory and is not
-bundled in the repository. `--download-icon` refreshes it explicitly; an offline
-failure preserves the previous icon and does not prevent shortcut installation.
-The GUI's shortcut action creates both game and configuration entries on the
-desktop and in the application menu.
+The installer includes an original square hunter-sigil icon in SVG/PNG and a
+native window icon. KDE/Wayland matches the runtime's `cachyborne-play` app ID
+to the installed desktop entry; X11 also receives an SDL window icon. The GUI
+uses the same artwork without cropping or stretching. `--download-icon` is an
+optional official-artwork override: it preserves the source proportions on a
+square canvas and keeps the previous icon if downloading fails. The default
+installation works offline. The GUI shortcut action installs both game and
+configuration entries on the desktop and in the application menu.
 
 ## CPU, GPU and display
 
@@ -202,8 +214,8 @@ they do not establish gameplay FPS or prove stutter-free traversal.
 
 ## Releases
 
-[Version 0.7.2 notes](docs/RELEASE_0.7.2.md) and the
-[validation record](docs/VALIDATION_0.7.2.md) describe the source distribution and
+[Version 0.7.4 notes](docs/RELEASE_0.7.4.md) and the
+[validation record](docs/VALIDATION_0.7.4.md) describe the source distribution and
 validation scope. Source release assets include the pinned submodules and a
 SHA256SUMS file. Extract the source archive and run `./cachyborne-install.sh`;
 the installer builds for the local CPU. Game files, saves and account data are
@@ -224,3 +236,10 @@ game, and requires visible GPU output plus frame statistics without an early
 exit. `--replay /path/to/route` accepts a recorded input route. This requires
 the user's own dump and an active graphical session. It does not certify a full
 playthrough or sustained 144 FPS in every area.
+
+
+In 0.7.4, `es` is a real runtime menu locale, including the native System pages
+and graphics overlay. Explicit `BB_MENU_LANGUAGE` overrides older English INI
+choices. Localized message/layout/font paths resolve according to `BB_LANGUAGE`
+even when the EU executable requests an English asset, independently of speech.
+After updating, run setup again to regenerate an old prepared execution plan.

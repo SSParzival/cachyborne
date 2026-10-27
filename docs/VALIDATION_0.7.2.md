@@ -1,3 +1,5 @@
+> Historical validation record. See [0.7.4 results](VALIDATION_0.7.4.md) for the current changes and measurements.
+
 # 0.7.2: real-game startup investigation
 
 Hardware: i5-14600KF, RX 9070 XT / RADV GFX1201, 16 GB RAM; Mesa 26.2.5.

@@ -29,9 +29,10 @@ again. `--mods-dir DIR --mods-config FILE` uses the existing mods.json selection
 `--patches-dir DIR --patches-config FILE` compiles selected XML patches during
 setup. Mod generations retain a symlink view of the source assets; keep both
 the original app0 and the selected mod files in place. They are never modified.
-FSR 4 requires `bash tools/fetch_fsr4_assets.sh` before setup; missing/corrupt
-assets are rejected before game scanning. Existing personal upscaler/preset
-choices are preserved when changing the performance target.
+Install optional FSR 4 assets with `bash tools/fetch_fsr4_assets.sh`. Missing or
+corrupt assets trigger a warning and automatic FSR 3.1 preparation. The recommended
+profile reapplies Quality at 1706x960 → 2560x1440, English voices and Spanish text;
+HDR, bindings and content selections are retained.
 
 FSR 4.1.1 selection checks the relevant replay assets; prepare these separately
 with `tools/fsr4cap/build_assets.sh` using your own required inputs.
@@ -52,7 +53,7 @@ Diagnostics, legacy regular JSON profiles and cold RAM staging use Python.
 
 The JSON profile lives at `~/.config/cachyborne/game_profile.json`, preferences
 at `settings.json` in the same directory. Generations and saves are under
-`~/.local/share/cachyborne`, Mesa's persistent cache under `~/.cache/cachyborne`.
+`~/.local/share/cachyborne`, Mesa's persistent cache under `~/.cache/cachyborne/mesa`.
 XDG_CONFIG_HOME, XDG_DATA_HOME and XDG_CACHE_HOME are respected.
 Do not delete active generations. Old prepared generations can be removed
 manually while the game is stopped, retaining the directory named in the profile.
@@ -61,8 +62,8 @@ manually while the game is stopped, retaining the directory named in the profile
 
 The default `16gb` profile keeps the roughly 30 GB game on disk and disables
 full RAM staging. Direct memory is 5056 MiB for internal resolutions up to 1080p;
-higher internal resolutions retain the 9152 MiB pool required by the resolution
-patches. The port's extra pool and render resource cache are paired at 256 MiB
+higher internal resolutions need the 9152 MiB pool and are rejected in this
+16 GB profile even when GTT cannot be queried. The port's extra pool and render resource cache are paired at 256 MiB
 each. Two pipeline compiler workers
 limit concurrent compiler memory, and MADV_WILLNEED is disabled through the launch
 environment to avoid unnecessary sparse-pool prefetch. Huge-page advice remains
@@ -128,7 +129,7 @@ started automatically.
 ## Desktop and verification
 
 The GUI's Crear Acceso Directo action (also
-`python3 launcher/cachyborne.py desktop --desktop --download-icon`) creates separate game and configuration entries in both the menu and desktop.
+`python3 launcher/cachyborne.py desktop --desktop`) creates separate game and configuration entries in both the menu and desktop.
 The game entry directly runs `cachyborne-launch`. Installer entries provide separate settings and play
 commands. Add the direct launch command as a non-Steam game if desired.
 
@@ -144,3 +145,22 @@ wrappers and game initialization. The <50 ms objective applies to a prepared,
 warm direct path; it is not a hardware-independent guarantee. Gameplay frame
 times, Central Yharnam traversal, HDR/VRR and total load time need a real game
 session. See RESEARCH_AND_ARCHITECTURE.md for findings and validation results.
+
+
+## 0.7.4 validation and languages
+
+`BB_LANGUAGE=20` selects Latin American Spanish text, with installed-archive
+fallback to `3` then `1`. `BB_VOICE_LANGUAGE=eng` independently redirects retail
+FSB banks and selects cutscene audio. The GUI checks dump structure and FSR 4
+assets while editing; setup still performs full identity/DCX validation.
+The requested driver settings do not guarantee a bandwidth or frame rate.
+See [the current validation record](VALIDATION_0.7.4.md) for measured results,
+limits and test commands; older VALIDATION files remain historical records.
+
+
+The runtime now has a Spanish catalog for both the native System pages and the
+graphics overlay; `BB_MENU_LANGUAGE=es` overrides a stale saved English choice.
+Text/layout/font interception follows `BB_LANGUAGE` independently of FSB/audio
+selection. Existing installations must prepare again to replace their old shell
+plan. The original bundled square icon is installed offline and used for both
+desktop shortcuts and the game window's `cachyborne-play` app identity.
