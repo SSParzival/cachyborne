@@ -15,6 +15,14 @@ El writeback conserva todos los mips residentes y su relleno; los hooks corrigen
 el tiempo de partículas a altos FPS y los eventos online sin datos.
 Los menús del port funcionan en español e inglés; las voces son independientes.
 
+La [auditoría de convergencia del 01-11-2026](docs/CONVERGENCE_AUDIT_2026-11-01.md)
+añade validación DCX paralela con memoria acotada, corrección periódica de afinidad
+de hilos de bibliotecas, caducidad del staging del host y publicación inmediata
+de las finalizaciones Vulkan. Completa el catálogo español actual y los errores
+de preparación de Midnight. Se validaron 26 pruebas C++, 239 pruebas Python y
+FSR FP8 nativo en la RX 9070 XT; el informe detalla las pruebas de físicas y
+viajes entre lámparas que siguen pendientes.
+
 [Notas de versión](docs/RELEASE_0.8.3.md) ·
 [Validación y límites](docs/VALIDATION_0.8.3.md) ·
 [Auditoría de forks](docs/COMMUNITY_AUDIT_0.8.3.md)

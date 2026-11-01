@@ -14,6 +14,13 @@ motion vectors, prepares **AMD FSR 4.1.2** assets and introduces separate origin
 Sweet Purple game/settings icons. Port-owned menus support English and Spanish;
 speech is selected independently.
 
+The [2026-11-01 convergence audit](docs/CONVERGENCE_AUDIT_2026-11-01.md) adds
+bounded parallel DCX validation, library-worker affinity reconciliation,
+time-bounded host staging, immediate Vulkan timeline completion publication,
+and complete Spanish coverage of the current launcher catalog and setup errors.
+Validation includes 26 C++ tests, 239 Python tests and native FP8 replay on the
+target RX 9070 XT. The report records remaining physics/travel acceptance work.
+
 Version 0.8.3 restores all resident linear mips without overwriting guest padding,
 uses compact staging and per-slice memory transactions, and adds particle-time
 and null online-event guards. [Source review](docs/COMMUNITY_AUDIT_0.8.3.md).

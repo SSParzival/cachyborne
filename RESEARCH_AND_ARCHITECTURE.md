@@ -27,6 +27,13 @@ and decompression workers use E CPUs. PS4 logical affinity is a separate interfa
 The upstream reservation monitor yields to this policy. No realtime privileges,
 mlock of the guest pool or scheduler replacement is required.
 
+Preparation streams DCX validation through up to eight E-core workers with
+bounded input/output buffers and a bounded queue. This does not replace the
+guest runtime decompressor. Mesa cache workers that restore their initial CPU
+mask and SDL audio threads are reconciled every 250 ms; port-owned workers are
+pinned at entry. See the [convergence audit](docs/CONVERGENCE_AUDIT_2026-11-01.md)
+for the library-placement limits and current fork comparison.
+
 ## Rendering and caches
 
 `gpu/cp/` decodes command packets; `gpu/render/` prepares draws, records commands,
@@ -42,6 +49,11 @@ Linear writeback restores all resident mips/layers/slices using compact staging 
 valid-row transactions under a VMA lock. Depth and stencil use separate planes.
 This hash and the VMA lock do not exclude raw concurrent guest CPU stores; tiled,
 MSAA and ambiguous stencil layouts remain protected from incomplete GC restoration.
+
+Idle host staging has a 30-second monotonic deadline alongside its frame age;
+unfinished submissions, deferred holds and upload floors remain protected.
+Successful host timeline waits publish completion immediately without waiting
+for a throttled poll to refresh the CPU's cached tick.
 
 ## Reconstruction, interface and build
 

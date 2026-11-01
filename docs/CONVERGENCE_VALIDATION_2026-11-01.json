@@ -1,0 +1,372 @@
+{
+  "date": "2026-11-01",
+  "base": "41b4bb66",
+  "code_commits": [
+    "e095d6ed",
+    "a54b8973",
+    "a85239ab",
+    "dd77811b",
+    "8d0ae6f4"
+  ],
+  "source_heads": {
+    "lantern": "e6b943dd969d99561545315f3d801f10e4a6cf8d",
+    "supermedo": "b48052617a919fc4d6b10ae3395e209c9e94e17a",
+    "linux": "b27d0715b897486b6115a34b801661714c0a988f",
+    "bbport_0_7": "0fc2921c45f8ff3900f6bfa43a299e9a4f532af4",
+    "shadps4": "8a66adabf74072e24162b098d7bfd3156b475393"
+  },
+  "host": {
+    "cpu": "i5-14600KF",
+    "ram_gib": 16,
+    "gpu": "RX 9070 XT / RADV GFX1201",
+    "mesa": "26.2.5-arch3.1",
+    "kernel": "6.18.55-2-cachyos-lts",
+    "clang": "23.1.4"
+  },
+  "checks": {
+    "build": "PASS",
+    "check_all": "PASS",
+    "ctest": {
+      "passed": 26,
+      "total": 26
+    },
+    "python": {
+      "passed": 239
+    },
+    "staging_repeat": {
+      "passed": 20,
+      "timeline_poll_us": 1000000
+    },
+    "spirv_val": "PASS (motion-shader-test outputs, Vulkan 1.3 target)",
+    "vulkan_smoke": "PASS (4096-byte submission/readback)",
+    "pipewire": {
+      "buffers": 2000,
+      "sample_rate": 48000,
+      "buffer_frames": 256,
+      "reported_starved": [
+        0,
+        0
+      ],
+      "max_gap_ms": 5.39
+    }
+  },
+  "dcx": {
+    "files": 26913,
+    "damaged": 0,
+    "parallel_streaming": {
+      "elapsed_s": 38.11,
+      "peak_rss_kib": 53880,
+      "swaps": 0
+    },
+    "original_serial": {
+      "elapsed_s": 151.6,
+      "peak_rss_kib": 258384
+    },
+    "caveat": "Uncontrolled filesystem caching and concurrent validation activity; not a controlled speedup ratio or gameplay loading benchmark."
+  },
+  "fsr412": {
+    "sdk": "2.4.0",
+    "upscaler": "4.1.2.4555",
+    "render": "1706x960",
+    "output": "2560x1440",
+    "preset": 1,
+    "frames": 900,
+    "variant": "FP8 t2160_m0",
+    "gpu_dispatch_windows_ms": [
+      0.72,
+      0.668,
+      0.672
+    ],
+    "caveat": "Synthetic dispatch timing, not end-to-end latency or full-scene FPS."
+  },
+  "final_scene_runs": {
+    "runs": [
+      {
+        "fps_limit": 60,
+        "scene_s": 22.31,
+        "elapsed_s": 57.44,
+        "exit_code": 0,
+        "peak_rss_kib": 1246476,
+        "gameplay_frames": 1684,
+        "median_frame_ms": 16.72,
+        "p99_frame_ms": 16.73,
+        "fps_windows": [
+          58.8,
+          59.8,
+          58.7,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8
+        ],
+        "capture_checks": [
+          {
+            "file": "f000_final_1920x1080_rgba.raw",
+            "width": 1920,
+            "height": 1080,
+            "sha256": "0aaa746d871f1fff0eec8b96fe8e6565b3272f204330dd4b15147b972d701716"
+          }
+        ],
+        "fp8_active": true,
+        "fps_steady_last5": [
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8
+        ],
+        "thread_placement": [
+          {
+            "name": "bb:GpuComm",
+            "cpus": "0-11"
+          },
+          {
+            "name": "bb-prob:disk$0",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb-prob:disk$0",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:DrawRec",
+            "cpus": "0-11"
+          },
+          {
+            "name": "SDLPwAudioPlug",
+            "cpus": "0-11"
+          },
+          {
+            "name": "SDLAudioP15",
+            "cpus": "0-11"
+          },
+          {
+            "name": "FMOD mixer thre",
+            "cpus": "0-11"
+          },
+          {
+            "name": "FMOD AudioOut t",
+            "cpus": "0-11"
+          },
+          {
+            "name": "FMOD stream thr",
+            "cpus": "0-11"
+          },
+          {
+            "name": "FMOD nonblockin",
+            "cpus": "0-11"
+          },
+          {
+            "name": "FMOD file threa",
+            "cpus": "0-11"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          }
+        ]
+      },
+      {
+        "fps_limit": 144,
+        "scene_s": 17.3,
+        "elapsed_s": 52.45,
+        "exit_code": 0,
+        "peak_rss_kib": 1243048,
+        "gameplay_frames": 3971,
+        "median_frame_ms": 7.0,
+        "p99_frame_ms": 7.01,
+        "fps_windows": [
+          137.2,
+          137.5,
+          142.9,
+          142.9,
+          143.0,
+          143.0,
+          142.8,
+          143.0,
+          143.0,
+          143.0
+        ],
+        "capture_checks": [
+          {
+            "file": "f000_final_1920x1080_rgba.raw",
+            "width": 1920,
+            "height": 1080,
+            "sha256": "7ba3c1ba13e582e292e7b6cbc7f072899f8ca9c77de6d1a6e6ab20d6ad90dc5b"
+          }
+        ],
+        "fp8_active": true,
+        "fps_steady_last5": [
+          143.0,
+          142.8,
+          143.0,
+          143.0,
+          143.0
+        ],
+        "thread_placement": [
+          {
+            "name": "bb:GpuComm",
+            "cpus": "0-11"
+          },
+          {
+            "name": "bb-prob:disk$0",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb-prob:disk$0",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:DrawRec",
+            "cpus": "0-11"
+          },
+          {
+            "name": "SDLPwAudioPlug",
+            "cpus": "0-11"
+          },
+          {
+            "name": "SDLAudioP15",
+            "cpus": "0-11"
+          },
+          {
+            "name": "FMOD mixer thre",
+            "cpus": "0-11"
+          },
+          {
+            "name": "FMOD AudioOut t",
+            "cpus": "0-11"
+          },
+          {
+            "name": "FMOD stream thr",
+            "cpus": "0-11"
+          },
+          {
+            "name": "FMOD nonblockin",
+            "cpus": "0-11"
+          },
+          {
+            "name": "FMOD file threa",
+            "cpus": "0-11"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          },
+          {
+            "name": "bb:ShaderCompil",
+            "cpus": "12-19"
+          }
+        ]
+      }
+    ],
+    "original_saves_unchanged": true
+  },
+  "scene_limits": [
+    "Stationary copied-save offline scene; no repeated lantern travel or boss/cloth/jump comparisons.",
+    "No before/after game-performance gain measured.",
+    "Raw diagnostic captures are 1920x1080; logs confirm 2560x1440 host composition and FP8 reconstruction.",
+    "The initial measurement script hit a truncated final CSV row after controlled termination; final runs ignore incomplete rows.",
+    "Personal prepared-profile link was already broken; validation used a new isolated profile and did not repair or replace the personal link."
+  ],
+  "remaining": [
+    "Runtime libdeflate guest decompression hook",
+    "Contact shadows/PCSS/POM integration and measured GPU cost",
+    "30 FPS reference comparisons for jump/collision/slope/cloth",
+    "Long-session repeated lantern-travel memory tracking",
+    "Input-to-display latency and online interoperability"
+  ],
+  "logs": [
+    "out/convergence-validation.log",
+    "out/convergence-ctest-all.log",
+    "out/convergence-staging-repeat.log",
+    "out/convergence-dcx-retail.log",
+    "out/convergence-dcx-timing.log",
+    "out/convergence-dcx-baseline-timing.log",
+    "out/convergence-fsr412-1440.log",
+    "out/convergence-pipewire.log",
+    "out/convergence-scene/60/game.log",
+    "out/convergence-scene/144/game.log"
+  ],
+  "binaries": {
+    "out/bb-probe": {
+      "bytes": 1764272,
+      "sha256": "55e8b3091049cfe75ada69d4402349dfd68b8bb9b085a72179b56459b695a9a1"
+    },
+    "out/gpu/libbbgpu.so": {
+      "bytes": 25180696,
+      "sha256": "b9639349956e716e2d7f8d7d29835596ac850dc60cca2e16336af6c35cf2cabf"
+    }
+  }
+}

@@ -87,10 +87,20 @@ lists in preferences for your topology. Pinning applies to guest threads and
 named host GPU workers, including asynchronous pipeline compilers. A constructor
 captures the initial allowed mask so background workers can move to E CPUs even
 when their parent was pinned. External taskset/cgroup limits remain respected.
-Do not wrap the entire process in taskset 0-11 if you want to use E CPUs. Mesa's
-internal workers are managed by Mesa; only port-owned worker roles are assigned.
+Do not wrap the entire process in taskset 0-11 if you want to use E CPUs. Mesa
+cache/shader queue names (`process:disk$N`, `process:shN`) and audio/FMOD threads
+are reconciled every 250 ms because libraries may restore their startup mask.
+Other library threads retain their own masks. This is eventual correction for
+library threads; port-owned roles are placed at entry. Asset validation workers
+also use E CPUs with bounded streaming decompression during preparation.
 `--no-pinning` disables host affinity. The guest's seven PS4 CPU bits remain
 independent of Linux CPU numbers and do not configure realtime priorities.
+
+Idle host staging retires after 30 seconds as well as its existing frame-age
+limit (`BB_STAGING_HOST_IDLE_MS=0` restores frame-only aging). Deferred readbacks
+and unfinished submissions remain protected; upload-cache floors still apply.
+See the [convergence audit](CONVERGENCE_AUDIT_2026-11-01.md) for measurements and
+the distinction between preparation scans and in-game loading.
 
 MADV_HUGEPAGE and MADV_WILLNEED are best-effort hints on backing views, committed
 chunks/aliases and low anonymous allocations. Unsupported dma-buf advice is
