@@ -196,7 +196,14 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
 
     def spin(self, group, key, title, minimum, maximum, step=1, digits=0):
         row = Adw.SpinRow.new_with_range(minimum, maximum, step)
-        row.set_title(title); row.set_digits(digits); row.set_value(float(self.current(key) or minimum))
+        row.set_title(title); row.set_digits(digits)
+        try:
+            value = float(self.current(key))
+            import math
+            if not math.isfinite(value): value = minimum
+        except (TypeError, ValueError):
+            value = minimum
+        row.set_value(max(minimum, min(maximum, value)))
         group.add(row)
         self.register(key, row, lambda: round(row.get_value(), digits) if digits else int(row.get_value()), 'spin')
         return row
@@ -211,8 +218,8 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         self.profile_badge = label('Perfil preparado', 'pill ready'); self.profile_badge.set_halign(Gtk.Align.START)
         copy_box.append(self.profile_badge)
         hero.append(copy_box)
-        if core.icon_path().is_file():
-            picture = Gtk.Picture.new_for_filename(str(core.icon_path()))
+        if core.icon_path(configuration=True).is_file():
+            picture = Gtk.Picture.new_for_filename(str(core.icon_path(configuration=True)))
             picture.set_content_fit(Gtk.ContentFit.CONTAIN); picture.set_size_request(192, 192)
             picture.add_css_class('hero-art'); picture.set_overflow(Gtk.Overflow.HIDDEN); hero.append(picture)
         page.append(hero)
@@ -253,6 +260,7 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         self.entry(scope, 'width', 'Ancho de salida'); self.entry(scope, 'height', 'Alto de salida')
         self.switch(scope, 'hdr', 'HDR'); self.switch(scope, 'vrr', 'Adaptive Sync / VRR')
         self.switch(scope, 'gamescope_fsr', 'FSR espacial de Gamescope')
+        self.add_upstream_controls(self.group(page, 'Latencia y preparación'), 'performance')
         page.append(action('Diagnóstico y hardware', lambda: self.navigate('advanced')))
 
     def build_graphics(self):
@@ -260,8 +268,9 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         display = self.group(page, 'Pantalla y escalado')
         self.combo(display, 'fps', 'FPS objetivo', ['30','60','90','120','144','165','uncap'], ['30','60','90','120','144','165','Desbloqueado'])
         self.spin(display, 'fps_limit', 'Límite personalizado (0 usa el objetivo)', 0, 1000)
-        self.combo(display, 'upscaler', 'Escalador', ['off','taa','fsr3','fsr4','fsr411','dlss'], ['Sin escalado','TAA nativo','FSR 3.1','FSR 4','FSR 4.1.1','DLSS (NVIDIA)'])
+        self.combo(display, 'upscaler', 'Escalador', ['off','taa','fsr3','fsr4','fsr411','dlss','fsr1'], ['Sin escalado','TAA nativo','FSR 3.1','FSR 4','FSR 4.1.1 / 4.1.2','DLSS (NVIDIA)','FSR 1 (espacial)'])
         self.combo(display, 'ini.preset', 'Calidad del escalador', ['0','1','2','3','4'], ['Native AA','Quality','Balanced','Performance','Ultra Performance'])
+        self.switch(display, 'output_auto', 'Usar resolución del monitor', 'Se detecta al preparar; vuelve a preparar si cambias de monitor.')
         self.entry(display, 'render_res', 'Resolución interna (WxH)'); self.entry(display, 'output_res', 'Resolución de salida (WxH)')
         self.native_button(display, 'Calcular resolución interna desde el preset', self.calculate_resolution)
         self.switch(display, 'fullscreen', 'Pantalla completa')
@@ -269,17 +278,18 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         self.switch(display, 'ini.sharpen', 'Nitidez RCAS'); self.spin(display, 'ini.sharpness', 'Intensidad de nitidez', 0, 2, .05, 2)
         self.switch(display, 'ini.object_motion', 'Vectores de movimiento de objetos')
         self.switch(display, 'ini.show_fps', 'Mostrar FPS en el juego')
+        self.add_upstream_controls(self.group(page, 'Calidad y generación de cuadros'), 'graphics')
         effects = self.group(page, 'Efectos de Bloodborne')
         for key, title, default in [('chromatic_aberration','Aberración cromática','0'), ('dof','Profundidad de campo','0'),
                                      ('motion_blur','Desenfoque de movimiento','0'), ('ssao','Oclusión ambiental SSAO','1'),
-                                     ('game_aa','Antialiasing original','1'), ('dynamic_shadows','Sombras dinámicas','1'),
+ ('dynamic_shadows','Sombras dinámicas','1'),
                                      ('ssr','Reflejos SSR','0'), ('bloom','Bloom','1')]:
             self.ini.setdefault('effect_' + key, default)
             self.switch(effects, 'ini.effect_' + key, title)
         self.ini.setdefault('model_lod', '0')
         self.combo(effects, 'ini.model_lod', 'Detalle de modelos', ['-2','0','1','2'], ['Máximo','Original','Bajo','Mínimo'])
         audio = self.group(page, 'Audio y assets opcionales')
-        self.switch(audio, 'audio', 'Audio activado'); self.entry(audio, 'fsr411_dir', 'Assets de FSR 4.1.1')
+        self.switch(audio, 'audio', 'Audio activado'); self.entry(audio, 'fsr411_dir', 'Assets de FSR 4.1 (SDK 4.1.2)')
         self.add_language_controls(page)
         page.append(action('Pantallas, GPU y assets FSR/DLSS', lambda: self.navigate('advanced')))
 
@@ -291,6 +301,9 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         self.switch(controls, 'ini.mouse_look', 'Controlar cámara con el ratón', 'Clic para capturar; F1 para liberar.')
         self.spin(controls, 'ini.mouse_sensitivity', 'Sensibilidad', .1, 10, .05, 2)
         self.switch(controls, 'ini.mouse_invert_y', 'Invertir eje vertical')
+        self.switch(controls, 'ini.mouse_invert_x', 'Invertir eje horizontal')
+        self.combo(controls, 'ini.button_prompts', 'Iconos de botones', ['auto', 'playstation', 'xbox', 'keyboard'], ['Último dispositivo', 'PlayStation', 'Xbox', 'Teclado y ratón'])
+        self.add_upstream_controls(self.group(page, "Cámara con mando"), "controls")
         self.add_native_controls(page)
         page.append(action('Crear accesos de juego y configuración', self.desktop))
 

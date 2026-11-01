@@ -19,7 +19,7 @@ import mods
 
 class MidnightSettingsTests(unittest.TestCase):
     def test_schema_covers_every_original_setting_and_binding(self):
-        tree = ast.parse((ROOT / "launcher/bbport_launcher.py").read_text())
+        tree = ast.parse((ROOT / "launcher/bbport_launcher_common.py").read_text())
         assignments = {
             n.targets[0].id: n.value
             for n in tree.body
@@ -87,10 +87,11 @@ class MidnightSettingsTests(unittest.TestCase):
         for flag in options.PRESENCE_FLAGS.values():
             self.assertNotIn(flag, env)
         self.assertEqual(env["BB_LANGUAGE"], "20")
-        self.assertEqual(env["BB_READBACKS"], "2")
+        self.assertNotIn("readbacks", result["original_settings"])
         self.assertEqual(env["BB_GPU_ID"], "0")
         self.assertEqual(env["CUSTOM"], "a b")
-        self.assertEqual(env["BB_PC_MODEL"], "0")
+        self.assertNotIn("BB_PC_MODEL", env)
+        self.assertNotIn("memory_model", result["original_settings"])
         self.assertEqual(env["CUSTOM_OLD"], "kept")
         self.assertEqual(env["BB_FPS"], "uncap")
         self.assertEqual(env["BB_FPS_LIMIT"], "144")
@@ -190,6 +191,28 @@ class MidnightSettingsTests(unittest.TestCase):
                     self.assertEqual(
                         json.loads(selection.read_text()), s["patch_selection"]
                     )
+                    state = Path(profile["prepared"]) / "mods-state.txt"
+                    self.assertEqual(state.read_text(), name)
+                    saves = Path(profile["user"]) / "savedata"
+                    saves.mkdir()
+                    (saves / "slot.dat").write_bytes(b"save-before-mod-change")
+                    changed = copy.deepcopy(s)
+                    changed["mod_selection"]["disabled"] = [name]
+
+                    def failing_tool(command, **kwargs):
+                        if command[1].endswith("patches.py"):
+                            raise subprocess.CalledProcessError(1, command)
+                        return tool(command, **kwargs)
+
+                    with patch.object(core.subprocess, "run", side_effect=failing_tool):
+                        with self.assertRaises(subprocess.CalledProcessError):
+                            core.setup(game, changed)
+                    self.assertEqual(core.load_profile()["generation"], profile["generation"])
+                    self.assertEqual(state.read_text(), name)
+                    self.assertEqual((saves / "slot.dat").read_bytes(), b"save-before-mod-change")
+                    backups = list(saves.parent.glob("savedata-backups/*/slot.dat"))
+                    self.assertEqual(len(backups), 1)
+                    self.assertEqual(backups[0].read_bytes(), b"save-before-mod-change")
 
     def test_resolver_disabled_order_and_layer_shape(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -251,6 +274,7 @@ sys.path.insert(0, 'launcher')
 import cachyborne_gui as gui
 app=gui.App(); app.register(None); app.css_provider=gui.apply_style()
 s=copy.deepcopy(gui.core.DEFAULTS)
+s['runtime_ini']['camera_speed_x']='nan'
 mods=gui.core.DATA/'mods'
 for name in ('A','Long mod name'):
     (mods/name/'dvdroot_ps4').mkdir(parents=True)
@@ -262,6 +286,7 @@ s.update(game=str(game),mods_dir=str(mods),patches_dir=str(patches))
 gui.core.save_preferences(s)
 w=gui.Preferences(app)
 assert len(w.mod_rows)==2 and len(w.patch_rows)==1
+assert w.fields['ini.camera_speed_x']()==0.25
 assert w.language_values==['20']
 w.move_mod('Long mod name',-1)
 w.mod_rows[0][1].set_active(False)
@@ -271,25 +296,29 @@ assert selection['mod_selection']['order']==['Long mod name','A']
 assert selection['mod_selection']['disabled']==['Long mod name']
 assert selection['patch_selection']['enabled']==['test.xml/Patch']
 assert gui.options.NATIVE_LEGACY_FIELDS <= {k[7:] for k in w.fields if k.startswith('legacy.')}
-assert len(w.binding_defaults)==44
-assert all('ini.'+key in w.fields for key in __import__('patches').EFFECTS)
+assert len(w.binding_defaults)==45
+assert all('ini.'+key in w.fields for key in __import__('patches').EFFECTS if key != 'effect_game_aa')
 assert len(app.get_windows())==1
 w.widgets['upscaler'][0].set_selected(3)
 w.widgets['ini.preset'][0].set_selected(0)
-w.widgets['legacy.readbacks'][0].set_selected(2)
+w.widgets['ini.texture_quality'][0].set_selected(2)
 w.widgets['ini.key.cross'][0].set_text('X')
 w.widgets['voice_language'][0].set_selected(1)
 w.widgets['width'][0].set_text('')
 assert w.save(as_default=True)
 s=gui.core.preferences()
 assert s['width']=='' and s['runtime_ini']['key.cross']=='X'
-assert s['original_settings']['readbacks']=='2'
+assert s['runtime_ini']['texture_quality']=='half'
 assert s['voice_language']=='esa'
 w.widgets['width'][0].set_text('2560')
 assert w.save()
 s=w.collect(validate=True)
 assert s['upscaler']=='fsr4' and s['runtime_ini']['preset']=='0'
-assert s['runtime_env']['BB_READBACKS']=='2'
+assert 'BB_PC_MODEL' not in s['runtime_env']
+assert s['runtime_ini']['game_voice_language']=='esar'
+assert all('ini.'+key in w.fields for key in gui.options.INI_OPTIONS)
+assert all(gui.options.INI_CANONICAL_FIELDS.get(key, 'ini.'+key) in w.fields for key in gui.options.INI_DEFAULTS)
+assert 'ini.key.walk' in w.fields and 'ini.pad.walk' not in w.fields
 assert s['runtime_env']['BB_VOICE_LANGUAGE']=='esa'
 assert s['runtime_env']['BB_LANGUAGE']=='20'
 w.widgets['ini.preset'][0].set_selected(1)

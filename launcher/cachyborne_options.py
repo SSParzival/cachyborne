@@ -10,6 +10,7 @@ CONTROL_BINDINGS = [
     ("circle", "Círculo", "", "b"),
     ("dodge", "Esquivar", "Space", None),
     ("sprint", "Correr", "Left Shift", None),
+    ("walk", "Caminar lentamente (mantener)", "Left Alt", None),
     ("square", "Objeto rápido / Cuadrado", "Tab, R", "x"),
     ("triangle", "Vial de sangre / Triángulo", "Q", "y"),
     ("l1", "L1 · transformar arma", "E, Mouse X2", "leftshoulder"),
@@ -54,17 +55,14 @@ LEGACY_DEFAULTS = dict(
     fps_mode="uncap",
     fps_limit=144,
     draw_pipe="",
-    readbacks="",
-    preupload="",
     mangohud=False,
     frame_stats=False,
     save_log=False,
     crash_diag=False,
-    memory_model="auto",
-    as_0_3=False,
     gpu_profile=False,
     vk_validation=False,
     extra_env="",
+    trophy_key="",
     online=False,
     online_bbsc=True,
     online_community="http://play.seamlesshunt.com",
@@ -96,14 +94,13 @@ NATIVE_LEGACY_FIELDS = set(LEGACY_DEFAULTS) - set(CANONICAL_FIELDS) - COMPUTED_F
 
 VOICE_LANGUAGES = [("eng", "Inglés (predeterminado)"), ("esa", "Español Latinoamericano"),
                    ("ese", "Español España"), ("jaj", "Japonés"), ("ded", "Alemán"),
-                   ("frf", "Francés"), ("iti", "Italiano"), ("ptb", "Portugués (Brasil)")]
+                   ("frf", "Francés"), ("iti", "Italiano"), ("ptb", "Portugués (Brasil)"), ("auto", "Según el juego")]
 
 LANGUAGES = [
     ("1", "English"),
     ("18", "English (UK)"),
     ("3", "Español"),
     ("20", "Español (Latinoamérica)"),
-    ("8", "Русский"),
     ("0", "日本語"),
     ("2", "Français"),
     ("4", "Deutsch"),
@@ -129,6 +126,9 @@ PRESENCE_FLAGS = {
     "vk_validation": "BB_VK_VALIDATION",
 }
 KNOWN_ENV = set(PRESENCE_FLAGS.values()) | {
+    "BB_FAULT_WAIT",
+    "BB_READBACKS",
+    "BB_TROPHY_KEY",
     "BB_LANGUAGE",
     "BB_VOICE_LANGUAGE",
     "BB_MENU_LANGUAGE",
@@ -142,7 +142,6 @@ KNOWN_ENV = set(PRESENCE_FLAGS.values()) | {
     "BB_PRESENT_MODE",
     "BB_GAMEPAD",
     "BB_DRAW_PIPE",
-    "BB_READBACKS",
     "BB_PREUPLOAD",
     "BB_PC_MODEL",
     "BB_GUEST_IN_PLACE",
@@ -166,10 +165,59 @@ KNOWN_ENV = set(PRESENCE_FLAGS.values()) | {
 }
 
 
+# Retired upstream 0.6 memory paths. Purge values in saved drafts and inherited shells.
+RETIRED_ENV = {"BB_PC_MODEL", "BB_GUEST_IN_PLACE", "BB_AS_0_3", "BB_PREUPLOAD", "BB_UFFD"}
+VOICE_GAME_CODES = dict(auto="auto", eng="engb", esa="esar", ese="eses", jaj="jajp", ded="dede", frf="frfr", iti="itit", ptb="ptbr")
+TEXT_SYSTEM_CODES = dict(enus="1", engb="18", jajp="0", frfr="2", itit="5", dede="4", eses="3", esar="20", ptbr="17", ptpt="7", nlnl="6", plpl="16", dadk="14", nono="15", fifi="12", svse="13", trtr="19", zhcn="11", zhtw="10", kokr="9")
+TEXT_LANGUAGES = [("auto", "Seguir idioma del sistema PS4")] + [(code, dict(LANGUAGES)[system]) for code, system in TEXT_SYSTEM_CODES.items()]
+
+# Native schema for every new INI control. Defaults use the upstream spelling and types
+# (INI values are strings); GUI labels/pages and validation share this definition.
+# key: default, page, Spanish title, choices or numeric bounds
+INI_OPTIONS = {
+    "game_text_language": ("auto", "graphics", "Idioma de textos (cualquier región)", tuple(code for code, _ in TEXT_LANGUAGES)),
+    "vbao": ("0", "graphics", "Oclusión ambiental GT-VBAO (requiere SSAO)", ("0", "1")),
+    "anti_aliasing": ("auto", "graphics", "Antialiasing", ("auto", "game", "fxaa", "smaa", "off")),
+    "texture_quality": ("auto", "graphics", "Calidad de texturas en VRAM", ("auto", "full", "half", "quarter")),
+    "frame_generation": ("off", "graphics", "Generación de cuadros", ("off", "fsr3", "dlss")),
+    "frame_generation_multiplier": ("2", "graphics", "Multiplicador DLSS (según GPU)", ("2", "3", "4")),
+    "low_latency": ("on", "performance", "Baja latencia (Reflex / AMD Anti-Lag 2)", ("off", "on", "boost")),
+    "camera_speed_x": ("1.00", "controls", "Velocidad horizontal de cámara con mando", (0.25, 2.0)),
+    "camera_speed_y": ("1.00", "controls", "Velocidad vertical de cámara con mando", (0.25, 2.0)),
+    "fsr4_model": ("auto", "advanced", "Modelo de FSR 4.1 (assets compatibles)", ("auto", "fp8", "int8", "int8_rdna2", "int8_lite")),
+    "light_grid_opt": ("1", "performance", "Optimizar cuadrícula de luces", ("0", "1")),
+}
+INI_CANONICAL_FIELDS = {"upscaler": "upscaler", "output_res": "output_res", "game_voice_language": "voice_language"}
+INI_DEFAULTS = {key: spec[0] for key, spec in INI_OPTIONS.items()} | {
+    "upscaler": "fsr411", "preset": "4", "sharpen": "1", "sharpness": "0.50", "object_motion": "1",
+    "show_fps": "1", "output_res": "auto", "model_lod": "0", "mouse_look": "1", "mouse_sensitivity": "1.00",
+    "mouse_invert_y": "0", "mouse_invert_x": "0", "button_prompts": "auto", "game_voice_language": "auto",
+    **{"effect_" + key: value for key, value in (("chromatic_aberration", "1"), ("dof", "1"), ("motion_blur", "1"), ("ssao", "1"), ("dynamic_shadows", "1"), ("ssr", "0"), ("bloom", "1"))},
+    "skip_intro": "0", "debug_camera": "0", "debug_menu": "0",
+}
+
+
+def validate_ini(ini):
+    import math
+    for key, (default, page, title, values) in INI_OPTIONS.items():
+        value = ini.get(key, default)
+        if isinstance(values[0], (float, int)):
+            try:
+                number = float(value)
+            except (TypeError, ValueError):
+                raise ValueError(f"{title}: valor numérico inválido") from None
+            if not math.isfinite(number) or not values[0] <= number <= values[1]:
+                raise ValueError(f"{title}: fuera de rango")
+        elif str(value) not in values:
+            # Pre-0.7 frame generation was a boolean INI value.
+            if key != "frame_generation" or str(value) not in ("0", "1"):
+                raise ValueError(f"{title}: valor inválido {value}")
+
+
 def reconcile(settings):
     """Project native widgets into the exact INI/environment consumed by the runtime."""
     s = copy.deepcopy(settings)
-    old = dict(LEGACY_DEFAULTS) | s.get("original_settings", {})
+    old = dict(LEGACY_DEFAULTS) | {k: v for k, v in s.get("original_settings", {}).items() if k in LEGACY_DEFAULTS}
     for original, canonical in CANONICAL_FIELDS.items():
         if canonical in s:
             old[original] = s[canonical]
@@ -185,6 +233,8 @@ def reconcile(settings):
         for key, value in s.get("runtime_env", {}).items()
         if key not in KNOWN_ENV
     }
+    for key in RETIRED_ENV:
+        env.pop(key, None)
     env.update(
         BB_LANGUAGE=old["language"],
         BB_VOICE_LANGUAGE=s.get("voice_language", "eng"),
@@ -197,8 +247,6 @@ def reconcile(settings):
     for key, var in [
         ("display", "BB_DISPLAY"),
         ("draw_pipe", "BB_DRAW_PIPE"),
-        ("readbacks", "BB_READBACKS"),
-        ("preupload", "BB_PREUPLOAD"),
     ]:
         if old[key] != "":
             env[var] = str(old[key])
@@ -209,16 +257,21 @@ def reconcile(settings):
             env[var] = "1"
     if old["crash_diag"]:
         env.update(BB_FREE_CHECK="1", BB_WRITE_LOG="1", BB_PRODUCER_CHECK="1")
-    if old["memory_model"] in ("new", "old"):
-        env["BB_PC_MODEL"] = "1" if old["memory_model"] == "new" else "0"
-    if old["as_0_3"]:
-        env.update(
-            BB_AS_0_3="1",
-            BB_PC_MODEL="0",
-            BB_GUEST_IN_PLACE="0",
-            BB_HOST_COPY_WAITS="all",
-            BB_PRODUCER_CHECK="1",
-        )
+    if not isinstance(s.get("fault_wait", False), bool):
+        raise ValueError("Conservar proceso al fallar: se requiere un valor booleano")
+    if s.get("fault_wait"):
+        env["BB_FAULT_WAIT"] = "1"
+    readbacks = s.get("readbacks") or settings.get("original_settings", {}).get("readbacks", "")
+    if readbacks:
+        if str(readbacks) not in ("0", "1", "2"):
+            raise ValueError("Lecturas GPU: valor inválido")
+        s["readbacks"] = str(readbacks)
+        env["BB_READBACKS"] = str(readbacks)
+    if old["trophy_key"]:
+        import re
+        if not re.fullmatch(r"[0-9a-fA-F]{32}", old["trophy_key"].strip()):
+            raise ValueError("La clave de trofeos debe contener 32 dígitos hexadecimales")
+        env["BB_TROPHY_KEY"] = old["trophy_key"].strip()
     if old["online"]:
         env.update(
             BB_ONLINE="1", BB_NET_GEN="20", BB_UPNP="1" if old["online_upnp"] else "0"
@@ -245,6 +298,8 @@ def reconcile(settings):
             raise ValueError(f"Variable adicional sin valor: {item}")
         key, value = item.split("=", 1)
         env[key] = value
+    for key in RETIRED_ENV:
+        env.pop(key, None)
     if s.get("fsr4_dir"):
         env["BB_FSR4_DIR"] = s["fsr4_dir"]
     s["original_settings"] = old
@@ -260,7 +315,12 @@ def reconcile(settings):
         for key, value in s.get("runtime_ini", {}).items()
         if value is not None or key in binding_defaults
     }
-    s["runtime_ini"].update(upscaler=s["upscaler"], output_res=s["output_res"], menu_language=old["ui_language"] or "es")
+    s["runtime_ini"] = dict(INI_DEFAULTS) | s["runtime_ini"]
+    s["runtime_ini"]["game_voice_language"] = VOICE_GAME_CODES[s.get("voice_language", "eng")]
+    text = s["runtime_ini"].get("game_text_language", "auto")
+    if text != "auto" and text in TEXT_SYSTEM_CODES:
+        s["runtime_env"]["BB_LANGUAGE"] = TEXT_SYSTEM_CODES[text]
+    s["runtime_ini"].update(upscaler=s["upscaler"], output_res="auto" if s.get("output_auto") else s["output_res"], menu_language=old["ui_language"] or "es")
     return s
 
 
@@ -400,7 +460,8 @@ def validate_game_language(settings, game):
         raise ValueError("No hay archivos de idioma completos en dvdroot_ps4/msg.")
     available = {code for code, _ in choices}
     old = settings.setdefault("original_settings", {})
-    requested = str(
+    text = settings.get("runtime_ini", {}).get("game_text_language", "auto")
+    requested = TEXT_SYSTEM_CODES.get(text) or str(
         old.get("language")
         or settings.get("runtime_env", {}).get("BB_LANGUAGE")
         or "20"
@@ -419,3 +480,17 @@ def validate_game_language(settings, game):
         BB_LANGUAGE=requested, BB_MENU_LANGUAGE=old["ui_language"]
     )
     return choices
+
+
+def monitor_output(root, selected=""):
+    """Resolve a monitor once during setup; direct launch uses the prepared size."""
+    rows = capabilities(root, "--displays")
+    rows = [row for row in rows if len(row) == 3]
+    if not rows:
+        raise ValueError("No se detectó monitor; indica una resolución de salida manual")
+    chosen = next((row for i, row in enumerate(rows, 1) if selected in (str(i), row[0])), None)
+    chosen = chosen or next((row for row in rows if row[2] == "1"), rows[0])
+    import re
+    if not re.fullmatch(r"[0-9]+x[0-9]+", chosen[1]):
+        raise ValueError("El monitor no informa una resolución válida")
+    return chosen[1]

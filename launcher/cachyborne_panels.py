@@ -273,6 +273,35 @@ class NativePanels:
         self.native_button(thd, "Iniciar sesión en THD", self.sign_in)
         self.native_button(thd, "Cerrar sesión local", self.sign_out)
         self.native_button(general, "Comprobar conexión", self.check_online)
+        trophies = self.group(page, "Trofeos locales", "Se guardan sin conectar con servidores. La clave personal permite leer nombres e iconos del paquete del juego.")
+        self.secret(trophies, "legacy.trophy_key", "Clave personal de trofeos (32 dígitos hexadecimales)")
+        self.trophy_group = self.group(page, "Trofeos registrados")
+        self.trophy_rows = []
+        self.native_button(trophies, "Actualizar trofeos", self.refresh_trophies)
+        self.refresh_trophies()
+
+    def refresh_trophies(self):
+        import trophy_list
+        for row in self.trophy_rows:
+            self.trophy_group.remove(row)
+        self.trophy_rows = []
+        try:
+            user = self.fields["user_dir"]() or core.DATA / "user"
+            language = self.fields.get("legacy.language", lambda: "20")()
+            data = trophy_list.load(user, language)
+            self.trophy_group.set_title(f"Trofeos registrados · {data['unlocked']} / {data['total']}")
+            for trophy in data["trophies"]:
+                unlocked = trophy["unlocked"]
+                title = trophy["name"] or f"Trofeo {trophy['id']}"
+                detail = trophy["detail"]
+                if trophy["hidden"] and not unlocked:
+                    title, detail = "Trofeo oculto", "Desbloquéalo para ver sus detalles."
+                row = Adw.ActionRow(title=GLib.markup_escape_text(title), subtitle=GLib.markup_escape_text(detail))
+                row.add_prefix(Gtk.Image(icon_name="emblem-ok-symbolic" if unlocked else "changes-prevent-symbolic"))
+                self.trophy_group.add(row)
+                self.trophy_rows.append(row)
+        except (OSError, ValueError) as error:
+            self.report(str(error))
 
     def secret(self, group, key, title):
         row = Adw.PasswordEntryRow(title=title, text=str(self.current(key)))
@@ -346,11 +375,32 @@ class NativePanels:
             [name for _, name in choices] or ["Selecciona primero un dump"],
         )
         self.language_row.set_sensitive(bool(choices))
+        self.add_upstream_controls(hardware, "graphics", only="game_text_language")
         self.combo(hardware, "voice_language", "Idioma de voces",
                    [code for code, _ in options.VOICE_LANGUAGES],
                    [name for _, name in options.VOICE_LANGUAGES])
         self.combo(hardware, "legacy.ui_language", "Idioma del menú propio del port",
-                   ["es", "en", "ru"], ["Español", "English", "Русский"])
+                   ["es", "en"], ["Español", "English"])
+
+    def add_upstream_controls(self, group, page, only=None):
+        labels = {
+            "anti_aliasing": ["Automático", "Original del juego", "FXAA2_GS", "SMAA (sin escalador)", "Desactivado"],
+            "texture_quality": ["Automática (mitad con ≤3 GB VRAM)", "Completa", "Mitad", "Cuarta parte"],
+            "frame_generation": ["Desactivada", "FSR 3.1 (experimental)", "DLSS (RTX 40/50, requiere DLSSG)"],
+            "low_latency": ["Desactivada", "Activada", "Activada + Boost"],
+            "fsr4_model": ["Automático", "FP8", "INT8", "INT8 RDNA2", "INT8 Lite"],
+            "game_text_language": [title for _, title in options.TEXT_LANGUAGES],
+        }
+        for key, (default, owner, title, values) in options.INI_OPTIONS.items():
+            if owner != page or (key != only if only else key == "game_text_language"):
+                continue
+            self.ini.setdefault(key, default)
+            if values == ("0", "1"):
+                self.switch(group, "ini." + key, title)
+            elif isinstance(values[0], (float, int)):
+                self.spin(group, "ini." + key, title, *values, step=.05, digits=2)
+            else:
+                self.combo(group, "ini." + key, title, list(values), labels.get(key, list(values)))
 
     def build_advanced(self):
         page = self.page(
@@ -372,28 +422,13 @@ class NativePanels:
                 ["", "0", "1"],
                 ["Automático", "Desactivado", "Activado"],
             ),
-            (
-                "readbacks",
-                "Lecturas GPU",
-                ["", "0", "2"],
-                ["Relaxed / predeterminado", "Desactivadas", "Precise"],
-            ),
-            (
-                "preupload",
-                "Precarga de recursos",
-                ["", "0", "2"],
-                ["Normal", "Desactivada", "Completa (+3 GB VRAM)"],
-            ),
-            (
-                "memory_model",
-                "Modelo de memoria",
-                ["auto", "new", "old"],
-                ["Automático", "Nuevo", "Anterior"],
-            ),
         ]:
             self.combo(pipeline, "legacy." + key, title, values, labels)
-        self.switch(pipeline, "legacy.as_0_3", "Comportamiento de memoria 0.3")
+        self.combo(pipeline, "readbacks", "Lecturas GPU", ["", "0", "1", "2"],
+                   ["Predeterminadas", "Desactivadas", "Relajadas", "Precisas"])
         diagnostics = self.group(page, "Diagnóstico")
+        self.switch(diagnostics, "fault_wait", "Conservar proceso al fallar para depurarlo",
+                    "Espera a GDB ante un fallo fatal. Permite adjuntar el depurador de tu usuario; desactivado al jugar normalmente.")
         for key, title in [
             ("mangohud", "MangoHud"),
             ("frame_stats", "Estadísticas por cuadro"),
@@ -442,10 +477,15 @@ class NativePanels:
             ("debug_view", "0"),
             ("fsr4_auto_exposure", "1"),
             ("fsr4_invert_jitter", "0"),
-            ("frame_generation", "0"),
         ]:
             self.ini.setdefault(key, default)
             self.entry(fsr, "ini." + key, key.replace("_", " ").capitalize())
+        self.add_upstream_controls(self.group(page, "FSR 4.1 · modelo"), "advanced")
+        seeds = self.group(page, "Compilación anticipada de shaders y texturas")
+        self.entry(seeds, "shader_recipes", "Paquete shader_recipes.bin (opcional)", "El runtime valida las recetas y usa la caché local si no son compatibles.")
+        self.native_button(seeds, "Seleccionar recetas de shaders", lambda: self.select_path("shader_recipes", False))
+        self.entry(seeds, "image_shapes", "Lista image_shapes.txt (opcional)", "Anticipa formas de texturas; no contiene datos del juego.")
+        self.native_button(seeds, "Seleccionar lista de texturas", lambda: self.select_path("image_shapes", False))
         assets = self.group(page, "Assets de escaladores")
         self.entry(
             assets, "fsr4_dir", "Directorio FSR 4 (vacío: fsr4_shaders del proyecto)"
@@ -462,14 +502,17 @@ class NativePanels:
                 },
             ),
         )
-        self.entry(assets, "fsr411_dll", "DLL de AMD FSR 4.1.1")
+        self.entry(assets, "fsr411_dll", "DLL de AMD FSR 4.1.x")
         self.native_button(
             assets,
-            "Seleccionar DLL FSR 4.1.1",
+            "Seleccionar DLL FSR 4.1.x",
             lambda: self.select_path("fsr411_dll", False),
         )
+        self.entry(assets, "fsr412_driver", "Instalador Adrenalin o DLL amdxcffx64.dll para FSR 4.1.2")
+        self.native_button(assets, "Seleccionar controlador AMD", lambda: self.select_path("fsr412_driver", False))
+        self.native_button(assets, "Generar modelos FSR 4.1.2", self.build_fsr412)
         self.entry(assets, "fsr411_loader", "DLL del loader (opcional)")
-        self.native_button(assets, "Generar assets FSR 4.1.1", self.build_fsr411)
+        self.native_button(assets, "Generar assets FSR 4.1.x", self.build_fsr411)
         self.entry(
             assets, "dlss_library", "Biblioteca DLSS Linux (libnvidia-ngx-dlss.so.*)"
         )
@@ -477,6 +520,10 @@ class NativePanels:
         self.native_button(
             assets, "Quitar biblioteca DLSS local", lambda: self.install_dlss(True)
         )
+        self.entry(assets, "dlss_fg_library", "Biblioteca DLSSG Linux (libnvidia-ngx-dlssg.so.*)")
+        self.native_button(assets, "Seleccionar biblioteca DLSSG", lambda: self.select_path("dlss_fg_library", False))
+        self.native_button(assets, "Instalar biblioteca DLSSG", lambda: self.install_dlss(frame_generation=True))
+        self.native_button(assets, "Quitar biblioteca DLSSG local", lambda: self.install_dlss(True, frame_generation=True))
 
     def detect_hardware(self):
         def worker():
@@ -523,7 +570,7 @@ class NativePanels:
         dll = self.fields["fsr411_dll"]()
         loader = self.fields["fsr411_loader"]()
         if not Path(dll).is_file():
-            self.report("Selecciona primero la DLL AMD FSR 4.1.1.")
+            self.report("Selecciona primero la DLL AMD FSR 4.1.x.")
             return
         destination = self.fields["fsr411_dir"]() or str(core.ROOT / "fsr4_411")
         self.run_tool(
@@ -532,21 +579,32 @@ class NativePanels:
             os.environ | {"BB_FSR411_OUT": destination},
         )
 
-    def install_dlss(self, remove=False):
+    def build_fsr412(self):
+        driver = self.fields["fsr412_driver"]()
+        dll = self.fields["fsr411_dll"]()
+        if not Path(driver).is_file() or not Path(dll).is_file():
+            self.report("Selecciona el controlador AMD y la DLL FSR 4.1.x de origen.")
+            return
+        destination = self.fields["fsr411_dir"]() or str(core.ROOT / "fsr4_411")
+        self.run_tool(["bash", str(core.ROOT / "tools/fsr4cap/build_assets.sh"), driver, dll],
+                      os.environ | {"BB_FSR411_OUT": destination})
+
+    def install_dlss(self, remove=False, frame_generation=False):
         import shutil
 
+        prefix = "libnvidia-ngx-dlssg.so." if frame_generation else "libnvidia-ngx-dlss.so."
         try:
             folder = (
                 Path(self.fields["user_dir"]() or core.DATA / "user").expanduser()
                 / "dlss"
             )
             if remove:
-                for path in folder.glob("libnvidia-ngx-dlss.so.*"):
+                for path in folder.glob(prefix + "*"):
                     path.unlink()
             else:
-                source = Path(self.fields["dlss_library"]()).expanduser()
+                source = Path(self.fields["dlss_fg_library" if frame_generation else "dlss_library"]()).expanduser()
                 if (
-                    not source.name.startswith("libnvidia-ngx-dlss.so.")
+                    not source.name.startswith(prefix)
                     or source.read_bytes()[:4] != b"\x7fELF"
                 ):
                     raise ValueError("Selecciona una biblioteca DLSS Linux ELF válida.")

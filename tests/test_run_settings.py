@@ -300,7 +300,7 @@ class PreparedLaunchTests(unittest.TestCase):
         recommended = runner.performance_settings(settings)
         self.assertEqual(recommended['fps'], '144')
         self.assertEqual(recommended['render_res'], '1706x960')
-        self.assertEqual(recommended['upscaler'], 'fsr4')
+        self.assertEqual(recommended['upscaler'], 'fsr411')
         self.assertEqual(recommended['runtime_ini']['preset'], '1')
         self.assertEqual(recommended['runtime_ini']['key.cross'], 'X')
         self.assertEqual(recommended['user_dir'], '/saves')
@@ -317,7 +317,8 @@ class PreparedLaunchTests(unittest.TestCase):
         self.assertEqual(env['BB_LANGUAGE'], '3')
         self.assertEqual(env['BB_DISPLAY'], 'MSI')
         self.assertEqual(env['BB_DRAW_PIPE'], '0')
-        self.assertEqual(env['BB_GUEST_IN_PLACE'], '0')
+        self.assertNotIn('BB_GUEST_IN_PLACE', env)
+        self.assertNotIn('BB_PC_MODEL', env)
         self.assertEqual(env['VK_LOADER_LAYERS_DISABLE'], '')
 
     def test_live_resolution_unsets_fixed_guest_dimensions(self):

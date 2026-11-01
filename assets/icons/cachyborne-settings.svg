@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>Cachyborne Settings — Sweet Purple</title>
+  <desc>Original hunter sigil with a neon magenta and violet palette, matching Sweet Purple and its Candy application icons.</desc>
+  <defs>
+    <linearGradient id="sweet" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#C50ED2"/><stop offset="1" stop-color="#8500F7"/></linearGradient>
+    <linearGradient id="mark" x2="0.7" y2="1"><stop stop-color="#fff5ff"/><stop offset="1" stop-color="#e7b4ff"/></linearGradient>
+    <radialGradient id="night"><stop stop-color="#382044"/><stop offset="1" stop-color="#17121f"/></radialGradient>
+  </defs>
+  <circle cx="256" cy="262" r="225" fill="#0d0a13" opacity=".55"/>
+  <circle cx="256" cy="250" r="224" fill="url(#sweet)"/>
+  <circle cx="256" cy="250" r="210" fill="url(#night)"/>
+  <path d="M120 151a164 164 0 0 1 273 59 155 155 0 0 0-273-59Z" fill="#ed5cde" opacity=".3"/>
+  <path d="m256 77 14 59-5 69 57-70-13 54-44 49 2 26 80-51-17 37-62 40 1 65-13 69-13-69 1-65-62-40-17-37 80 51 2-26-44-49-13-54 57 70-5-69Z" transform="translate(0 7)" fill="#0b0814" opacity=".65"/>
+  <path d="m256 77 14 59-5 69 57-70-13 54-44 49 2 26 80-51-17 37-62 40 1 65-13 69-13-69 1-65-62-40-17-37 80 51 2-26-44-49-13-54 57 70-5-69Z" fill="url(#mark)"/>
+  <path d="M249 449q7-14 7-20 0 6 7 20a7 7 0 1 1-14 0Z" fill="#f45ccf"/>
+  <circle cx="388" cy="388" r="80" fill="#17121f"/><polygon points="445.00,388.00 453.71,401.07 449.90,413.64 435.39,419.67 428.31,428.31 425.22,443.71 413.64,449.90 399.12,443.90 388.00,445.00 374.93,453.71 362.36,449.90 356.33,435.39 347.69,428.31 332.29,425.22 326.10,413.64 332.10,399.12 331.00,388.00 322.29,374.93 326.10,362.36 340.61,356.33 347.69,347.69 350.78,332.29 362.36,326.10 376.88,332.10 388.00,331.00 401.07,322.29 413.64,326.10 419.67,340.61 428.31,347.69 443.71,350.78 449.90,362.36 443.90,376.88" fill="url(#sweet)" stroke="#f3b3f1" stroke-width="4"/><circle cx="388" cy="388" r="26" fill="#17121f" stroke="#f3b3f1" stroke-width="7"/>
+</svg>

@@ -19,14 +19,16 @@ CONFIG = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'cac
 DATA = Path(os.environ.get('XDG_DATA_HOME', Path.home() / '.local/share')) / 'cachyborne'
 RAM_ROOT = Path('/dev/shm') / f'cachyborne_ram_{os.getuid()}'
 CACHE = Path(os.environ.get('XDG_CACHE_HOME', Path.home() / '.cache')) / 'cachyborne'
-DEFAULTS = dict(voice_language='eng', memory_profile='16gb', pinning=True, p_cpus='0-11', e_cpus='12-19', ramdisk=False,
+from cachyborne_options import INI_DEFAULTS, RETIRED_ENV, validate_ini
+
+DEFAULTS = dict(fault_wait=False, voice_language='eng', memory_profile='16gb', pinning=True, p_cpus='0-11', e_cpus='12-19', ramdisk=False,
                 gamemode=False, radv=True, gamescope=False, hdr=False, vrr=False,
                 gamescope_fsr=False, width=2560, height=1440, fps='144', fps_limit=0,
-                upscaler='fsr4', output_res='2560x1440', render_res='1706x960',
+                shader_recipes='', image_shapes='', readbacks='', output_auto=False, upscaler='fsr411', output_res='2560x1440', render_res='1706x960',
                 fullscreen=True, present_mode='mailbox', audio=True, gamepad='',
-                scheduler='current', fsr4_dir='', fsr411_dll='', fsr411_loader='', dlss_library='', fsr411_dir='', mods_dir='', mods_enabled=True, mods_config='',
+                scheduler='current', fsr4_dir='', fsr411_dll='', fsr411_loader='', fsr412_driver='', dlss_fg_library='', dlss_library='', fsr411_dir=str(DATA / 'fsr4_412'), mods_dir='', mods_enabled=True, mods_config='',
                 patches_dir='', patches_config='', user_dir='', runtime_env={}, original_settings={},
-                runtime_ini={'preset': '1', 'sharpen': '1', 'sharpness': '0.35', 'object_motion': '1',
+                runtime_ini=INI_DEFAULTS | {'preset': '1', 'sharpen': '1', 'sharpness': '0.35', 'object_motion': '1',
                              'show_fps': '1', 'menu_language': 'es', 'live_resolution': '0', 'effect_chromatic_aberration': '0', 'effect_dof': '0',
                              'effect_motion_blur': '0', 'skip_intro': '1'})
 ICON_URL = ('https://image.api.playstation.com/vulcan/img/rnd/202010/2614/'
@@ -71,13 +73,26 @@ def preferences():
                 key, value = line.split('=', 1)
                 active_ini[key.strip()] = value.strip()
     result = DEFAULTS | personal | prepared | draft
+    original = dict(result.get('original_settings', {}))
+    previous_readbacks = original.pop('readbacks', '')
+    if not any('readbacks' in saved for saved in (personal, prepared, draft)):
+        result['readbacks'] = previous_readbacks
+    for key in ('preupload', 'memory_model', 'as_0_3'):
+        original.pop(key, None)
+    result['original_settings'] = original
     draft_path = CONFIG / 'settings.json'
     active_is_newer = path.is_file() and (not draft_path.is_file() or path.stat().st_mtime_ns > draft_path.stat().st_mtime_ns)
     changes = (draft.get('runtime_ini', {}) | active_ini) if active_is_newer else (active_ini | draft.get('runtime_ini', {}))
     result['runtime_ini'] = dict(DEFAULTS['runtime_ini']) | personal.get('runtime_ini', {}) | prepared.get('runtime_ini', {}) | changes
+    saved_ini = [saved.get('runtime_ini', {}) for saved in (personal, prepared, draft)] + [active_ini]
+    if not any('anti_aliasing' in ini for ini in saved_ini) and result['runtime_ini'].get('effect_game_aa') == '0':
+        result['runtime_ini']['anti_aliasing'] = 'off'
     for key in ('upscaler', 'output_res'):
-        if key in active_ini and (active_is_newer or key not in draft):
+        if key in active_ini and active_ini[key] != 'auto' and (active_is_newer or key not in draft):
             result[key] = active_ini[key]
+    frame_gen = result['runtime_ini'].get('frame_generation')
+    if frame_gen in ('0', '1'):
+        result['runtime_ini']['frame_generation'] = 'fsr3' if frame_gen == '1' else 'off'
     return result
 
 
@@ -97,10 +112,11 @@ def performance_settings(current=None, target='144'):
     settings = copy.deepcopy(DEFAULTS if current is None else DEFAULTS | current)
     settings['runtime_ini'] = dict(DEFAULTS['runtime_ini']) | settings.get('runtime_ini', {})
     settings.update(fps=target, fps_limit=int(target), pinning=True, ramdisk=False, radv=True)
-    settings.update(upscaler='fsr4', output_res='2560x1440', render_res='1706x960',
+    chosen_upscaler = current.get('upscaler') if current and 'upscaler' in current else DEFAULTS['upscaler']
+    settings.update(upscaler=chosen_upscaler, output_res='2560x1440', render_res='1706x960',
                     width=2560, height=1440, p_cpus='0-11', e_cpus='12-19',
                     voice_language='eng', present_mode='mailbox')
-    settings['original_settings'] = dict(settings.get('original_settings', {})) | dict(language='20', ui_language='es', memory_model='auto', as_0_3=False)
+    settings['original_settings'] = dict(settings.get('original_settings', {})) | dict(language='20', ui_language='es')
     settings['runtime_ini'].update(menu_language='es', preset='1', effect_chromatic_aberration='0', effect_dof='0', effect_motion_blur='0', live_resolution='0')
     settings['runtime_ini'].update(upscaler=settings['upscaler'], output_res=settings['output_res'])
     # Clear conflicting old editor overrides when explicitly applying a recommended preset.
@@ -113,6 +129,7 @@ def performance_settings(current=None, target='144'):
 
 def validate_settings(s):
     import re
+    validate_ini(s.get('runtime_ini', {}))
     for key in ('p_cpus', 'e_cpus'):
         if not re.fullmatch(r'\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*', s[key]):
             raise ValueError(f'Invalid CPU list: {key}')
@@ -135,7 +152,7 @@ def validate_settings(s):
     for key, value in s.get('runtime_ini', {}).items():
         if not re.fullmatch(r'[A-Za-z_][A-Za-z_0-9.]*', key) or any(c in str(value) for c in '\r\n\0'):
             raise ValueError(f'Invalid game setting: {key}')
-    if s['upscaler'] not in ('off', 'fsr3', 'fsr4', 'fsr411', 'dlss', 'taa'):
+    if s['upscaler'] not in ('off', 'fsr3', 'fsr4', 'fsr411', 'dlss', 'taa', 'fsr1'):
         raise ValueError('Unsupported upscaler')
     for key in ('output_res', 'render_res'):
         match = re.fullmatch(r'(\d+)x(\d+)', s[key])
@@ -203,11 +220,13 @@ def configure_logging(profile, env):
 
 
 def public_environment(env):
-    return {key: ('[redacted]' if any(secret in key.upper() for secret in ('TOKEN', 'PASSWORD', 'AUTH')) else value)
+    return {key: ('[redacted]' if any(secret in key.upper() for secret in ('TOKEN', 'PASSWORD', 'AUTH', 'TROPHY_KEY')) else value)
             for key, value in env.items() if key.startswith(('BB_', 'RADV_', 'MESA_', 'AMD_VULKAN', 'VK_'))}
 
 
 def direct_memory_mb(settings):
+    if settings.get('large_heaps'):
+        return 9152
     width, height = map(int, settings['render_res'].split('x'))
     return 5056 if width * height <= 1920 * 1080 else 9152
 
@@ -224,9 +243,9 @@ def amd_gtt_budget(sysfs=Path('/sys/class/drm')):
 
 def check_memory_budget(settings):
     if settings.get('memory_profile') == '16gb' and direct_memory_mb(settings) > 5056:
-        raise ValueError('El perfil de 16 GB admite hasta 1920x1080 internos (o 1916x1078); usa FSR para salida 1440p/4K. El pool de 9152 MiB excede el presupuesto seguro.')
+        raise ValueError('El perfil de 16 GB admite hasta 1920x1080 internos (o 1916x1078) sin paquetes de texturas que requieran heaps grandes. Usa FSR para salida 1440p/4K y texturas compatibles. El pool de 9152 MiB excede el presupuesto seguro.')
     env = settings.get('runtime_env', {})
-    if env.get('BB_GUEST_VRAM') == '1' or env.get('BB_PC_MODEL') == '0' or env.get('BB_GUEST_IN_PLACE') == '0': return
+    if env.get('BB_GUEST_VRAM') == '1': return
     budget, _ = amd_gtt_budget()
     required = (direct_memory_mb(settings) + 256 + 512) * 1024**2
     if budget and required > budget:
@@ -254,6 +273,12 @@ def preparation_status(settings):
         issue = fsr4_problem(Path(assets).expanduser(), settings['output_res'], settings.get('runtime_ini', {}).get('preset', '1'))
         if issue:
             return issue + '. Al preparar se usará FSR 3.1.'
+    elif settings.get('upscaler') == 'fsr411':
+        from bbport_assets import fsr411_problem
+        assets = settings.get('fsr411_dir') or settings.get('runtime_env', {}).get('BB_FSR411_DIR') or ROOT / 'fsr4_411'
+        issue = fsr411_problem(Path(assets).expanduser(), settings['output_res'], int(settings.get('runtime_ini', {}).get('preset', '1')))
+        if issue:
+            return issue + '. Al preparar se usará FSR 3.1.'
     return 'Archivos básicos e idiomas disponibles. Preparar verificará identidad y todos los assets DCX.'
 
 
@@ -264,6 +289,16 @@ def setup(game, settings=None):
         from cachyborne_options import reconcile
         s = reconcile(s)
     validate_settings(s)
+    if s.get('output_auto'):
+        from cachyborne_options import monitor_output
+        s['output_res'] = monitor_output(ROOT, s.get('original_settings', {}).get('display', ''))
+        sys.path.insert(0, str(ROOT / 'scripts'))
+        import patches
+        sizing = dict(s.get('runtime_ini', {}), output_res=s['output_res'], upscaler=s['upscaler'])
+        scaled = patches.scaled_sizes(sizing)
+        size = scaled[0] if scaled else patches.render_size(sizing) or patches.output_size(sizing)
+        if size:
+            s['render_res'] = f'{size[0]}x{size[1]}'
     setup_env = os.environ | s.get('runtime_env', {})
     if setup_env.get('BB_SKIP_GAME_CHECK') == '1':
         raise RuntimeError('Setup requires validation; unset BB_SKIP_GAME_CHECK.')
@@ -278,6 +313,17 @@ def setup(game, settings=None):
             s.setdefault('runtime_env', {}).pop('BB_UPSCALER', None)
         else:
             s.setdefault('runtime_env', {})['BB_FSR4_DIR'] = str(assets)
+    elif s['upscaler'] == 'fsr411':
+        from bbport_assets import fsr411_problem
+        assets = Path(s.get('fsr411_dir') or s.get('runtime_env', {}).get('BB_FSR411_DIR') or ROOT / 'fsr4_411').expanduser().resolve()
+        issue = fsr411_problem(assets, s['output_res'], int(s.get('runtime_ini', {}).get('preset', '1')))
+        if issue:
+            print(issue + '. Se usará FSR 3.1; genera assets con tools/fsr4cap/build_assets.sh para FSR 4.1.1.', file=sys.stderr)
+            s['upscaler'] = 'fsr3'
+            s.setdefault('runtime_ini', {})['upscaler'] = 'fsr3'
+            s.setdefault('runtime_env', {}).pop('BB_UPSCALER', None)
+        else:
+            s.setdefault('runtime_env', {})['BB_FSR411_DIR'] = str(assets)
     game = Path(game).expanduser().resolve(strict=True)
     if not (ROOT / 'out/bb-probe').is_file():
         raise RuntimeError('Build first: bash build.sh')
@@ -325,16 +371,31 @@ def setup(game, settings=None):
             problem = game_check.problem(game)
             if problem:
                 raise RuntimeError(game_check.explain(*problem))
+        user_for_backup = Path(s['user_dir']).expanduser() if s['user_dir'] else DATA / 'user'
+        # The mod-set marker follows the published generation. A failed setup cannot
+        # advance it and suppress a future backup while the previous profile is active.
+        old_profile = read_json(CONFIG / 'game_profile.json', {})
+        old_state = Path(old_profile.get('prepared', DATA / 'missing')) / 'mods-state.txt'
+        staged_state = out / 'mods-state.txt'
+        if old_state.is_file():
+            shutil.copy2(old_state, staged_state)
+        mods.backup_saves(user_for_backup / 'savedata', staged_state, [name for name, _ in mod_layers])
+        texture_pack = game_check.texture_pack(game, out / 'texture-pack.json')
+        s['large_heaps'] = bool(texture_pack)
+        if texture_pack:
+            check_memory_budget(s)
         ini = out / 'bbport.ini'
         ini_values = dict(s.get('runtime_ini', {}))
-        ini_values.update(upscaler=s['upscaler'], output_res=s['output_res'])
+        from cachyborne_options import VOICE_GAME_CODES
+        ini_values['game_voice_language'] = VOICE_GAME_CODES[s.get('voice_language', 'eng')]
+        ini_values.update(upscaler=s['upscaler'], output_res='auto' if s.get('output_auto') else s['output_res'])
         ini_values.setdefault('live_resolution', '0')
         ini.write_text(''.join(f'{key}={value}\n' for key, value in ini_values.items()))
         for script in ('prepare.py', 'link_libc.py', 'link_modules.py', 'content_profile.py'):
             subprocess.run([sys.executable, str(ROOT / 'scripts' / script), str(game), '--out', str(out)],
                            cwd=ROOT, check=True, env=setup_env)
         fps = s['fps'] if s['fps'] in ('30', '60', '90') else 'uncap'
-        patch_args = []
+        patch_args = ['--large-heaps', '1'] if texture_pack else []
         if s['patches_dir']:
             patch_args += ['--patches-dir', str(Path(s['patches_dir']).expanduser())]
         if 'patch_selection' in s:
@@ -436,6 +497,8 @@ def launch_command(profile, app0=None, extra=(), base_env=None):
     validate_settings(s)
     env = (os.environ if base_env is None else base_env).copy()
     env.update(s.get('runtime_env', {}))
+    for key in RETIRED_ENV:
+        env.pop(key, None)
     out = Path(profile['prepared'])
     direct_mb = str(direct_memory_mb(s))
     values = dict(BB_CONFIG=str(out / 'bbport.ini'), BB_GPU_USER_DIR=profile['user'],
@@ -446,19 +509,22 @@ def launch_command(profile, app0=None, extra=(), base_env=None):
                   BB_FPS=s['fps'] if s['fps'] in ('30', '60', '90') else 'uncap', BB_FPS_LIMIT=str(s.get('fps_limit') or ('0' if s['fps'] == 'uncap' else s['fps'])),
                   BB_VBLANK_HZ='60' if s['fps'] == '30' else '1000', BB_DMEM_MB=direct_mb,
                   BB_DMEM_EXTRA_MB='256', BB_RENDER_RESOURCE_CACHE_MB='256', BB_MEMORY_WILLNEED='0', BB_ASYNC_PIPELINE_THREADS='2',
-                  BB_PC_MODEL='1', BB_GUEST_IN_PLACE='1', BB_LAYER_MEMORY='1', BB_PREUPLOAD='1',
+                  BB_LAYER_MEMORY='1',
                   BB_ASYNC_SUBMIT='1', BB_VK_RECORD_THREADS='3',
                   BB_VOICE_LANGUAGE=s.get('voice_language', 'eng'),
                   BB_LANGUAGE=str(s.get('original_settings', {}).get('language', '20')), BB_MENU_LANGUAGE='es',
                   BB_ICON_BMP=str(ROOT / 'assets/icons/cachyborne.bmp'), SDL_APP_ID='cachyborne-play',
                   BB_COPY_GPU_BUFFERS='1', BB_GPU_WRITE_TWINS='1', BB_GPU_WRITE_TWINS_MAX='65536',
-                  BB_UFFD='0', BB_AUDIO='auto' if s['audio'] else 'none', BB_GAMEPAD=s['gamepad'])
+                  BB_AUDIO='auto' if s['audio'] else 'none', BB_GAMEPAD=s['gamepad'])
     if str(s.get('runtime_ini', {}).get('live_resolution', '0')) == '1':
         values['BB_RENDER_RES'] = values['BB_OUTPUT_RES'] = ''
-    if env.get('BB_PC_MODEL') == '0' or env.get('BB_AS_0_3') == '1':
-        values['BB_GUEST_IN_PLACE'] = '0'
-    if env.get('BB_AS_0_3') == '1':
-        values.update(BB_PC_MODEL='0', BB_HOST_COPY_WAITS='all', BB_PRODUCER_CHECK='1')
+    values['BB_SHADER_GAME_DIR'] = str(app0 or profile['game'])
+    for key, var, filename in (('shader_recipes', 'BB_SHADER_RECIPES', 'shader_recipes.bin'), ('image_shapes', 'BB_IMAGE_SHAPES', 'image_shapes.txt')):
+        seed = s.get(key) or ROOT / filename
+        if s.get(key) or Path(seed).is_file():
+            values[var] = str(Path(seed).expanduser().resolve())
+    if s.get('output_auto'):
+        values['BB_MONITOR_SIZE'] = s['output_res']
     if s['fsr411_dir']:
         values['BB_FSR411_DIR'] = s['fsr411_dir']
     if s['radv']:
@@ -564,27 +630,29 @@ def check_runtime_requirements(profile):
             raise RuntimeError(f'Enable {scheduler} through CachyOS scx-manager first, or select current scheduler.')
 
 
-def icon_path():
+def icon_path(configuration=False):
     data_home = Path(os.environ.get('XDG_DATA_HOME', Path.home() / '.local/share'))
-    return data_home / 'icons/hicolor/512x512/apps/cachyborne.png'
+    name = 'cachyborne-settings' if configuration else 'cachyborne'
+    return data_home / f'icons/hicolor/512x512/apps/{name}.png'
 
 
 def install_bundled_icon():
-    """Install the original square icon offline; no game or third-party artwork required."""
-    path = icon_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, temporary = tempfile.mkstemp(dir=path.parent, prefix='.cachyborne-icon-')
-    try:
-        with os.fdopen(fd, 'wb') as stream:
-            stream.write((ROOT / 'assets/icons/cachyborne.png').read_bytes())
-        os.chmod(temporary, 0o644)
-        os.replace(temporary, path)
-    finally:
-        Path(temporary).unlink(missing_ok=True)
-    scalable = path.parents[2] / 'scalable/apps/cachyborne.svg'
-    scalable.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(ROOT / 'assets/icons/cachyborne.svg', scalable)
-    return path
+    """Install both original Sweet Purple icons offline, replacing each file atomically."""
+    for configuration in (False, True):
+        path = icon_path(configuration)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fd, temporary = tempfile.mkstemp(dir=path.parent, prefix='.cachyborne-icon-')
+        try:
+            with os.fdopen(fd, 'wb') as stream:
+                stream.write((ROOT / 'assets/icons' / path.name).read_bytes())
+            os.chmod(temporary, 0o644)
+            os.replace(temporary, path)
+        finally:
+            Path(temporary).unlink(missing_ok=True)
+        scalable = path.parents[2] / 'scalable/apps' / path.with_suffix('.svg').name
+        scalable.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / 'assets/icons' / scalable.name, scalable)
+    return icon_path()
 
 
 def download_desktop_icon():
@@ -655,7 +723,8 @@ def desktop(on_desktop=False, configuration=False):
     executable = ROOT / ('cachyborne-gui' if configuration else 'cachyborne-launch.sh')
     path = directory / ('cachyborne.desktop' if configuration else 'cachyborne-play.desktop')
     name = 'Cachyborne — Configuración' if configuration else 'Bloodborne — Cachyborne'
-    icon = str(icon_path()) if icon_path().is_file() else str(ROOT / 'assets/icons/cachyborne.png')
+    installed_icon = icon_path(configuration)
+    icon = str(installed_icon) if installed_icon.is_file() else str(ROOT / 'assets/icons' / installed_icon.name)
     categories = 'Settings;' if configuration else 'Game;'
     path.write_text('[Desktop Entry]\nType=Application\n' +
                     f'Name={name}\nExec={desktop_exec(executable)}\nIcon={desktop_value(icon)}\n' +
@@ -699,7 +768,7 @@ def main(argv=None):
     prepare.add_argument('--gui', action='store_true')
     prepare.add_argument('--performance-profile', choices=['144', '60'])
     prepare.add_argument('--fps', choices=['30', '60', '90', '120', '144', '165', 'uncap'])
-    prepare.add_argument('--upscaler', choices=['off', 'fsr3', 'fsr4', 'fsr411', 'taa', 'dlss'])
+    prepare.add_argument('--upscaler', choices=['off', 'fsr3', 'fsr4', 'fsr411', 'taa', 'dlss', 'fsr1'])
     from cachyborne_options import VOICE_LANGUAGES
     prepare.add_argument('--voice-language', choices=list(dict(VOICE_LANGUAGES)))
     for key in ('render-res', 'output-res', 'fsr411-dir', 'mods-dir', 'mods-config', 'patches-dir', 'patches-config'):

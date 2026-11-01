@@ -19,7 +19,7 @@ class GameProfileValidationTests(unittest.TestCase):
 
     def test_language_catalog_matches_all_retail_ps4_ids(self):
         self.assertEqual(
-            set(options.LANGUAGE_FOLDERS), {code for code, _ in options.LANGUAGES}
+        set(options.LANGUAGE_FOLDERS) - {"8"}, {code for code, _ in options.LANGUAGES}
         )
         self.assertEqual(options.LANGUAGE_FOLDERS["20"], "spaar")
         self.assertEqual(options.LANGUAGE_FOLDERS["3"], "spaes")

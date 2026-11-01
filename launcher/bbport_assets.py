@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: Copyright 2026 bbport contributors
+# SPDX-License-Identifier: GPL-2.0-or-later
 """Availability of the FSR 4.1.1 model required by a selected output/preset."""
 from pathlib import Path
 from bbport_i18n import tr
@@ -13,8 +15,8 @@ def fsr411_problem(directory: Path, output: str, preset: int) -> str | None:
     for name in passes:
         path = directory / model / (name + ".spv")
         if not path.is_file() or path.stat().st_size < 20 or path.stat().st_size % 4:
-            return tr("Нет или повреждён файл {}").format(f"{model}/{name}.spv")
+            return tr('Missing or damaged file {}').format(f"{model}/{name}.spv")
     path = directory / model / "initializer.bin"
     if not path.is_file() or path.stat().st_size != 131072:
-        return tr("Нет или повреждён файл {}").format(f"{model}/initializer.bin")
+        return tr('Missing or damaged file {}').format(f"{model}/initializer.bin")
     return None

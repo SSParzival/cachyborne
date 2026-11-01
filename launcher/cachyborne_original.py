@@ -7,7 +7,7 @@ import cachyborne as core
 
 
 def configure_module():
-    import bbport_launcher as editor
+    import bbport_launcher_common as editor
     # Keep upstream tools/preferences writable and isolated from the source checkout.
     editor.DATA_DIR = core.DATA / 'editor'
     editor.CONFIG_DIR = core.CONFIG / 'editor'
@@ -45,6 +45,12 @@ def import_editor(settings, original, ini):
                   patches_dir=original.get('patches_dir', ''), upscaler=ini.get('upscaler', 'fsr3'),
                   output_res=ini.get('output_res', '2560x1440'))
     mode, limit = original.get('fps_mode', 'uncap'), int(original.get('fps_limit', 0))
+    from cachyborne_options import VOICE_GAME_CODES
+    voice = ini.get('game_voice_language', 'auto')
+    if voice in VOICE_GAME_CODES.values():
+        result['voice_language'] = next(key for key, value in VOICE_GAME_CODES.items() if value == voice)
+    if result['output_res'] == 'auto':
+        result.update(output_auto=True, output_res=settings.get('output_res', '2560x1440'))
     result['fps'] = str(limit) if limit in (30, 60, 90, 120, 144, 165) else mode
     result['fps_limit'] = limit
     # Compute the fixed-resolution patch exactly as the upstream preset does.
