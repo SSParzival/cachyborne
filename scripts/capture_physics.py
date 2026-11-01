@@ -32,7 +32,7 @@ def capture(profile, rate, replay, duration, out):
     env.update(BB_PAD_FILE=str(pad),BB_PAD_REPLAY=str(replay),BB_ACCEPTANCE_POSES=str(out/'poses.csv'),
                BB_FRAME_STATS='1',BB_SKIP_NETWORK_CHOICE='1',SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS='1')
     reader=Tail(out/'game.log');recent='';start=time.monotonic()
-    pressed=False;world=None;replay_sent=None;anchor=None
+    last_press=0;world=None;replay_sent=None;anchor=None
     with (out/'game.log').open('w') as log:
         process=subprocess.Popen(['stdbuf','-oL','-eL',*command],cwd=ROOT,env=env,
                                  stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
@@ -44,8 +44,8 @@ def capture(profile, rate, replay, duration, out):
                 if re.search(r'STOP:|ErrorDeviceLost|Assertion Failed|Host fault|Guest fault',recent):
                     raise RuntimeError(f'{rate} FPS runtime fault, inspect game.log')
                 elapsed=time.monotonic()-start
-                if not pressed and elapsed>12 and 'pad opened' in recent:
-                    pad.write_text('cross');time.sleep(.3);pad.write_text('');pressed=True
+                if world is None and elapsed>12 and elapsed-last_press>6 and 'pad opened' in recent:
+                    pad.write_text('cross');time.sleep(.3);pad.write_text('');last_press=elapsed
                 stats=re.findall(r'Frame stats: ([0-9.]+) FPS.*? ([0-9]+) draws/frame',recent)
                 if stats and int(stats[-1][1])>600 and world is None: world=time.monotonic()
                 if world and replay_sent is None and time.monotonic()-world>5:
