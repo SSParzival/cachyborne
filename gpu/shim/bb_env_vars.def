@@ -285,6 +285,7 @@ BB_ENV(BB_SPEC_MATCH, TUNING, "=0: shader specializations always built and compa
 BB_ENV(BB_STAGE_PRIORITY, TUNING, "=0 (default) / 1 / 2: draw stage thread priority off / above normal / highest")
 BB_ENV(BB_STAGING_KEEP_MB, TUNING, "=N (default 512): upload staging kept when idle")
 BB_ENV(BB_STAGING_VRAM_IDLE_MS, TUNING, "=N (default 3000): VRAM staging given back after this long unused")
+BB_ENV(BB_STAGING_HOST_IDLE_MS, TUNING, "=N (default 30000; 0: frames only): host staging idle timeout in milliseconds; in-flight and held buffers remain protected")
 BB_ENV(BB_STREAM_BUFFER_MB, TUNING, "=N: stream buffer size")
 BB_ENV(BB_SUBMIT_AHEAD, TUNING, "=N (default 2): a frame's first submissions go straight to the GPU")
 BB_ENV(BB_SUBMIT_LOCK, TUNING, "=frame: a frame's last submission decoded under the lock")

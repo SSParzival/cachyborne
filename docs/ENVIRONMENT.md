@@ -100,7 +100,7 @@ What players and the launchers set. The menu, bbport.ini and the launcher write 
 | `BB_USER_NAME` | the PS4 user name (default Hunter) |
 | `BB_VOICE_LANGUAGE` | Independent retail voice-bank language (eng, esa, ese, ded, frf, iti, jaj, ptb). |
 
-## Tuning (231)
+## Tuning (232)
 
 Defaults to change on a machine where they misbehave, workarounds, and switches that turn a fix off for comparison.
 
@@ -300,6 +300,7 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_SOUND_HACK` | =0: saves left untouched (no sound settings fix) |
 | `BB_SPEC_MATCH` | =0: shader specializations always built and compared |
 | `BB_STAGE_PRIORITY` | =0 (default) / 1 / 2: draw stage thread priority off / above normal / highest |
+| `BB_STAGING_HOST_IDLE_MS` | =N (default 30000; 0: frames only): host staging idle timeout in milliseconds; in-flight and held buffers remain protected |
 | `BB_STAGING_KEEP_MB` | =N (default 512): upload staging kept when idle |
 | `BB_STAGING_VRAM_IDLE_MS` | =N (default 3000): VRAM staging given back after this long unused |
 | `BB_STREAM_BUFFER_MB` | =N: stream buffer size |

@@ -53,6 +53,8 @@ public:
     void FreeDeferred(const StagingBufferRef& ref);
     /// Once a frame: idle memory given back.
     void TickFrame();
+    /// Allocated capacity, including in-flight and reusable storage (render thread only).
+    [[nodiscard]] u64 BytesAllocated(VideoCore::MemoryType type) const;
 
 private:
     static constexpr size_t NumTypes = 3; ///< DeviceLocal, HostUncached, HostCached
@@ -62,7 +64,7 @@ private:
         u64 used = 0;      ///< bytes handed out since it was last empty
         u64 last_tick = 0; ///< the submission that used it last (0: none)
         u64 last_frame = 0;
-        u64 last_ms = 0;   ///< wall time of the last use (VRAM ones go by it: frames are slow while loading)
+        u64 last_ms = 0;   ///< monotonic time of last use; loading can advance frames slowly
     };
     struct Segments {
         std::vector<Segment> list;

@@ -191,10 +191,15 @@ void StagingBufferPool::TrimIdle(MemoryType type) {
         const char* env = bb_env("BB_STAGING_VRAM_IDLE_MS");
         return u64(env && *env ? std::strtoull(env, nullptr, 10) : 3000);
     }();
+    // At 30/60 FPS, 3000 frames kept host readbacks and large loading buffers
+    // for 100/50 seconds. Bound idle retention by monotonic time as well, so a
+    // slow loading screen does not prolong the previous area's staging peak.
+    static const u64 host_idle_ms = bb_env_int("BB_STAGING_HOST_IDLE_MS", 30000);
+    const u64 idle_ms = type == MemoryType::DeviceLocal ? vram_idle_ms : host_idle_ms;
     const u64 now_ms = NowMs();
     const auto idle = [&](u64 last_frame, u64 last_ms, u64 last_tick) {
         const bool old = frame - last_frame >= idle_frames ||
-                         (type == MemoryType::DeviceLocal && vram_idle_ms != 0 && now_ms - last_ms >= vram_idle_ms);
+                         (idle_ms != 0 && now_ms - last_ms >= idle_ms);
         return old && (last_tick == 0 || scheduler.IsFree(last_tick));
     };
     Segments& list = segments[u32(type)];
@@ -213,6 +218,17 @@ void StagingBufferPool::TrimIdle(MemoryType type) {
     });
 }
 
+u64 StagingBufferPool::BytesAllocated(MemoryType type) const {
+    u64 bytes = 0;
+    for (const Segment& segment : segments[u32(type)].list) {
+        bytes += segment.buffer->SizeBytes();
+    }
+    for (const Whole& whole : wholes[u32(type)]) {
+        bytes += whole.buffer->SizeBytes();
+    }
+    return bytes;
+}
+
 void StagingBufferPool::PublishStats() const {
     using namespace Core::Devtools::Widget;
     if (!GpuMemoryViewer::IsEnabled()) {
@@ -222,13 +238,7 @@ void StagingBufferPool::PublishStats() const {
                                                                 "HostCached"};
     GpuMemoryGroup group{.name = "Staging"};
     for (size_t i = 0; i < NumTypes; ++i) {
-        u64 bytes = 0;
-        for (const Segment& segment : segments[i].list) {
-            bytes += segment.buffer->SizeBytes();
-        }
-        for (const Whole& whole : wholes[i]) {
-            bytes += whole.buffer->SizeBytes();
-        }
+        const u64 bytes = BytesAllocated(MemoryType(i));
         if (bytes != 0) {
             group.rows.push_back({.name = names[i], .bytes = bytes});
         }

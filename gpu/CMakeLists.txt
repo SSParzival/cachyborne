@@ -431,7 +431,12 @@ set(CACHYBORNE_TEST_TARGETS guest-guards-test effect-time-test image-download-te
     cp-decoder-test fx-init-clear-test effect-flags-test settings-test scene-resolution-test
     taa-shader-test camera-motion-test translation-memory-test upscaler-support-test
     shader-corpus-test srt-walker-fault-test)
-list(APPEND CACHYBORNE_TEST_TARGETS hybrid-affinity-test)
+add_executable(staging-pool-test EXCLUDE_FROM_ALL ../tests/test_staging_pool.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(staging-pool-test PRIVATE . shim ${SHADER_INCLUDE} third_party/gcn/include)
+target_compile_options(staging-pool-test PRIVATE -UNDEBUG -fPIC)
+target_link_libraries(staging-pool-test PRIVATE bbgpu)
+
+list(APPEND CACHYBORNE_TEST_TARGETS hybrid-affinity-test staging-pool-test)
 add_custom_target(cachyborne-tests DEPENDS ${CACHYBORNE_TEST_TARGETS})
 foreach(test_target IN LISTS CACHYBORNE_TEST_TARGETS)
     target_compile_options(${test_target} PRIVATE -UNDEBUG)
