@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Shaders read descriptors and constants through pointers in their user data (s_load_dword from
 // shader resource tables, possibly several levels deep, with computed offsets). The host shader
@@ -338,12 +339,14 @@ public:
             // The pointer itself was not copied.
             return;
         }
-        if (!PushTable(table_off_dw)) {
+        Xbyak::Label null_table, restore_table;
+        if (!PushTable(table_off_dw, null_table)) {
             LOG_ERROR(Render_Recompiler, "Failed to compute offset for SRT walker");
             return;
         }
         OffsetReads* const reads = ReadsThrough(table);
         ASSERT(reads);
+        const u16 first_slot = next_slot;
         // Contiguous in the guest table, contiguous in the flat buffer.
         for (const auto& [off_dw, read] : *reads) {
             if (off_dw.IsImmediate()) {
@@ -365,6 +368,16 @@ public:
                 Visit(off_dw, read);
             }
         }
+        c.jmp(restore_table, Xbyak::CodeGenerator::T_NEAR);
+        c.L(null_table);
+        if (const u32 count = next_slot - first_slot; count != 0) {
+            c.lea(rdi, ptr[rsi + (first_slot << 2)]);
+            c.mov(ecx, count);
+            c.xor_(eax, eax);
+            c.rep();
+            c.stosd();
+        }
+        c.L(restore_table);
         c.pop(rdi);
     }
 
@@ -375,7 +388,7 @@ private:
     }
 
     /// Saves the current table and loads the 48-bit pointer at `off_dw` of it.
-    bool PushTable(const IR::Value& off_dw) {
+    bool PushTable(const IR::Value& off_dw, Xbyak::Label& null_table) {
         c.push(rdi);
         if (off_dw.IsImmediate()) {
             c.mov(rdi, ptr[rdi + (off_dw.U32() << 2)]);
@@ -390,6 +403,8 @@ private:
         }
         c.mov(r10, 0xFFFFFFFFFFFFULL);
         c.and_(rdi, r10);
+        // ayozetr 4a001fa5 / nick24051998: null subtrees read zero without a SIGSEGV per draw.
+        c.jz(null_table, Xbyak::CodeGenerator::T_NEAR);
         return true;
     }
 

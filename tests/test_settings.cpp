@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 // bbport_settings.cpp: the menu saves its keys into bbport.ini and keeps the launcher's (controls).
 #include <cassert>
@@ -53,10 +54,10 @@ int main() {
     assert(saved.find("menu_language=") == std::string::npos); // only started with it (#134)
 
     // Saved locales survive reloads; an explicit launcher locale overrides stale choices.
-    s.menu_language = BbSettings::MenuLanguage::Russian;
+    s.menu_language = BbSettings::MenuLanguage::Spanish;
     s.menu_language_chosen = true;
     BbSettings::Save();
-    assert(Read(path).find("menu_language=ru\n") != std::string::npos);
+    assert(Read(path).find("menu_language=es\n") != std::string::npos);
     setenv("BB_MENU_LANGUAGE", "en", 1);
     s.menu_language_chosen = false;
     BbSettings::Load();
@@ -64,15 +65,83 @@ int main() {
     setenv("BB_MENU_LANGUAGE", "es", 1);
     BbSettings::Load();
     assert(s.menu_language == BbSettings::MenuLanguage::Spanish);
-    assert(std::string(BbSettings::MenuText("Display", "ru")) == "Pantalla");
-    assert(std::string(BbSettings::MenuText("Motion blur", "ru")) == "Desenfoque de movimiento");
-    assert(std::string(BbSettings::MenuText("FSR 4", "ru")) == "FSR 4");
+    assert(std::string(BbSettings::MenuText("Display")) == "Pantalla");
+    assert(std::string(BbSettings::MenuText("Motion blur")) == "Desenfoque de movimiento");
+    assert(std::string(BbSettings::MenuText("FSR 4")) == "FSR 4");
     BbSettings::Save();
     assert(Read(path).find("menu_language=es\n") != std::string::npos);
     unsetenv("BB_MENU_LANGUAGE");
     s.menu_language = BbSettings::MenuLanguage::English;
     BbSettings::Load();
     assert(s.menu_language == BbSettings::MenuLanguage::Spanish && s.menu_language_chosen);
+
+    // Frame generation: DLSS from the file stays; FSR 3.1 only with BB_FRAME_GEN (hidden until
+    // its artifacts are fixed); the environment wins; "1"/"0" of earlier versions still parse.
+    const auto write_frame_gen = [&](const char* text) {
+        FILE* file = std::fopen(path, "w");
+        assert(file);
+        std::fputs(text, file);
+        std::fclose(file);
+    };
+    unsetenv("BB_FRAME_GEN");
+    unsetenv("BB_FRAME_GEN_MULTIPLIER");
+    write_frame_gen("frame_generation=dlss\nframe_generation_multiplier=3\n");
+    BbSettings::Load();
+    assert(s.frame_generation == BbSettings::FrameGenDlss && s.frame_generation_multiplier == 3);
+    write_frame_gen("frame_generation=fsr3\nframe_generation_multiplier=9\n");
+    BbSettings::Load();
+    assert(s.frame_generation == BbSettings::FrameGenFsr3 && s.frame_generation_multiplier == 4);
+    setenv("BB_FRAME_GEN", "1", 1);
+    BbSettings::Load();
+    assert(s.frame_generation == BbSettings::FrameGenFsr3);
+    setenv("BB_FRAME_GEN", "dlss", 1);
+    setenv("BB_FRAME_GEN_MULTIPLIER", "2", 1);
+    BbSettings::Load();
+    assert(s.frame_generation == BbSettings::FrameGenDlss && s.frame_generation_multiplier == 2);
+    setenv("BB_FRAME_GEN", "0", 1);
+    BbSettings::Load();
+    assert(s.frame_generation == BbSettings::FrameGenOff);
+    unsetenv("BB_FRAME_GEN");
+    unsetenv("BB_FRAME_GEN_MULTIPLIER");
+    write_frame_gen("frame_generation=1\n");
+    BbSettings::Load();
+    assert(s.frame_generation == BbSettings::FrameGenFsr3); // persisted FSR 3.1 in upstream 0.7
+    s.frame_generation = BbSettings::FrameGenDlss;
+    s.frame_generation_multiplier = 4;
+    BbSettings::Save();
+    assert(Read(path).find("frame_generation=dlss\n") != std::string::npos);
+    assert(Read(path).find("frame_generation_multiplier=4\n") != std::string::npos);
+    assert(std::string(BbSettings::FrameGenName(BbSettings::FrameGenFsr3)) == "fsr3");
+    // Low latency (NVIDIA Reflex): on by default, names and numbers parse, the environment wins.
+    unsetenv("BB_LOW_LATENCY");
+    write_frame_gen("upscaler=fsr3\n");
+    BbSettings::Load();
+    assert(s.low_latency == BbSettings::LowLatencyOn);
+    write_frame_gen("low_latency=boost\n");
+    BbSettings::Load();
+    assert(s.low_latency == BbSettings::LowLatencyBoost);
+    write_frame_gen("low_latency=0\n");
+    BbSettings::Load();
+    assert(s.low_latency == BbSettings::LowLatencyOff);
+    setenv("BB_LOW_LATENCY", "on", 1);
+    BbSettings::Load();
+    assert(s.low_latency == BbSettings::LowLatencyOn);
+    unsetenv("BB_LOW_LATENCY");
+    s.low_latency = BbSettings::LowLatencyBoost;
+    BbSettings::Save();
+    assert(Read(path).find("low_latency=boost\n") != std::string::npos);
+    // With DLSS Frame Generation running, Off becomes On; Boost stays; off without it.
+    s.low_latency = BbSettings::LowLatencyOff;
+    s.frame_generation = BbSettings::FrameGenDlss;
+    s.dlssg_max_multiplier = 1; // unavailable: the setting stands
+    assert(BbSettings::EffectiveLowLatency() == BbSettings::LowLatencyOff);
+    s.dlssg_max_multiplier = 2;
+    assert(BbSettings::EffectiveLowLatency() == BbSettings::LowLatencyOn);
+    s.low_latency = BbSettings::LowLatencyBoost;
+    assert(BbSettings::EffectiveLowLatency() == BbSettings::LowLatencyBoost);
+    s.frame_generation = BbSettings::FrameGenOff;
+    s.low_latency = BbSettings::LowLatencyOff;
+    assert(BbSettings::EffectiveLowLatency() == BbSettings::LowLatencyOff);
     unlink(path);
-    std::puts("PASS: settings save keeps other keys, menu position, menu language");
+    std::puts("PASS: settings save keeps other keys, menu position, menu language, frame generation, low latency");
 }

@@ -1,10 +1,11 @@
+// SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 // bbport: FSR 4 benchmark outside the game. Runs the v07 INT8 provider (the same assets and
 // provider as vk_fsr4.cpp) on synthetic inputs and prints GPU time per pass (BB_FSR4_PROFILE)
 // and, with --stats, the driver's statistics of every pass (BB_FSR4_STATS).
 //
 //   fsr4-bench [render WxH] [output WxH] [preset 0-4] [frames] [--stats] [--fsr411]
-// --fsr411: FSR 4.1.1 replay (fsr411.cpp, assets in BB_FSR411_DIR or fsr4_411) instead of v07;
+// --fsr411: FSR 4.1 replay (fsr411.cpp, assets in BB_FSR411_DIR or fsr4_411) instead of v07;
 // its frames match tools/fsr4cap (jitter phase, reset on the first frame).
 //   defaults: 2260x1272 3840x2160 2 (balanced) 900
 // BENCH_NOISE=1: pseudo-random inputs (a fixed seed); BENCH_DUMP=<file>: the output after the
@@ -55,7 +56,7 @@ struct Gpu {
     VkQueue queue{};
     uint32_t family = 0;
     VkPhysicalDeviceMemoryProperties memory{};
-    Fsr411::Features fsr411; ///< what the device was created with for FSR 4.1.1's variants
+    Fsr411::Features fsr411; ///< what the device was created with for FSR 4.1's variants
 };
 
 uint32_t MemoryType(const Gpu& gpu, uint32_t bits, VkMemoryPropertyFlags flags) {
@@ -110,9 +111,9 @@ Gpu CreateGpu(bool stats) {
     // Cooperative matrix (WMMA) for experimental model passes, when the device has it.
     VkPhysicalDeviceCooperativeMatrixFeaturesKHR coopmat{
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COOPERATIVE_MATRIX_FEATURES_KHR};
-    // FSR 4.1.1's FP8 variant: FP8 cooperative matrices (RDNA4).
+    // FSR 4.1's FP8 variant: FP8 cooperative matrices (RDNA4).
     VkPhysicalDeviceShaderFloat8FeaturesEXT float8{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT8_FEATURES_EXT};
-    // FSR 4.1.1 passes use mixed float dot products (dot2 of halves into float), as vkd3d-proton.
+    // FSR 4.1 passes use mixed float dot products (dot2 of halves into float), as vkd3d-proton.
     VkPhysicalDeviceShaderMixedFloatDotProductFeaturesVALVE mixed_dot{
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_MIXED_FLOAT_DOT_PRODUCT_FEATURES_VALVE};
     VkPhysicalDeviceVulkan13Features f13{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
@@ -516,13 +517,23 @@ int main(int argc, char** argv) {
         CHECK(ffxFsr4VkSetExternalImageState(&backend, &state));
     };
     std::unique_ptr<Fsr411::Upscaler> upscaler411;
+    Fsr411::Features target = gpu.fsr411;
     VkQueryPool timestamps = VK_NULL_HANDLE;
     double gpu_ms = 0.0;
     float period_ns = 1.0f;
     if (fsr411) {
         const char* dir411 = std::getenv("BB_FSR411_DIR");
+        // BENCH_MODEL: the model (Features::model); BENCH_SWITCH_FROM=<model> BENCH_SWITCH_AT=<n>:
+        // the first n frames with another model, then this one made anew (the menu's live switch).
+        if (const char* m = std::getenv("BENCH_MODEL")) {
+            target.model = m;
+        }
+        Fsr411::Features first = target;
+        if (const char* from = std::getenv("BENCH_SWITCH_FROM")) {
+            first.model = from;
+        }
         upscaler411 = std::make_unique<Fsr411::Upscaler>(gpu.physical, gpu.device,
-                                                         dir411 && dir411[0] ? dir411 : "fsr4_411", gpu.fsr411);
+                                                         dir411 && dir411[0] ? dir411 : "fsr4_411", first);
         VkQueryPoolCreateInfo qci{VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
         qci.queryType = VK_QUERY_TYPE_TIMESTAMP;
         qci.queryCount = 2;
@@ -530,9 +541,17 @@ int main(int argc, char** argv) {
         VkPhysicalDeviceProperties props;
         vkGetPhysicalDeviceProperties(gpu.physical, &props);
         period_ns = props.limits.timestampPeriod;
-        std::printf("FSR 4.1.1 replay %ux%u -> %ux%u, %d frames\n", rw, rh, ow, oh, frames);
+        std::printf("FSR 4.1 replay %ux%u -> %ux%u, %d frames\n", rw, rh, ow, oh, frames);
     }
+    const int switch_at = std::getenv("BENCH_SWITCH_AT") ? std::atoi(std::getenv("BENCH_SWITCH_AT")) : 0;
     for (int frame = 1; fsr411 && frame <= frames; ++frame) {
+        if (switch_at > 0 && frame == switch_at + 1) {
+            CHECK(vkDeviceWaitIdle(gpu.device));
+            const char* dir411 = std::getenv("BB_FSR411_DIR");
+            upscaler411 = std::make_unique<Fsr411::Upscaler>(
+                gpu.physical, gpu.device, dir411 && dir411[0] ? dir411 : "fsr4_411", target);
+            std::printf("Switched after %d frames\n", switch_at);
+        }
         CHECK(vkBeginCommandBuffer(cmd, &begin));
         vkCmdResetQueryPool(cmd, timestamps, 0, 2);
         vkCmdWriteTimestamp(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, timestamps, 0);
@@ -549,14 +568,14 @@ int main(int argc, char** argv) {
         f.jitter[1] = 0.125f;
         f.sharpen = true;
         f.sharpness = 0.5f;
-        f.reset = frame == 1;
+        f.reset = frame == 1 || frame == switch_at + 1;
         f.auto_exposure = true;
         if (!upscaler411->Record(f)) {
-            std::fprintf(stderr, "FSR 4.1.1: %s\n", upscaler411->Error().c_str());
+            std::fprintf(stderr, "FSR 4.1: %s\n", upscaler411->Error().c_str());
             return 1;
         }
-        if (frame == 1) {
-            std::printf("FSR 4.1.1: %s\n", upscaler411->Describe().c_str());
+        if (frame == 1 || frame == switch_at + 1) {
+            std::printf("FSR 4.1: %s\n", upscaler411->Describe().c_str());
         }
         vkCmdWriteTimestamp(cmd, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, timestamps, 1);
         submit();
@@ -564,7 +583,7 @@ int main(int argc, char** argv) {
         CHECK(vkGetQueryPoolResults(gpu.device, timestamps, 0, 2, sizeof(ts), ts, 8, VK_QUERY_RESULT_64_BIT));
         gpu_ms += double(ts[1] - ts[0]) * period_ns * 1e-6;
         if (frame % 300 == 0) {
-            std::printf("FSR 4.1.1 replay: %.3f ms/frame (%s)\n", gpu_ms / 300.0, upscaler411->Describe().c_str());
+            std::printf("FSR 4.1 replay: %.3f ms/frame (%s)\n", gpu_ms / 300.0, upscaler411->Describe().c_str());
             gpu_ms = 0.0;
         }
     }

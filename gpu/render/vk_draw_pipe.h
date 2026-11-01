@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 // bbport: two-stage draw pipeline (docs/parallel_gpu.md, "Two-stage draw pipeline").
 //
@@ -12,6 +13,7 @@
 #pragma once
 
 #include <cstdlib>
+#include "shim/bb_env.h"
 #include "bbport_threads.h"
 #include "bbport_sections.h"
 #include "bbport_timeline.h"
@@ -61,10 +63,6 @@ public:
         return on_stage_b;
     }
 
-    [[nodiscard]] u32 StageBThreadId() const noexcept {
-        return stage_b_tid.load(std::memory_order_acquire);
-    }
-
     /// Stage A: space for a packet of `size` bytes (8-byte aligned), valid until Commit().
     u8* Begin(u32 size) {
         size = Align(size + sizeof(Header));
@@ -111,7 +109,7 @@ public:
         }
     }
 
-    /// Stage 2 (docs/pipeline_4stage.ru.md): `count` threads complete the packets committed with
+    /// Stage 2 (docs/parallel_gpu.md): `count` threads complete the packets committed with
     /// `resolve` in packet order of claim (each worker sees its own packets in increasing order),
     /// before stage B runs them. Called once, before any packet.
     using Resolver = void (*)(void* context, u8* packet, u32 size, u64 number, u32 worker);
@@ -181,6 +179,9 @@ public:
     /// whether stage B has run the packet with that number.
     [[nodiscard]] u64 NextPacket() const noexcept {
         return packets + 1;
+    }
+    [[nodiscard]] u64 ConsumedPackets() const noexcept {
+        return consumed_packets.load(std::memory_order_acquire);
     }
     [[nodiscard]] bool ReachedPacket(u64 number) const noexcept {
         return consumed_packets.load(std::memory_order_acquire) >= number;
@@ -254,9 +255,9 @@ private:
 
     void Run(std::stop_token stop) {
         Common::SetCurrentThreadName("bb:DrawRec");
+        BbThreads::MakeCritical();
         on_stage_b = true;
         BbSections::recording_thread = true;
-        stage_b_tid.store(static_cast<u32>(gettid()), std::memory_order_release);
         u64 at = 0;
         while (true) {
             // Packets follow each other within microseconds while a frame is decoded: spin,
@@ -267,7 +268,7 @@ private:
                 // With few hardware threads (Steam Deck: 8) a long spin takes time from the
                 // game's own threads. BB_PIPE_SPIN_US overrides.
                 static const auto spin_time = std::chrono::microseconds([] {
-                    if (const char* env = std::getenv("BB_PIPE_SPIN_US")) {
+                    if (const char* env = bb_env("BB_PIPE_SPIN_US")) {
                         return std::max(0, std::atoi(env));
                     }
                     return BbThreads::Available() >= 12 ? 200 : 50;
@@ -324,7 +325,7 @@ private:
         std::snprintf(name, sizeof(name), "bb:Resolve%u", worker);
         Common::SetCurrentThreadName(name);
         static const auto spin_time = std::chrono::microseconds([] {
-            if (const char* env = std::getenv("BB_PIPE_SPIN_US")) {
+            if (const char* env = bb_env("BB_PIPE_SPIN_US")) {
                 return std::max(0, std::atoi(env));
             }
             return BbThreads::Available() >= 12 ? 200 : 50;
@@ -392,7 +393,6 @@ private:
     std::atomic<u64> consumed_packets{0}; ///< packets stage B has run (NextPacket numbers)
     alignas(64) std::atomic<u32> wake{0};
     std::atomic<bool> sleeping{false};
-    std::atomic<u32> stage_b_tid{0};
     std::jthread thread;
 };
 

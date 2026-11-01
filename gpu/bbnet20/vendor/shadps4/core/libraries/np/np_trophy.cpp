@@ -33,7 +33,7 @@ static constexpr std::array<std::string_view, 31> s_language_xml_names = {
     "TROP_05.XML", // 05 Italian
     "TROP_06.XML", // 06 Dutch
     "TROP_07.XML", // 07 Portuguese (PT)
-    "TROP_08.XML", // 08 Russian
+    "TROP_08.XML", // PS4 locale 08
     "TROP_09.XML", // 09 Korean
     "TROP_10.XML", // 10 Traditional Chinese
     "TROP_11.XML", // 11 Simplified Chinese

@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 // bbport shader translator: what the translator learns about a program (Info): its resources,
 // the user data it reads, the inputs/outputs, the features it uses, and the flattened user data
@@ -261,9 +262,17 @@ struct Info : InfoPersistent {
         }
     }
 
+    // A DynamicIndex storage image occupies one binding per mip, in both the
+    // SPIR-V and the pipeline layout (ayozetr/bloodborne_linux 55f9db99).
+    u32 ImageBindingCount() const {
+        u32 count = 0;
+        for (const auto& image : images) count += image.NumBindings(*this);
+        return count;
+    }
+
     void AddBindings(Backend::Bindings& bnd) const {
         bnd.buffer += buffers.size();
-        bnd.unified += buffers.size() + images.size() + samplers.size();
+        bnd.unified += buffers.size() + ImageBindingCount() + samplers.size();
         bnd.user_data += ud_mask.NumRegs();
     }
 

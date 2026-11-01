@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: Copyright 2026 bbport contributors
+// SPDX-License-Identifier: GPL-2.0-or-later
 /* Exercise actual guest file operations on a linked overlay and writable saves. */
 #include "../src/runtime_file.c"
 #include <assert.h>
@@ -6,6 +8,8 @@ int32_t *runtime_errno(void) { return &guest_errno; }
 int32_t runtime_guest_errno(int e) { return e; }
 /* Reads into guest memory tell the GPU side (runtime_memory.c); nothing to tell here. */
 void runtime_memory_note_write(uintptr_t address, uint64_t size) { (void)address; (void)size; }
+void runtime_memory_note_cpu_write(uintptr_t address, uint64_t size) { (void)address; (void)size; }
+void runtime_memory_prepare_cpu_write(uintptr_t address, uint64_t size) { (void)address; (void)size; }
 uintptr_t runtime_lookup(const RuntimeExport *table,size_t n,const char *name) {
     for (size_t i=0;i<n;++i) if (!strcmp(table[i].name,name)) return (uintptr_t)table[i].function;
     return 0;
@@ -81,6 +85,14 @@ int main(void) {
     unsetenv("BB_VOICE_LANGUAGE");
     assert(!translate("/app0/dvdroot_ps4/sound/sprj_test_esa.fsb",resolved,sizeof(resolved)));
     assert(!strcmp(resolved,english));
+    setenv("BB_VOICE_LANGUAGE","auto",1);
+    char automatic[1024];
+    snprintf(automatic,sizeof(automatic),"%s/dvdroot_ps4/sound/sprj_test_aut.fsb",game);
+    f=fopen(automatic,"w"); assert(f); fputs("not-a-language",f); fclose(f);
+    assert(!translate("/app0/dvdroot_ps4/sound/sprj_test_esa.fsb",resolved,sizeof(resolved)));
+    assert(!strcmp(resolved,bank));
+    assert(!cachy_voice_matches("eng") && !cachy_voice_matches("spa"));
+    assert(!unlink(automatic));
     setenv("BB_VOICE_LANGUAGE","esa",1);
     assert(!translate("/hostapp/dvdroot_ps4/sound/sprj_test_eng.fsb",resolved,sizeof(resolved)));
     assert(!strcmp(resolved,bank));

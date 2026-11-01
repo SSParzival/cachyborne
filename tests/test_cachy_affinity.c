@@ -27,6 +27,10 @@ int main(void) {
     cachy_pin_thread(pthread_self(), "bb:ShaderCompile");
     assert(sched_getaffinity(0, sizeof(actual), &actual) == 0);
     assert(CPU_COUNT(&actual) == 1 && CPU_ISSET(last, &actual));
+    cachy_pin_thread(pthread_self(), "bb:ShaderImport");
+    assert(sched_getaffinity(0, sizeof(actual), &actual) == 0 && CPU_ISSET(last, &actual));
+    cachy_pin_thread(pthread_self(), "bb:FsrBuild");
+    assert(sched_getaffinity(0, sizeof(actual), &actual) == 0 && CPU_ISSET(last, &actual));
     setenv("BB_CPU_PINNING", "0", 1);
     cachy_pin_thread(pthread_self(), "main");
     assert(sched_getaffinity(0, sizeof(actual), &actual) == 0 && CPU_ISSET(last, &actual));

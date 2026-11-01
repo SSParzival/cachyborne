@@ -5,7 +5,7 @@
 #include <string.h>
 #include <strings.h>
 static inline const char *cachy_voice_language(void) {
-    static const char *const codes[] = {"eng", "esa", "ese", "ded", "frf", "iti", "jaj", "ptb"};
+    static const char *const codes[] = {"eng", "esa", "ese", "ded", "frf", "iti", "jaj", "ptb", "auto"};
     const char *value = getenv("BB_VOICE_LANGUAGE");
     if (value) for (unsigned i=0; i<sizeof(codes)/sizeof(codes[0]); ++i)
         if (!strcasecmp(value,codes[i])) return codes[i];
@@ -30,6 +30,7 @@ static inline const char *cachy_voice_iso(void) {
     return "eng";
 }
 static inline int cachy_voice_matches(const char *language) {
+    if (!strcmp(cachy_voice_language(),"auto")) return 0;
     const char *iso=cachy_voice_iso();
     return !strncasecmp(language,iso,3) || !strncasecmp(language,cachy_voice_language(),3) ||
         (!strcmp(iso,"deu") && !strncasecmp(language,"ger",3)) ||

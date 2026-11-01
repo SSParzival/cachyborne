@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 // bbport shader translator: the byte layout of translated shaders' metadata in the pipeline
 // cache (render/pipeline_store.h). Info is stored as its persistent prefix, the flattened user
@@ -19,7 +20,7 @@ void Info::Serialize(Serialization::Archive& ar) const {
 
 bool Info::Deserialize(Serialization::Archive& ar) {
     Serialization::Reader reader{ar};
-    reader.Read(this, sizeof(InfoPersistent));
+    reader.Read(static_cast<InfoPersistent*>(this), sizeof(InfoPersistent));
     reader.Read(flattened_ud_buf);
     return srt_info.Deserialize(ar);
 }

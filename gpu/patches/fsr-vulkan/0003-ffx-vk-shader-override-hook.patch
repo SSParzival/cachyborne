@@ -1,0 +1,52 @@
+Subject: [PATCH] Wire the bbport 0.7 FSR shader override and profiling callbacks
+
+The release references both symbols but its pinned backend defines neither.
+Keep SDK reflection and replace only compatible shader bytecode; timestamp
+each compute job only when the optional profiler registers its callback.
+
+--- a/upstream/ffx-1.1.4/sdk/src/backends/vk/ffx_vk.cpp
++++ b/upstream/ffx-1.1.4/sdk/src/backends/vk/ffx_vk.cpp
+@@ -34,6 +34,14 @@
+ #endif  // _WIN32
+ 
+ #include <vulkan/vulkan.h>
++
++// bbport supplies compatible SPIR-V for selected FSR 3.1 passes; resource bindings
++// and reflection still come from the SDK permutation. NULL keeps the packaged shader.
++extern "C" {
++void (*ffxVkJobMark)(uint32_t x, uint32_t y, uint32_t z) = nullptr;
++bool (*ffxVkShaderOverride)(uint32_t effect, uint32_t pass, uint32_t permutationOptions,
++                            const uint32_t** words, size_t* size) = nullptr;
++}
+ 
+ // prototypes for functions in the interface
+ FfxVersionNumber       GetSDKVersionVK(FfxInterface* backendInterface);
+@@ -3738,6 +3746,16 @@
+     shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+     shaderModuleCreateInfo.pCode = (uint32_t*)shaderBlob.data;
+     shaderModuleCreateInfo.codeSize = shaderBlob.size;
++    if (ffxVkShaderOverride) {
++        const uint32_t* words = nullptr;
++        size_t size = 0;
++        if (ffxVkShaderOverride(uint32_t(effect), uint32_t(pass), permutationOptions, &words, &size)
++            && words && size >= 5 * sizeof(uint32_t) && size % sizeof(uint32_t) == 0
++            && words[0] == 0x07230203) {
++            shaderModuleCreateInfo.pCode = words;
++            shaderModuleCreateInfo.codeSize = size;
++        }
++    }
+ 
+     if (backendContext->vkFunctionTable.vkCreateShaderModule(backendContext->device, &shaderModuleCreateInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+         return FFX_ERROR_BACKEND_API_ERROR;
+@@ -4092,6 +4110,11 @@
+             backendContext->vkFunctionTable.vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout->pipelineLayout, pipelineLayout->staticBufferUavSet, 1, &effectContext.bindlessBufferUavDescriptorSet, 0, nullptr);
+     }
+     
++    // Timestamp callback from bbport's optional frame-generation profiler.
++    if (ffxVkJobMark) {
++        ffxVkJobMark(job->computeJobDescriptor.dimensions[0],
++                     job->computeJobDescriptor.dimensions[1], job->computeJobDescriptor.dimensions[2]);
++    }
+     // Dispatch (or dispatch indirect)
+     if (job->computeJobDescriptor.pipeline.cmdSignature)
+     {

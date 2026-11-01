@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include <cstdlib>
 #include <chrono>
@@ -23,7 +24,12 @@ void runtime_restart() { std::abort(); }
 uint64_t runtime_process_time_counter() { return runtime_process_time_us() * 1000; }
 int32_t* runtime_errno() { std::abort(); }
 int runtime_memory_write_backing(uintptr_t, const void*, uint64_t) { std::abort(); }
-void runtime_memory_read_backing(uintptr_t, void*, uint64_t) { std::abort(); }
+static void (*backing_reader)(uintptr_t, void*, uint64_t) = nullptr;
+void runtime_test_set_backing_reader(void (*reader)(uintptr_t, void*, uint64_t)) { backing_reader = reader; }
+void runtime_memory_read_backing(uintptr_t address, void* data, uint64_t size) {
+    if (!backing_reader) std::abort();
+    backing_reader(address, data, size);
+}
 const uint64_t* runtime_memory_generation() { static const uint64_t generation = 0; return &generation; }
 void runtime_memory_note_write(uintptr_t, uint64_t) { std::abort(); }
 void runtime_memory_set_note_write_hook(void (*)(uintptr_t, uint64_t)) {}
@@ -53,4 +59,25 @@ int runtime_pad_mouse_look() { return 0; }
 int runtime_pad_prompt(const char*, int, char*, int) { return 0; }
 int runtime_file_host_path(const char*, char*, size_t) { return -1; }
 void runtime_re_watch(uint64_t) {}
+// Upstream 0.7 lazy heaps and streaming. Registrations/statistics work without
+// a guest; an actual guest-memory operation remains a test failure.
+void* runtime_low_map(size_t, int) { std::abort(); }
+int runtime_memory_pool_fd() { return -1; }
+void runtime_memory_trap_stats(uint64_t* wait, uint64_t* apply, uint64_t* calls, uint64_t* bytes) {
+    *wait = *apply = *calls = *bytes = 0;
+}
+void runtime_memory_note_pinned(uint64_t, uint64_t) { std::abort(); }
+void runtime_memory_set_guest_chunk_free(void (*)(uint64_t, uint64_t)) {}
+void runtime_memory_set_guest_chunk_private(int (*)(uint64_t, uint64_t, void*)) {}
+void runtime_memory_set_guest_lazy(int) {}
+void runtime_memory_set_host_only_allocations(uint64_t) {}
+void runtime_memory_set_grow(const uint64_t*, uint64_t) {}
+int runtime_memory_deferred(uint64_t* phys, uint64_t* end) { *phys = *end = 0; return 0; }
+int runtime_memory_commit(uint64_t, uint64_t) { std::abort(); }
+void runtime_memory_commit_ahead(uint64_t, uint64_t) { std::abort(); }
+int runtime_memory_decommit(uint64_t, uint64_t) { std::abort(); }
+void runtime_memory_discard_direct(uint64_t, uint64_t) { std::abort(); }
+const char* runtime_file_user_dir() { return ""; }
+int runtime_savedata_active_slot(char*, size_t) { return -1; }
+int runtime_pad_steam_only() { return 0; }
 }

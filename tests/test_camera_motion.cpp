@@ -1,9 +1,12 @@
+// SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Execute production camera motion SPIR-V: distant geometry, sky and stale object vectors.
 #include <array>
+#include <bit>
 #include <cassert>
 #include <cmath>
 #include <cstdio>
+#include <limits>
 #include "vulkan/instance.h"
 #include "render/scheduler.h"
 #include "test_vk_image.h"
@@ -23,7 +26,8 @@ int main() {
     std::array<vk::UniqueImageView,3> views;
     std::array<vk::DescriptorSetLayoutBinding,3> bindings{};
     for (u32 i=0;i<3;++i) {
-        const auto format=i==1 ? vk::Format::eR16G16Sfloat : vk::Format::eR32G32B32A32Sfloat;
+        const auto format=i==1 ? vk::Format::eR16G16Sfloat :
+            i==2 ? vk::Format::eR32G32Uint : vk::Format::eR32G32B32A32Sfloat;
         images[i]=TestImage(device,instance.GetAllocator());
         images[i].Create({.imageType=vk::ImageType::e2D,.format=format,.extent={W,H,1},
             .mipLevels=1,.arrayLayers=1,.samples=vk::SampleCountFlagBits::e1,
@@ -73,8 +77,10 @@ int main() {
         auto* pixels=static_cast<float*>(ai.pMappedData);
         for (u32 p=0;p<N;++p) {
             pixels[p*4]=depth;
-            pixels[N*4+p*4]=2.f; pixels[N*4+p*4+1]=0.f;
-            pixels[N*4+p*4+2]=1.f; pixels[N*4+p*4+3]=object_depth;
+            // Production object vectors are packed half2 + sign-tagged depth in RG32_UINT.
+            auto* packed=static_cast<u32*>(ai.pMappedData)+N*4+p*2;
+            packed[0]=0x00004000u; // half2(2.0, 0.0)
+            packed[1]=std::bit_cast<u32>(object_depth)|0x80000000u;
         }
         const auto cmd=scheduler.CommandBuffer();
         std::array<vk::ImageMemoryBarrier2,3> transitions{};
@@ -131,5 +137,8 @@ int main() {
     run("static camera cancels jitter",distant,0,0,0,0,0,true);
     run("matching object vector",distant,0,0,distant,1,2);
     run("stale distant object vector",distant,0,0,0.9999f,1,0);
+    run("non-finite camera rejected",distant,std::numeric_limits<float>::infinity(),0,0,0,0);
+    run("NaN camera rejected",distant,std::numeric_limits<float>::quiet_NaN(),0,0,0,0,0);
+    run("extreme finite motion clamped",distant,1e8f,0,0,0,4.f*W);
     vmaDestroyBuffer(instance.GetAllocator(),staging,allocation);
 }

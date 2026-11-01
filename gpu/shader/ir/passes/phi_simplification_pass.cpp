@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Simplifies networks of phis, taken as strongly connected components (Tarjan):
 //  - an SCC whose outside operands all come from the same one-operand instruction (a conversion,
@@ -342,7 +343,8 @@ void Deduplicate(std::vector<PhiScc>& sccs) {
         boost::container::small_vector<u32, 4> sccs;
         bool queued{};
     };
-    // Keyed by the shape hash itself; the worklist follows this map's order.
+    // Shape hashes include block addresses. Keep work in SCC discovery order,
+    // not unordered_map order (LanternEngine, via ayozetr 4e7c4a0d).
     std::unordered_map<u64, Group, std::identity> groups;
     for (size_t i = 0; i < sccs.size(); ++i) {
         sccs[i].ComputeShapeHash();
@@ -350,10 +352,10 @@ void Deduplicate(std::vector<PhiScc>& sccs) {
     }
     std::vector<Group*> worklist;
     worklist.reserve(groups.size());
-    for (auto& [hash, group] : groups) {
-        if (group.sccs.size() > 1) {
+    for (const auto& scc : sccs) {
+        auto& group = groups.at(scc.hash);
+        if (group.sccs.size() > 1 && !std::exchange(group.queued, true)) {
             worklist.push_back(&group);
-            group.queued = true;
         }
     }
 

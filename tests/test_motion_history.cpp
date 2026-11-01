@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Standalone CPU regression checks: no game, Vulkan device or window required.
 #include <array>
@@ -8,6 +9,23 @@
 using namespace Vulkan::Motion;
 
 int main() {
+    // Pera's material bias and camera cuts: no history across discontinuous cameras.
+    assert(std::abs(UpscalerMipBias(1280, 1920, -1.0f) + 1.5849625f) < 1e-5f);
+    assert(UpscalerMipBias(1920, 1920, -1.0f) == -1.0f);
+    assert(UpscalerMipBias(960, 1920, -1.0f) == -2.0f);
+    assert(UpscalerMipBias(1280, 1920, 0.0f) > -1.0f); // Other backends retain ratio bias.
+    assert(UpscalerMipBias(0, 1920, -1.0f) == 0.0f);
+    const std::array<float, 12> identity{1,0,0,0,0,1,0,0,0,0,1,0};
+    auto moved = identity;
+    moved[3] = 0.1f;
+    assert(!IsCameraCut(MeasureCameraStep(identity, moved), 2.0f, 45.0f));
+    moved[3] = 3.0f;
+    assert(IsCameraCut(MeasureCameraStep(identity, moved), 2.0f, 45.0f));
+    auto turned = identity;
+    turned[2] = 1.0f; turned[10] = 0.0f;
+    assert(IsCameraCut(MeasureCameraStep(identity, turned), 2.0f, 45.0f));
+    moved[3] = std::numeric_limits<float>::quiet_NaN();
+    assert(IsCameraCut(MeasureCameraStep(identity, moved), 2.0f, 45.0f));
     const std::array<uint16_t, 5> indices{1000, 1007, 1002, 1007, UINT16_MAX};
     const auto range = IndexedRange(std::span(indices), -900, true);
     assert(range.first == 100 && range.count == 8);
@@ -54,6 +72,23 @@ int main() {
     changed.vertices.first++;
     assert(!history.Prepare(changed).load);
 
+    // Foliage: another set of instances (culling) at the same count is another identity.
+    history.NextFrame();
+    changed = draw;
+    changed.instance_data = 1;
+    history.Prepare(changed);
+    history.NextFrame();
+    changed.instance_data = 2;
+    assert(!history.Prepare(changed).load);
+    // Repeated draws matched by order: a jump means another object, a step the same one.
+    History anchored(64);
+    anchored.NextFrame();
+    anchored.Prepare(draw, {0, 0, 0, true});
+    anchored.Prepare(draw, {5, 0, 0, true});
+    anchored.NextFrame();
+    assert(!anchored.Prepare(draw, {5, 0, 0, true}).load && anchored.stats.jumped == 1);
+    assert(anchored.Prepare(draw, {5.1f, 0, 0, true}).load);
+
     History overflow(32);
     draw.vertices.first = 0;
     draw.vertices.count = INT32_MAX;
@@ -83,6 +118,14 @@ int main() {
     gated.NextFrame();
     assert(!gated.Moving(weapon, 4));     // after a skipped frame: no comparison
     assert(!gated.Moving(weapon, 5));     // second occurrence of the same draw
+    History swapped(1024); // two weapons; the first is culled: the second takes its place
+    swapped.NextFrame();
+    swapped.Moving(weapon, 1, {0, 0, 0, true});
+    swapped.Moving(weapon, 2, {9, 0, 0, true});
+    swapped.NextFrame();
+    assert(!swapped.Moving(weapon, 3, {9, 0, 0, true})); // another weapon: camera motion
+    swapped.NextFrame();
+    assert(swapped.Moving(weapon, 4, {9.1f, 0, 0, true})); // the same one, moving
     assert(ClassifyBuffer(864) == BufferRole::Other && ClassifyBuffer(416) == BufferRole::Other);
     assert(ClassifyBuffer(96) == BufferRole::SmallSkeleton &&
            ClassifyBuffer(384) == BufferRole::SmallSkeleton);
@@ -109,5 +152,5 @@ int main() {
     assert(JitterPhases(960, 1920) == 32);
     assert(JitterPhases(640, 1920) == 72);
     assert(JitterPhases(0, 1920) == 8);
-    std::puts("Motion history: PASS (ranges, restart, offsets, matching, capacity, gating, index cache, jitter)");
+    std::puts("Motion history: PASS (ranges, restart, offsets, matching, instances, anchors, capacity, gating, index cache, jitter)");
 }
