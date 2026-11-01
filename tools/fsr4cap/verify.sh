@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: Copyright 2026 bbport contributors
+# SPDX-License-Identifier: GPL-2.0-or-later
 # tools/fsr4cap/verify.sh <fsr4cap dir> [frames]: runs AMD's FSR 4.1.1 DLL (fsr4cap.exe under
 # Proton, proton.sh) and the Vulkan replay (out/gpu/fsr4-bench --fsr411, assets in BB_FSR411_DIR
 # or fsr4_411) on the same pseudo-random inputs for several sizes and both models, and compares
 # the outputs byte by byte.
-# VARIANT: int8 (default); fp8, the DLL's FP8 matrix variant (RDNA4); fp8emu, the same with FP8
+# VARIANT: int8 (default); navi2 and lite, FSR 4.1.2 driver models (amdxcffx64.dll forced to that
+# model, FSR4CAP_VERSION=4.1.2); fp8, the DLL's FP8 matrix variant (RDNA4); fp8emu, the same with FP8
 # emulated through FP16 matrices on both sides (RDNA3 under GE-Proton: vkd3d-proton with
 # DXIL_SPIRV_CONFIG=wmma_rdna3_workaround, the replay with the fp8emu sets).
 set -euo pipefail
@@ -14,10 +17,10 @@ variant=${VARIANT:-int8}
 source tools/fsr4cap/proton.sh
 export PROTONPATH=${PROTONPATH:-$(proton_candidates | head -1)}
 case $variant in
-int8) ;;
+int8 | navi2 | lite) ;;
 fp8) export VKD3D_DISABLE_EXTENSIONS= ;;
 fp8emu) export VKD3D_DISABLE_EXTENSIONS= DXIL_SPIRV_CONFIG=wmma_rdna3_workaround ;;
-*) echo "VARIANT: int8, fp8 or fp8emu" >&2; exit 1 ;;
+*) echo "VARIANT: int8, navi2, lite, fp8 or fp8emu" >&2; exit 1 ;;
 esac
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
@@ -28,7 +31,7 @@ for c in '1280x720 1920x1080 2' '640x360 1920x1080 4' '1067x600 1600x900 2' '170
     fsr4cap_run "$R" "${FSR4CAP_VERSION:-4.1.}" "$1" "$2" "$frames" noise || true
     BB_FSR411_VARIANT=$variant BENCH_NOISE=1 BENCH_DUMP=$tmp/replay.raw \
         out/gpu/fsr4-bench "$1" "$2" "$3" "$frames" --fsr411 > "$tmp/bench.log" 2>&1
-    replayed=$(sed -n 's/^FSR 4.1.1: \([^ ]*\( (emulated)\)\{0,1\}\) .*/\1/p' "$tmp/bench.log" | head -1)
+    replayed=$(sed -En 's/^FSR 4\.1(\.1)?: ((FP8|INT8)[^ ]*( \(emulated\))?) t.*/\2/p' "$tmp/bench.log" | head -1)
     if cmp -s "$R/output_$2.raw" "$tmp/replay.raw"; then
         result=bit-exact
     else
