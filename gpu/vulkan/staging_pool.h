@@ -91,6 +91,7 @@ private:
     std::array<std::vector<Whole>, NumTypes> wholes;
     u64 keep_segments = 0; ///< upload segments never given back
     u64 frame = 0;
+    u64 last_stats_ms = 0;
 };
 
 } // namespace Vulkan

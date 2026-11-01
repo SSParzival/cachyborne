@@ -663,3 +663,7 @@ BB_ENV(BB_DEBUG_OUT, INTERNAL, "private debugger report path, set by tools/debug
 BB_ENV(BB_DEBUG_KEEP, INTERNAL, "debug helper: detach by default; 0 terminates only when explicitly requested")
 
 BB_ENV(BB_NATIVE_DEFLATE, TUNING, "=0: disable native libdeflate for verified initial complete zlib 1.2.3 streams; unsupported streams use original guest inflate")
+
+BB_ENV(BB_ACCEPTANCE_POSES, DEBUG, "=new CSV path: offline guest update pose samples through a bounded background writer")
+BB_ENV(BB_ACCEPTANCE_COMMAND, DEBUG, "=path: offline acceptance commands (sequence list / sequence warp lamp); verified guest functions only")
+BB_ENV(BB_STAGING_STATS, DEBUG, "=1: report per-pool host/device staging capacity and Vulkan usage/budget once a second")

@@ -179,6 +179,20 @@ void StagingBufferPool::TickFrame() {
         TrimIdle(MemoryType(type));
     }
     PublishStats();
+    static const bool report = bb_env_on("BB_STAGING_STATS");
+    if (report) {
+        const u64 now = NowMs();
+        if (now - last_stats_ms >= 1000) {
+            last_stats_ms = now;
+            std::printf("Staging stats: pool=%p cached=%llu uncached=%llu device=%llu vram=%llu budget=%llu\n",
+                static_cast<void*>(this),
+                (unsigned long long)BytesAllocated(MemoryType::HostCached),
+                (unsigned long long)BytesAllocated(MemoryType::HostUncached),
+                (unsigned long long)BytesAllocated(MemoryType::DeviceLocal),
+                (unsigned long long)instance.GetDeviceMemoryUsage(),
+                (unsigned long long)instance.GetDeviceMemoryBudgetNow());
+        }
+    }
 }
 
 void StagingBufferPool::TrimIdle(MemoryType type) {

@@ -262,6 +262,7 @@ static void replay_sample(PadData *d) {
             printf("Runtime: pad replay of %zu samples from %s\n",replay_count,path ? path : "(unset)");
         }
         replay_start=pad_clock_us();
+        printf("Runtime: pad replay start ns %llu\n",(unsigned long long)(now_us()*1000u));
         replay_running=1;
         replay_next=0;
     }
