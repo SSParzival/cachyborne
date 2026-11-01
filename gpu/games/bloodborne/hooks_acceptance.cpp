@@ -141,7 +141,7 @@ void PS4_SYSV_ABI AcceptanceTick() {
 bool InstallAcceptance() {
     const char* poses = bb_env("BB_ACCEPTANCE_POSES");
     const char* commands = bb_env("BB_ACCEPTANCE_COMMAND");
-    if ((!poses && !commands) || bb_env_on("BB_ONLINE")) return false;
+    if ((!poses && !commands) || bb_env_on("BB_ONLINE") || bb_env_on("BB_BBSC")) return false;
     constexpr u64 site = 0x2034770;
     constexpr std::array<u8, 6> expected{0x55,0x48,0x89,0xe5,0x41,0x57};
     constexpr std::array<u8, 15> warp{0x55,0x48,0x89,0xe5,0x41,0x57,0x41,0x56,

@@ -43,12 +43,12 @@ void Exercise(const std::vector<unsigned char>& input) {
     assert(stream.adler == z.adler && stream.data_type == z.data_type && state.mode == 26);
     assert(inflateEnd(&z) == Z_OK);
     // DONE, continuation, invalid flush, partial input and insufficient output fall back.
-    const auto unchanged = [&](Stream candidate, StatePrefix candidate_state, int flush) {
+    const auto unchanged = [&](Stream candidate, StatePrefix candidate_state, int flush, const BbDeflate::Memory& callbacks = memory) {
         candidate.state = &candidate_state;
         const auto before = candidate;
         const auto before_state = candidate_state;
         const auto before_output = output;
-        assert(!BbDeflate::TryInflate(&candidate, flush, memory));
+        assert(!BbDeflate::TryInflate(&candidate, flush, callbacks));
         assert(!std::memcmp(&before, &candidate, sizeof(candidate)));
         assert(!std::memcmp(&before_state, &candidate_state, sizeof(candidate_state)));
         assert(output == before_output);
@@ -64,6 +64,21 @@ void Exercise(const std::vector<unsigned char>& input) {
         unchanged(fresh, initial, Z_FINISH);
         fresh.avail_out = output.size();
     }
+    auto invalid = fresh;
+    invalid.next_out = packed.data();
+    unchanged(invalid, initial, Z_FINISH); // overlapping compressed and output ranges
+    invalid = fresh; invalid.avail_out = (8u << 20) + 1;
+    unchanged(invalid, initial, Z_FINISH); // cap rejected before allocation
+    invalid = fresh; invalid.next_in = nullptr;
+    unchanged(invalid, initial, Z_FINISH);
+    auto dictionary = initial; dictionary.havedict = 1;
+    unchanged(fresh, dictionary, Z_FINISH);
+    auto raw = initial; raw.wrap = 0;
+    unchanged(fresh, raw, Z_FINISH);
+    const BbDeflate::Memory unmapped{[](const void*, std::size_t) { return false; }, Commit};
+    unchanged(fresh, initial, Z_FINISH, unmapped);
+    const BbDeflate::Memory refused{Mapped, [](void*, const void*, std::size_t) { return false; }};
+    unchanged(fresh, initial, Z_FINISH, refused); // failed commit preserves guest state
     packed[packed.size() - 14] ^= 0x40;
     unchanged(fresh, initial, Z_FINISH);
 }
