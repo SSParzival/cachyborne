@@ -34,7 +34,7 @@ What players and the launchers set. The menu, bbport.ini and the launcher write 
 | `BB_FFX_FG_ML` | =1: AMD's ML frame generation (4.0.x) accepts any GPU (AMD ships it for RDNA4); =0: refuses it (FSR 3.1) |
 | `BB_FFX_FG_VERSION` | =<part of a name>: the frame generation AMD's DLL runs, from those the log lists (default: theirs) |
 | `BB_FFX_VERSION` | =<part of a name>: the upscaler AMD's FSR DLLs run, from those the log lists (default: theirs) |
-| `BB_FPS` | =uncap (default) / 90 / 60 / 30: the frame rate (the launcher's) |
+| `BB_FPS` | =60 (default) / 90 / uncap / 30: the frame rate (the launcher's) |
 | `BB_FPS_LIMIT` | =N: frame rate limit (the launcher's) |
 | `BB_FRAME_GEN` | =fsr3 / dlss / fsr_amd (1: fsr3): frame generation |
 | `BB_FRAME_GEN_MULTIPLIER` | =2..4: frames shown per rendered one with frame generation |

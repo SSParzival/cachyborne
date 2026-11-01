@@ -18,6 +18,14 @@ static std::string Read(const char* path) {
 }
 
 int main() {
+    BbSettings::Values defaults;
+    assert(defaults.preset == BbSettings::Quality);
+    assert(defaults.light_grid_opt && defaults.vbao && defaults.anti_aliasing == BbSettings::AaSmaa);
+    assert(defaults.texture_quality == BbSettings::TqFull);
+    assert(defaults.sharpness == 0.35f);
+    assert(!BbSettings::Effects[0].default_on && !BbSettings::Effects[1].default_on &&
+           !BbSettings::Effects[2].default_on);
+
     assert(!BbSettings::IsHotEffect(6)); // SSR resizes resources on restart.
     assert(BbSettings::IsHotEffect(7));  // Bloom still switches live.
     assert(!BbSettings::IsHotEffect(8)); // Startup intros.

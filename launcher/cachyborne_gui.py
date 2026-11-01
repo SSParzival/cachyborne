@@ -224,22 +224,22 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
             picture.add_css_class('hero-art'); picture.set_overflow(Gtk.Overflow.HIDDEN); hero.append(picture)
         page.append(hero)
         metrics = Gtk.Box(spacing=12, homogeneous=True)
-        for value, title, note, color in [('144', 'FPS OBJETIVO', 'Límite del perfil recomendado', 'pink'),
-                                          ('6,94 ms', 'PRESUPUESTO POR CUADRO', 'El rendimiento real depende de la escena', 'purple'),
+        for value, title, note, color in [('60', 'FPS OBJETIVO', 'Límite del perfil recomendado', 'pink'),
+                                          ('16,67 ms', 'PRESUPUESTO POR CUADRO', 'El rendimiento real depende de la escena', 'purple'),
                                           ('16 GB', 'MEMORIA DEL SISTEMA', 'Juego en disco · cachés limitadas', 'blue')]:
             card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); card.add_css_class('metric')
             card.append(label(value, f'metric-value {color}')); card.append(label(title, 'eyebrow', True))
             card.append(label(note, 'muted small', True)); metrics.append(card)
         page.append(metrics)
         profile = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); profile.add_css_class('info-card')
-        profile.append(label('144 FPS · Fluidez', 'info-title'))
-        profile.append(label('FSR 4 · objetivo 144 FPS · salida 1440p · P-Cores para el juego. '
+        profile.append(label('60 FPS · Fluidez', 'info-title'))
+        profile.append(label('FSR 4 · objetivo 60 FPS · salida 1440p · P-Cores para el juego. '
                              'Tu calidad de escalado se conserva. La precarga de 30 GB queda desactivada.', 'muted', True))
         buttons = Gtk.Box(spacing=10)
-        buttons.append(action('Perfil recomendado para este PC (1440p · 144 FPS)', self.apply_recommended, primary=True))
+        buttons.append(action('Perfil recomendado para este PC (1440p · 60 FPS)', self.apply_recommended, primary=True))
         buttons.append(action('Preparar y aplicar', lambda: self.navigate('setup')))
         profile.append(buttons); page.append(profile)
-        page.append(label('El objetivo de 144 FPS no es una garantía. Usa el contador y las estadísticas '
+        page.append(label('El objetivo de 60 FPS no es una garantía. Usa el contador y las estadísticas '
                           'para comprobar el rendimiento en tu partida.', 'muted small', True))
 
     def build_performance(self):
@@ -255,7 +255,7 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         self.switch(memory, 'radv', 'Perfil AMD RADV / ACO', 'Caché persistente de 4G en disco y SAM gestionado por el driver.')
         self.switch(memory, 'gamemode', 'GameMode', 'Requiere gamemoderun instalado.')
         self.combo(memory, 'scheduler', 'Scheduler', ['current', 'scx_lavd', 'scx_bpfland'], ['Actual', 'scx_lavd activo', 'scx_bpfland activo'])
-        scope = self.group(page, 'Gamescope · opcional', 'Se mantiene apagado en el perfil 144 para evitar un compositor adicional.')
+        scope = self.group(page, 'Gamescope · opcional', 'Se mantiene apagado en el perfil 60 para evitar un compositor adicional.')
         self.switch(scope, 'gamescope', 'Lanzar con Gamescope')
         self.entry(scope, 'width', 'Ancho de salida'); self.entry(scope, 'height', 'Alto de salida')
         self.switch(scope, 'hdr', 'HDR'); self.switch(scope, 'vrr', 'Adaptive Sync / VRR')
@@ -310,7 +310,7 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
     def build_setup(self):
         page = self.page('setup', 'Una vez preparado, solo juega', 'Validación y enlace aquí. Lanzamiento directo después.')
         for number, title, text in [('01','Elige tu dump 1.09','Archivos descifrados de Bloodborne con la actualización ya combinada.'),
-                                     ('02','Ajusta tu perfil','144 FPS objetivo, FSR 4 y memoria acotada para 16 GB.'),
+                                     ('02','Ajusta tu perfil','60 FPS objetivo, FSR 4 y memoria acotada para 16 GB.'),
                                      ('03','Valida y prepara','El perfil anterior se conserva si la preparación falla.')]:
             row = Gtk.Box(spacing=14); badge = label(number, 'step-number'); badge.set_valign(Gtk.Align.START)
             row.append(badge); text_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -390,9 +390,9 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
 
     def apply_recommended(self):
         try:
-            self.settings = core.performance_settings(self.collect(), '144')
+            self.settings = core.performance_settings(self.collect(), '60')
             self.ini = dict(self.settings['runtime_ini']); self.set_widgets()
-            self.save(); self.report('Perfil 144 seleccionado. Prepara el juego para aplicarlo.')
+            self.save(); self.report('Perfil 60 seleccionado. Prepara el juego para aplicarlo.')
         except (OSError, ValueError) as error:
             self.report(str(error))
 

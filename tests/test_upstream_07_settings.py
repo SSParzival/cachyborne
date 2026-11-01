@@ -2,6 +2,7 @@
 from paths import ROOT
 import ast
 import copy
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -17,6 +18,29 @@ class Upstream07SettingsTests(unittest.TestCase):
         s = copy.deepcopy(core.DEFAULTS)
         s['runtime_ini'].update(ini)
         return s
+
+    def test_default_60fps_quality_profile_matches_schema_and_projection(self):
+        s = options.reconcile(self.settings())
+        self.assertEqual((s['fps'], s['fps_limit']), ('60', 60))
+        expected = dict(texture_quality='full', vbao='1', anti_aliasing='smaa',
+                        preset='1', sharpen='1', sharpness='0.35', light_grid_opt='1',
+                        effect_ssao='1', effect_dynamic_shadows='1', effect_bloom='1',
+                        effect_chromatic_aberration='0', effect_motion_blur='0', effect_dof='0')
+        for key, value in expected.items():
+            self.assertEqual(s['runtime_ini'][key], value, key)
+            self.assertEqual(options.INI_DEFAULTS[key], value, key)
+        schema = json.loads((ROOT / 'launcher/settings_schema.json').read_text())
+        items = {item['key']: item for section in schema['sections'] for item in section['items']}
+        for key in expected.keys() & items.keys():
+            value = items[key]['default']
+            normalized = str(int(value)) if isinstance(value, bool) else str(value)
+            self.assertEqual(normalized, expected[key], key)
+        self.assertEqual(items['fps_mode']['default'], '60')
+        self.assertEqual(items['fps_limit']['default'], 60)
+        self.assertEqual(patches.fps_patches('60', {'BB_FRAME_HOOKS': '1'}), [])
+        self.assertEqual(core.direct_memory_mb(s), 5056)
+        self.assertEqual(patches.PRESET_SCALES[int(s['runtime_ini']['preset'])], 1.5)
+        self.assertEqual(patches.PRESET_SCALES[0], 1.0)
 
     def test_every_upstream_ini_default_has_a_native_schema_entry(self):
         tree = ast.parse((ROOT / 'launcher/bbport_launcher_common.py').read_text())

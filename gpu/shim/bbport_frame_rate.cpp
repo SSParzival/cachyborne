@@ -402,12 +402,12 @@ u8* MapNear(int prot) {
 } // namespace
 
 void PatchImage(unsigned char* image, std::uint64_t) {
-    // BB_FPS (run.sh, the launcher's frame rate): uncap (default), 60 or 90 (the same, at most that
+    // BB_FPS (run.sh, the launcher's frame rate): 60 (default), uncap or 90 (the same, at most that
     // many frames a second), 30 (the game's own). BB_FRAME_HOOKS=0: the community's frame rate
     // patches instead (scripts/patches.py; comparisons).
     const char* fps = bb_env("BB_FPS");
     const char* hooks = bb_env("BB_FRAME_HOOKS");
-    const int mode = !fps || std::strcmp(fps, "uncap") == 0 ? MaxRate : std::atoi(fps);
+    const int mode = !fps ? 60 : std::strcmp(fps, "uncap") == 0 ? MaxRate : std::atoi(fps);
     if (mode <= 30 || (hooks && hooks[0] == '0')) {
         return;
     }

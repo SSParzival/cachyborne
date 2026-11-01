@@ -63,10 +63,10 @@ class PreparedLaunchTests(unittest.TestCase):
         runner.atomic_json(self.config / 'settings.json', dict(fps='165'))
         with patch.object(runner, 'CONFIG', self.config):
             self.assertEqual(runner.preferences()['fps'], '165')
-            self.assertEqual(runner.load_profile()['settings']['fps'], '144')
+            self.assertEqual(runner.load_profile()['settings']['fps'], '60')
 
     def test_wrappers_keep_argument_boundaries_and_environment_overrides(self):
-        self.profile['settings'].update(gamemode=True, gamescope=True, hdr=True, vrr=True, fps='165')
+        self.profile['settings'].update(gamemode=True, gamescope=True, hdr=True, vrr=True, fps='165', fps_limit=0)
         with patch.dict(os.environ, {'RADV_PERFTEST': 'custom'}, clear=True):
             command, env = runner.launch_command(self.profile)
         self.assertEqual(command[0], 'gamescope')
@@ -79,7 +79,7 @@ class PreparedLaunchTests(unittest.TestCase):
 
     def test_high_fps_targets_use_free_timestep_hook_and_separate_cap(self):
         for target in ('120', '144', '165'):
-            self.profile['settings'] = runner.DEFAULTS | {'fps': target, 'runtime_env': {}}
+            self.profile['settings'] = runner.DEFAULTS | {'fps': target, 'fps_limit': 0, 'runtime_env': {}}
             _, env = runner.launch_command(self.profile, base_env={})
             self.assertEqual(env['BB_FPS'], 'uncap')
             self.assertEqual(env['BB_FPS_LIMIT'], target)
@@ -293,12 +293,12 @@ class PreparedLaunchTests(unittest.TestCase):
             path = runner.download_desktop_icon()
         self.assertEqual(path.read_bytes()[:8], b'\x89PNG\r\n\x1a\n')
 
-    def test_recommended_144_profile_preserves_user_bindings_and_paths(self):
+    def test_recommended_60_profile_preserves_user_bindings_and_paths(self):
         settings = runner.DEFAULTS | {'mods_dir': '/mods', 'user_dir': '/saves',
                                      'runtime_ini': {'key.cross': 'X', 'mouse_sensitivity': '1.5'},
                                      'runtime_env': {'BB_FPS': '60', 'BB_LANGUAGE': '3'}}
         recommended = runner.performance_settings(settings)
-        self.assertEqual(recommended['fps'], '144')
+        self.assertEqual(recommended['fps'], '60')
         self.assertEqual(recommended['render_res'], '1706x960')
         self.assertEqual(recommended['upscaler'], 'fsr411')
         self.assertEqual(recommended['runtime_ini']['preset'], '1')

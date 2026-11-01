@@ -48,9 +48,9 @@ LANGUAGES = [('English', '1'), ('English (UK)', '18'), ('Japanese', '0'), ('Fren
              ('Chinese (Simplified)', '11'), ('Chinese (Traditional)', '10'),
              ('Finnish', '12'), ('Swedish', '13'), ('Danish', '14'), ('Norwegian', '15')]
 EFFECTS = [
-    ('effect_chromatic_aberration', 'Chromatic aberration', True),
-    ('effect_dof', 'Depth of field (DoF)', True),
-    ('effect_motion_blur', 'Motion blur', True),
+    ('effect_chromatic_aberration', 'Chromatic aberration', False),
+    ('effect_dof', 'Depth of field (DoF)', False),
+    ('effect_motion_blur', 'Motion blur', False),
     ('effect_ssao', 'SSAO', True),
     ('effect_dynamic_shadows', 'Dynamic light shadows', True),
     ('effect_ssr', 'SSR reflections (not in the original game)', False),
@@ -73,15 +73,16 @@ DEFAULTS = {
     'fullscreen': False,
     'present_mode': 'Mailbox',
     'skip_network_choice': True,
-    'fps_mode': 'uncap',
-    'fps_limit': 0,
+    'fps_mode': '60',
+    'fps_limit': 60,
     'gpu_id': '',
     'save_log': False,
     'extra_env': '',
     'trophy_key': '',  # the player's trophy key (Bloodborne.exe's Trophies section): BB_TROPHY_KEY
 }
-INI_DEFAULTS = {'upscaler': 'fsr4', 'preset': '3', 'output_res': 'auto', 'model_lod': '0',
-                'menu_language': 'en', 'low_latency': 'on', 'anti_aliasing': 'auto', 'texture_quality': 'auto'}
+INI_DEFAULTS = {'upscaler': 'fsr4', 'preset': '1', 'output_res': 'auto', 'model_lod': '0',
+                'menu_language': 'en', 'vbao': '1', 'light_grid_opt': '1', 'sharpen': '1',
+                'sharpness': '0.35', 'low_latency': 'on', 'anti_aliasing': 'smaa', 'texture_quality': 'full'}
 
 
 def load_settings():

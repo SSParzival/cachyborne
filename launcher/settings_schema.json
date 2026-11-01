@@ -516,7 +516,7 @@
      "key": "preset",
      "type": "choice",
      "store": "ini",
-     "default": "4",
+     "default": "1",
      "choices": [
       {
        "value": "0",
@@ -651,7 +651,7 @@
      "key": "sharpness",
      "type": "float",
      "store": "ini",
-     "default": 0.5,
+     "default": 0.35,
      "min": 0.0,
      "max": 2.0,
      "step": 0.05,
@@ -679,7 +679,7 @@
      "key": "anti_aliasing",
      "type": "choice",
      "store": "ini",
-     "default": "auto",
+     "default": "smaa",
      "choices": [
       {
        "value": "auto",
@@ -758,7 +758,7 @@
      "key": "texture_quality",
      "type": "choice",
      "store": "ini",
-     "default": "auto",
+     "default": "full",
      "choices": [
       {
        "value": "auto",
@@ -908,7 +908,7 @@
      "key": "vbao",
      "type": "bool",
      "store": "ini",
-     "default": false,
+     "default": true,
      "title": {
       "en": "GT-VBAO occlusion",
       "pt_BR": "Oclusão ambiente GT-VBAO",
@@ -999,7 +999,7 @@
      "key": "effect_chromatic_aberration",
      "type": "bool",
      "store": "ini",
-     "default": true,
+     "default": false,
      "title": {
       "en": "Chromatic aberration",
       "pt_BR": "Aberração cromática",
@@ -1023,7 +1023,7 @@
      "key": "effect_dof",
      "type": "bool",
      "store": "ini",
-     "default": true,
+     "default": false,
      "title": {
       "en": "Depth of field (DoF)",
       "pt_BR": "Profundidade de campo (DoF)",
@@ -1047,7 +1047,7 @@
      "key": "effect_motion_blur",
      "type": "bool",
      "store": "ini",
-     "default": true,
+     "default": false,
      "title": {
       "en": "Motion blur",
       "pt_BR": "Desfoque de movimento",
@@ -1257,7 +1257,7 @@
      "key": "fps_mode",
      "type": "choice",
      "store": "settings",
-     "default": "uncap",
+     "default": "60",
      "choices": [
       {
        "value": "uncap",
@@ -1311,7 +1311,7 @@
      "key": "fps_limit",
      "type": "int",
      "store": "settings",
-     "default": 0,
+     "default": 60,
      "min": 0,
      "max": 480,
      "step": 1,

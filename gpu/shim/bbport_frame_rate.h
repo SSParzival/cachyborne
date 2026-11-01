@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
-// bbport: the game's frame rate set free by hooks in its code (BB_FPS=uncap, the default), not by
+// bbport: the game's frame rate set free by hooks in its code (BB_FPS=60 by default), not by
 // patches: its frame pacer no longer waits for a 30 FPS frame, its step gets the frame's real time,
 // and what it ties to a frame (a 30 FPS frame's time, a per-frame step, smoothing and damping) reads
 // values the hooks recompute from that time every frame (bbport_frame_rate.cpp).

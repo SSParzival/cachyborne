@@ -10,6 +10,19 @@ import env_vars
 
 
 class EnvVarsTests(unittest.TestCase):
+    def test_default_launch_uses_one_60fps_pacer_and_radv_filtering(self):
+        import copy
+        import cachyborne as core
+        import cachyborne_options as options
+        profile = dict(settings=options.reconcile(copy.deepcopy(core.DEFAULTS)),
+                       prepared='/prepared', user='/user', game='/game', probe='/probe', cache='/cache')
+        _, env = core.launch_command(profile, base_env={})
+        expected = dict(BB_FPS='60', BB_FPS_LIMIT='60', BB_FRAME_HOOKS='1',
+                        BB_VBLANK_HZ='1000', RADV_TEX_ANISO='16', BB_DMEM_MB='5056',
+                        BB_CPU_PINNING='1', BB_P_CPUS='0-11', BB_E_CPUS='12-19')
+        for key, value in expected.items():
+            self.assertEqual(env[key], value, key)
+
     def test_list_matches_the_code(self):
         out = io.StringIO()
         with contextlib.redirect_stdout(out):

@@ -23,7 +23,7 @@ from cachyborne_options import INI_DEFAULTS, RETIRED_ENV, validate_ini
 
 DEFAULTS = dict(fault_wait=False, voice_language='eng', memory_profile='16gb', pinning=True, p_cpus='0-11', e_cpus='12-19', ramdisk=False,
                 gamemode=False, radv=True, gamescope=False, hdr=False, vrr=False,
-                gamescope_fsr=False, width=2560, height=1440, fps='144', fps_limit=0,
+                gamescope_fsr=False, width=2560, height=1440, fps='60', fps_limit=60,
                 shader_recipes='', image_shapes='', readbacks='', output_auto=False, upscaler='fsr411', output_res='2560x1440', render_res='1706x960',
                 fullscreen=True, present_mode='mailbox', audio=True, gamepad='',
                 scheduler='current', fsr4_dir='', fsr411_dll='', fsr411_loader='', fsr412_driver='', dlss_fg_library='', dlss_library='', fsr411_dir=str(DATA / 'fsr4_412'), mods_dir='', mods_enabled=True, mods_config='',
@@ -106,7 +106,7 @@ def save_preferences(settings, as_default=False):
     return snapshot
 
 
-def performance_settings(current=None, target='144'):
+def performance_settings(current=None, target='60'):
     """A target, not a frame-rate guarantee; preserve bindings, mods and user directories."""
     import copy
     settings = copy.deepcopy(DEFAULTS if current is None else DEFAULTS | current)
@@ -117,10 +117,13 @@ def performance_settings(current=None, target='144'):
                     width=2560, height=1440, p_cpus='0-11', e_cpus='12-19',
                     voice_language='eng', present_mode='mailbox')
     settings['original_settings'] = dict(settings.get('original_settings', {})) | dict(language='20', ui_language='es')
+    for key in ('texture_quality', 'vbao', 'anti_aliasing', 'effect_ssao', 'effect_dynamic_shadows',
+                'effect_bloom', 'light_grid_opt', 'sharpen', 'sharpness', 'frame_generation'):
+        settings['runtime_ini'][key] = DEFAULTS['runtime_ini'][key]
     settings['runtime_ini'].update(menu_language='es', preset='1', effect_chromatic_aberration='0', effect_dof='0', effect_motion_blur='0', live_resolution='0')
     settings['runtime_ini'].update(upscaler=settings['upscaler'], output_res=settings['output_res'])
     # Clear conflicting old editor overrides when explicitly applying a recommended preset.
-    for key in ('BB_FPS', 'BB_FPS_LIMIT', 'BB_UPSCALER', 'BB_UPSCALE_PRESET', 'BB_RENDER_RES',
+    for key in ('BB_FPS', 'BB_FPS_LIMIT', 'BB_FRAME_HOOKS', 'BB_VBLANK_HZ', 'BB_UPSCALER', 'BB_UPSCALE_PRESET', 'BB_RENDER_RES',
                 'BB_OUTPUT_RES', 'BB_PC_MODEL', 'BB_GUEST_IN_PLACE', 'BB_AS_0_3', 'BB_VOICE_LANGUAGE',
                 'BB_LANGUAGE', 'BB_MENU_LANGUAGE', 'BB_PRESENT_MODE', 'BB_P_CPUS', 'BB_E_CPUS'):
         settings['runtime_env'].pop(key, None)
@@ -507,7 +510,8 @@ def launch_command(profile, app0=None, extra=(), base_env=None):
                   BB_RENDER_RES=s['render_res'], BB_OUTPUT_RES=s['output_res'],
                   BB_FULLSCREEN='1' if s['fullscreen'] else '0', BB_HDR='1' if s['hdr'] else '0', BB_PRESENT_MODE={'fiforelaxed': 'FifoRelaxed'}.get(s['present_mode'], s['present_mode'].capitalize()),
                   BB_FPS=s['fps'] if s['fps'] in ('30', '60', '90') else 'uncap', BB_FPS_LIMIT=str(s.get('fps_limit') or ('0' if s['fps'] == 'uncap' else s['fps'])),
-                  BB_VBLANK_HZ='60' if s['fps'] == '30' else '1000', BB_DMEM_MB=direct_mb,
+                  # Dynamic hooks pace simulation; asynchronous guest flips avoid a second 60/120 Hz clock.
+                  BB_FRAME_HOOKS='1', BB_VBLANK_HZ='60' if s['fps'] == '30' else '1000', BB_DMEM_MB=direct_mb,
                   BB_DMEM_EXTRA_MB='256', BB_RENDER_RESOURCE_CACHE_MB='256', BB_MEMORY_WILLNEED='0', BB_ASYNC_PIPELINE_THREADS='2',
                   BB_LAYER_MEMORY='1',
                   BB_ASYNC_SUBMIT='1', BB_VK_RECORD_THREADS='3',

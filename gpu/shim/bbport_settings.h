@@ -50,9 +50,9 @@ struct Effect {
     bool default_on;
 };
 inline constexpr Effect Effects[] = {
-    {"effect_chromatic_aberration", "Chromatic aberration", true},
-    {"effect_dof", "Depth of field (DoF)", true},
-    {"effect_motion_blur", "Motion blur", true},
+    {"effect_chromatic_aberration", "Chromatic aberration", false},
+    {"effect_dof", "Depth of field (DoF)", false},
+    {"effect_motion_blur", "Motion blur", false},
     {"effect_ssao", "Ambient occlusion (SSAO)", true},
     {"effect_game_aa", "Game's own anti-aliasing", true},
     {"effect_dynamic_shadows", "Shadows from dynamic lights", true},
@@ -135,9 +135,9 @@ struct Values {
     /// the menu merely started with keeps following the launcher's (#134).
     std::atomic<bool> menu_language_chosen{false};
     std::atomic<int> upscaler{UpscalerFsr3};
-    std::atomic<int> preset{NativeAA};
+    std::atomic<int> preset{Quality};
     std::atomic<bool> sharpen{true};
-    std::atomic<float> sharpness{0.3f};
+    std::atomic<float> sharpness{0.35f};
     std::atomic<bool> jitter{true};
     std::atomic<bool> reactive{false};
     std::atomic<bool> object_motion{true};
@@ -147,7 +147,7 @@ struct Values {
     std::atomic<int> debug_view{DebugNone};
     std::atomic<bool> show_fps{false};
     // GT-VBAO ambient occlusion in place of the game's SSAO (needs effect_ssao on)
-    std::atomic<bool> vbao{false};
+    std::atomic<bool> vbao{true};
     /// The right stick's camera turn (#208): [0] vertical (the pitch), [1] horizontal (the yaw), as
     /// multiples of the game's own speed (the same for both axes, in radians a second). The
     /// native look detour (games/bloodborne/hooks_camera.cpp) multiplies the turn by the four floats as
@@ -164,9 +164,9 @@ struct Values {
     std::atomic<int> model_lod{0}; ///< -2 highest .. 2 lowest, 0 the game's
     /// The game's light grid in large tiles (a quarter of the frame, one depth slice) instead of
     /// 128-pixel ones: less light culling (SrShadowy fork). Applied each frame.
-    std::atomic<bool> light_grid_opt{false};
-    std::atomic<int> anti_aliasing{AaAuto};
-    std::atomic<int> texture_quality{TqAuto};
+    std::atomic<bool> light_grid_opt{true};
+    std::atomic<int> anti_aliasing{AaSmaa};
+    std::atomic<int> texture_quality{TqFull};
     std::atomic<int> fsr4_model{Fsr4Auto};
     /// Which Fsr4Model the asset sets and the GPU allow (bit per model; the upscaler sets it).
     std::atomic<unsigned> fsr4_models_available{0};
@@ -230,7 +230,7 @@ struct Values {
     std::atomic<const char*> dlss_problem{nullptr};
 
     /// Startup settings for the explicit BB_RENDER_RES compatibility patch only.
-    int startup_preset = NativeAA;
+    int startup_preset = Quality;
     int startup_upscaler = UpscalerFsr3;
     bool startup_object_motion = true;
     bool startup_effects[EffectCount]{};

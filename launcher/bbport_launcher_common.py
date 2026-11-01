@@ -116,9 +116,9 @@ def parse_size(text, default=(1920, 1080)):
         return default
 # Game effects (patches applied at start): bbport.ini key, title, default.
 EFFECTS = [
-    ("effect_chromatic_aberration", 'Chromatic aberration', True),
-    ("effect_dof", 'Depth of field (DoF)', True),
-    ("effect_motion_blur", 'Motion blur', True),
+    ("effect_chromatic_aberration", 'Chromatic aberration', False),
+    ("effect_dof", 'Depth of field (DoF)', False),
+    ("effect_motion_blur", 'Motion blur', False),
     ("effect_ssao", 'SSAO', True),
     ("effect_dynamic_shadows", 'Dynamic light shadows', True),
     ("effect_ssr", 'SSR reflections (not in the original game)', False),
@@ -188,8 +188,8 @@ DEFAULTS = {
     # The GPU by its Vulkan name ("" = the port's choice: a discrete one first).
     "gpu": "",
     "skip_network_choice": True,
-    "fps_mode": "uncap",
-    "fps_limit": 0,
+    "fps_mode": "60",
+    "fps_limit": 60,
     "draw_pipe": "",
     "mangohud": False,
     "frame_stats": False,
@@ -224,12 +224,15 @@ DEFAULTS = {
 # bbport.ini keys the launcher edits; the rest of the file is kept.
 INI_DEFAULTS = {
     "upscaler": "fsr4",
-    "preset": "4",
+    "preset": "1",
     "sharpen": "1",
-    "sharpness": "0.50",
+    "sharpness": "0.35",
     "object_motion": "1",
     "show_fps": "1",
-    "vbao": "0",
+    "vbao": "1",
+    "anti_aliasing": "smaa",
+    "texture_quality": "full",
+    "light_grid_opt": "1",
     "output_res": "auto",
     "model_lod": "0",
     "frame_generation": "off",

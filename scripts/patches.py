@@ -471,7 +471,7 @@ def main():
     p.add_argument('--patches-dir',type=Path,help='third-party patch XML files (shadPS4 format)')
     p.add_argument('--patches-config',type=Path,help='patches.json: enabled/disabled external patches')
     p.add_argument('--xml',type=Path,default=Path(__file__).resolve().parent.parent/'patches/Bloodborne.xml')
-    p.add_argument('--fps',choices=sorted(FPS_PRESETS),default='uncap')
+    p.add_argument('--fps',choices=sorted(FPS_PRESETS),default='60')
     p.add_argument('--extra',default='',help='additional patch names, separated by ";"')
     p.add_argument('--app-version',default='01.09')
     p.add_argument('--out',type=Path,default=Path(__file__).resolve().parent.parent/'out')

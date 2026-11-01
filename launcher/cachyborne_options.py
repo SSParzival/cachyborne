@@ -52,8 +52,8 @@ LEGACY_DEFAULTS = dict(
     display="",
     gpu="",
     skip_network_choice=True,
-    fps_mode="uncap",
-    fps_limit=144,
+    fps_mode="60",
+    fps_limit=60,
     draw_pipe="",
     mangohud=False,
     frame_stats=False,
@@ -176,9 +176,9 @@ TEXT_LANGUAGES = [("auto", "Seguir idioma del sistema PS4")] + [(code, dict(LANG
 # key: default, page, Spanish title, choices or numeric bounds
 INI_OPTIONS = {
     "game_text_language": ("auto", "graphics", "Idioma de textos (cualquier región)", tuple(code for code, _ in TEXT_LANGUAGES)),
-    "vbao": ("0", "graphics", "Oclusión ambiental GT-VBAO (requiere SSAO)", ("0", "1")),
-    "anti_aliasing": ("auto", "graphics", "Antialiasing", ("auto", "game", "fxaa", "smaa", "off")),
-    "texture_quality": ("auto", "graphics", "Calidad de texturas en VRAM", ("auto", "full", "half", "quarter")),
+    "vbao": ("1", "graphics", "Oclusión ambiental GT-VBAO (requiere SSAO)", ("0", "1")),
+    "anti_aliasing": ("smaa", "graphics", "Antialiasing", ("auto", "game", "fxaa", "smaa", "off")),
+    "texture_quality": ("full", "graphics", "Calidad de texturas en VRAM", ("auto", "full", "half", "quarter")),
     "frame_generation": ("off", "graphics", "Generación de cuadros", ("off", "fsr3", "dlss")),
     "frame_generation_multiplier": ("2", "graphics", "Multiplicador DLSS (según GPU)", ("2", "3", "4")),
     "low_latency": ("on", "performance", "Baja latencia (Reflex / AMD Anti-Lag 2)", ("off", "on", "boost")),
@@ -189,10 +189,10 @@ INI_OPTIONS = {
 }
 INI_CANONICAL_FIELDS = {"upscaler": "upscaler", "output_res": "output_res", "game_voice_language": "voice_language"}
 INI_DEFAULTS = {key: spec[0] for key, spec in INI_OPTIONS.items()} | {
-    "upscaler": "fsr411", "preset": "4", "sharpen": "1", "sharpness": "0.50", "object_motion": "1",
+    "upscaler": "fsr411", "preset": "1", "sharpen": "1", "sharpness": "0.35", "object_motion": "1",
     "show_fps": "1", "output_res": "auto", "model_lod": "0", "mouse_look": "1", "mouse_sensitivity": "1.00",
     "mouse_invert_y": "0", "mouse_invert_x": "0", "button_prompts": "auto", "game_voice_language": "auto",
-    **{"effect_" + key: value for key, value in (("chromatic_aberration", "1"), ("dof", "1"), ("motion_blur", "1"), ("ssao", "1"), ("dynamic_shadows", "1"), ("ssr", "0"), ("bloom", "1"))},
+    **{"effect_" + key: value for key, value in (("chromatic_aberration", "0"), ("dof", "0"), ("motion_blur", "0"), ("ssao", "1"), ("dynamic_shadows", "1"), ("ssr", "0"), ("bloom", "1"))},
     "skip_intro": "0", "debug_camera": "0", "debug_menu": "0",
 }
 
