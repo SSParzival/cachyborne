@@ -17,6 +17,7 @@ from gi.repository import Adw, Gio, GLib, Gtk, Gdk
 
 import cachyborne as core
 import cachyborne_options as options
+from bbport_i18n import set_language
 from cachyborne_panels import NativePanels
 
 
@@ -62,6 +63,7 @@ def action(text, callback, primary=False, icon=None):
 
 class Preferences(NativePanels, Adw.ApplicationWindow):
     def __init__(self, app):
+        set_language('es')
         super().__init__(application=app, title='Cachyborne · Bisexual Midnight', default_width=1130, default_height=850)
         self.set_icon_name('cachyborne')
         self.add_css_class('cachyborne')

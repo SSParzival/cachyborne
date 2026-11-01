@@ -285,8 +285,33 @@ def problem(game, image_hash=None):
     return 'wrong_eboot', title, version
 
 
-def explain(kind, title, version):
-    """What is wrong and what to do, for the log (English)."""
+def explain(kind, title, version, language='en'):
+    """What is wrong and what to do, for CLI logs and the native launcher."""
+    if language == 'es':
+        found = f'Se encontró {title}, versión {version} (sce_sys/param.sfo). '
+        return found + {
+            'missing_update': 'Se necesita la actualización 1.09 integrada en la carpeta del juego: '
+                              'copia todo el contenido de la actualización volcada (por ejemplo, '
+                              'CUSA03173-patch), sustituyendo los archivos, incluidos eboot.bin y sce_sys.',
+            'wrong_eboot': 'param.sfo corresponde a 1.09, pero eboot.bin no: copia eboot.bin de la '
+                           'actualización 1.09 volcada y sustituye el archivo anterior.',
+            'patched_eboot': 'Este eboot.bin incluye el parche de 60 FPS de Lance McDonald, que '
+                             'provoca un fallo al abrir el menú de gestos. El port ya tiene sus '
+                             'propios ajustes de FPS: sustituye eboot.bin por una copia limpia '
+                             'de la actualización 1.09 volcada.',
+            'other_title': 'Esta no es una edición comercial de Bloodborne. Se necesita Bloodborne '
+                            'de cualquier región, incluidas las ediciones The Old Hunters, con '
+                            'la actualización 1.09.',
+            'unreadable': 'No se pudo leer eboot.bin como ejecutable de PS4 descifrado: vuelve '
+                          'a volcar el juego y la actualización 1.09.',
+            'damaged_files': f'Los archivos del juego están dañados: los shaders de {CHECKED_FOLDER} '
+                              'no se descomprimen y el juego se bloquearía al cargarlos. Algunas '
+                              'herramientas de extracción dejan sectores comprimidos con datos '
+                              'incorrectos (LibOrbisPkg PkgTool con .NET 6 o posterior, incidencia '
+                              'n.º 81). Extrae de nuevo el juego y la actualización 1.09 con una '
+                              'herramienta corregida. scripts/game_check.py GAME_DIR comprueba '
+                              'todos los archivos.',
+        }[kind]
     found = f'Found {title} version {version} (sce_sys/param.sfo).'
     return {
         'missing_update': f'{found} bbport needs the 1.09 update merged into the game folder: copy '

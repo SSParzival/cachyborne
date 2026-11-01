@@ -13,6 +13,7 @@ import sys
 import tempfile
 import time
 import uuid
+from bbport_i18n import language, tr
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'cachyborne'
@@ -42,7 +43,7 @@ def read_json(path, fallback=None):
     except FileNotFoundError:
         if fallback is not None:
             return fallback
-        raise RuntimeError('Run cachyborne-setup first: no prepared game profile.')
+        raise RuntimeError(tr('Run cachyborne-setup first: no prepared game profile.'))
 
 
 def atomic_json(path, value):
@@ -135,39 +136,39 @@ def validate_settings(s):
     validate_ini(s.get('runtime_ini', {}))
     for key in ('p_cpus', 'e_cpus'):
         if not re.fullmatch(r'\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*', s[key]):
-            raise ValueError(f'Invalid CPU list: {key}')
+            raise ValueError(tr('Invalid CPU list: {}').format(key))
         for span in s[key].split(','):
             bounds = list(map(int, span.split('-')))
             if not (0 <= bounds[0] <= bounds[-1] < 1024):
-                raise ValueError(f'Invalid CPU range: {key}={span}')
+                raise ValueError(tr('Invalid CPU range: {}={}').format(key, span))
     from cachyborne_options import VOICE_LANGUAGES
     if s.get('voice_language', 'eng') not in dict(VOICE_LANGUAGES):
         raise ValueError('Idioma de voces no compatible')
     if s['memory_profile'] != '16gb':
-        raise ValueError('Unsupported memory profile; expected 16gb')
+        raise ValueError(tr('Unsupported memory profile; expected 16gb'))
     if s['fps'] not in ('30', '60', '90', '120', '144', '165', 'uncap'):
-        raise ValueError('Unsupported FPS')
+        raise ValueError(tr('Unsupported FPS'))
     if not 0 <= int(s.get('fps_limit', 0)) <= 1000:
-        raise ValueError('Invalid custom FPS limit')
+        raise ValueError(tr('Invalid custom FPS limit'))
     for key, value in s.get('runtime_env', {}).items():
         if not re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]*', key) or not isinstance(value, str) or '\0' in value:
-            raise ValueError(f'Invalid runtime environment variable: {key}')
+            raise ValueError(tr('Invalid runtime environment variable: {}').format(key))
     for key, value in s.get('runtime_ini', {}).items():
         if not re.fullmatch(r'[A-Za-z_][A-Za-z_0-9.]*', key) or any(c in str(value) for c in '\r\n\0'):
-            raise ValueError(f'Invalid game setting: {key}')
+            raise ValueError(tr('Invalid game setting: {}').format(key))
     if s['upscaler'] not in ('off', 'fsr3', 'fsr4', 'fsr411', 'dlss', 'taa', 'fsr1'):
-        raise ValueError('Unsupported upscaler')
+        raise ValueError(tr('Unsupported upscaler'))
     for key in ('output_res', 'render_res'):
         match = re.fullmatch(r'(\d+)x(\d+)', s[key])
         if not match or not (320 <= int(match[1]) <= 16384 and 200 <= int(match[2]) <= 16384):
-            raise ValueError(f'Invalid resolution: {key}')
+            raise ValueError(tr('Invalid resolution: {}').format(key))
     if s['present_mode'] not in ('fifo', 'fiforelaxed', 'mailbox', 'immediate'):
-        raise ValueError('Unsupported presentation mode')
+        raise ValueError(tr('Unsupported presentation mode'))
     if s['scheduler'] not in ('current', 'scx_lavd', 'scx_bpfland'):
-        raise ValueError('Unsupported scheduler')
+        raise ValueError(tr('Unsupported scheduler'))
     for key in ('width', 'height'):
         if not 200 <= int(s[key]) <= 16384:
-            raise ValueError(f'Invalid Gamescope {key}')
+            raise ValueError(tr('Invalid Gamescope {}').format(key))
 
 
 def prepare_online_settings(settings, user):
@@ -176,12 +177,12 @@ def prepare_online_settings(settings, user):
         return
     module = ROOT / 'out/gpu/libbbnet20.so'
     if not module.is_file():
-        raise RuntimeError('The online module must be built before enabling online play.')
+        raise RuntimeError(tr('The online module must be built before enabling online play.'))
     sys.path.insert(0, str(ROOT / 'scripts'))
     import online
     if env.get('BB_NET_BACKEND') == 'thd':
         if not env.get('BB_THD_TOKEN') or not env.get('BB_THD_ONLINE_ID'):
-            raise RuntimeError("Sign in to The Hunter's Dream in Online y cuentas first.")
+            raise RuntimeError(tr("Sign in to The Hunter's Dream in Online y cuentas first."))
         path, base = online.write_thd_overrides(user, env.get('BB_COMMUNITY_SERVER'))
         env.update(BB_THD_SERVER=f'{base}:18671', BB_THD_AUTH=base)
     else:
@@ -304,7 +305,7 @@ def setup(game, settings=None):
             s['render_res'] = f'{size[0]}x{size[1]}'
     setup_env = os.environ | s.get('runtime_env', {})
     if setup_env.get('BB_SKIP_GAME_CHECK') == '1':
-        raise RuntimeError('Setup requires validation; unset BB_SKIP_GAME_CHECK.')
+        raise RuntimeError(tr('Setup requires validation; unset BB_SKIP_GAME_CHECK.'))
     if s['upscaler'] == 'fsr4':
         from cachyborne_options import fsr4_problem
         assets = Path(s.get('fsr4_dir') or s.get('runtime_env', {}).get('BB_FSR4_DIR') or ROOT / 'fsr4_shaders').expanduser().resolve()
@@ -329,7 +330,7 @@ def setup(game, settings=None):
             s.setdefault('runtime_env', {})['BB_FSR411_DIR'] = str(assets)
     game = Path(game).expanduser().resolve(strict=True)
     if not (ROOT / 'out/bb-probe').is_file():
-        raise RuntimeError('Build first: bash build.sh')
+        raise RuntimeError(tr('Build first: bash build.sh'))
     sys.path.insert(0, str(ROOT / 'scripts'))
     import game_check
     import mods
@@ -343,7 +344,7 @@ def setup(game, settings=None):
     image_hash = game_check.image_sha256(game)
     problem = game_check.problem(game, image_hash)
     if problem:
-        raise RuntimeError(game_check.explain(*problem))
+        raise RuntimeError(game_check.explain(*problem, language=language()))
     subprocess.run([sys.executable, str(ROOT / 'scripts/game_check.py'), str(game)], check=True, env=setup_env)
     live = str(s.get('runtime_ini', {}).get('live_resolution', '0'))
     if live == 'auto':
@@ -358,7 +359,7 @@ def setup(game, settings=None):
         from bbport_assets import fsr411_problem
         issue = fsr411_problem(assets, s['output_res'], int(s.get('runtime_ini', {}).get('preset', '1')))
         if issue:
-            raise RuntimeError(f'FSR 4.1.1: {issue}. Use tools/fsr4cap/build_assets.sh.')
+            raise RuntimeError(tr('FSR 4.1.1: {}. Use tools/fsr4cap/build_assets.sh.').format(issue))
         s['fsr411_dir'] = str(assets)
     DATA.mkdir(parents=True, exist_ok=True, mode=0o700)
     generations = DATA / 'prepared'
@@ -373,7 +374,7 @@ def setup(game, settings=None):
             # Persist this generation's symlink view. Sources must remain in place until next setup.
             problem = game_check.problem(game)
             if problem:
-                raise RuntimeError(game_check.explain(*problem))
+                raise RuntimeError(game_check.explain(*problem, language=language()))
         user_for_backup = Path(s['user_dir']).expanduser() if s['user_dir'] else DATA / 'user'
         # The mod-set marker follows the published generation. A failed setup cannot
         # advance it and suppress a future backup while the previous profile is active.
@@ -412,7 +413,7 @@ def setup(game, settings=None):
                         '--render-res', '' if str(ini_values['live_resolution']) == '1' else s['render_res'], '--output-res', s['output_res'], *patch_args], cwd=ROOT, check=True, env=setup_env)
         for name in ARTIFACTS:
             if not (out / name).is_file() or not (out / name).stat().st_size:
-                raise RuntimeError(f'Setup did not create {name}')
+                raise RuntimeError(tr('Setup did not create {}').format(name))
         user = Path(s.get('user_dir') or DATA / 'user').expanduser().resolve()
         user.mkdir(parents=True, exist_ok=True)
         CACHE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -434,14 +435,14 @@ def setup(game, settings=None):
 def load_profile(path=None):
     profile = read_json(path or CONFIG / 'game_profile.json')
     if profile.get('version') != 1:
-        raise RuntimeError('Unsupported profile version; run setup again.')
+        raise RuntimeError(tr('Unsupported profile version; run setup again.'))
     if not (Path(profile['game']) / 'eboot.bin').is_file():
-        raise RuntimeError('Game directory unavailable; run setup if it has moved.')
+        raise RuntimeError(tr('Game directory unavailable; run setup if it has moved.'))
     if not os.access(profile['probe'], os.X_OK):
-        raise RuntimeError('bb-probe unavailable; build and run setup again.')
+        raise RuntimeError(tr('bb-probe unavailable; build and run setup again.'))
     for name in ARTIFACTS:
         if not (Path(profile['prepared']) / name).is_file():
-            raise RuntimeError(f'Missing {name}; run setup again.')
+            raise RuntimeError(tr('Missing {}; run setup again.').format(name))
     return profile
 
 
@@ -453,7 +454,7 @@ def private_dir(path):
         pass
     info = path.lstat()
     if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
-        raise RuntimeError(f'Unsafe staging directory: {path}')
+        raise RuntimeError(tr('Unsafe staging directory: {}').format(path))
 
 
 def available_memory():
@@ -467,17 +468,17 @@ def stage(profile):
     base = RAM_ROOT
     private_dir(base)
     if not all(c in '0123456789abcdef' for c in profile['generation']) or len(profile['generation']) != 32:
-        raise RuntimeError('Invalid staging generation')
+        raise RuntimeError(tr('Invalid staging generation'))
     target = base / profile['generation']
     private_dir(target)
     if not any(line.split()[1:3] == ['/dev/shm', 'tmpfs'] for line in Path('/proc/mounts').read_text().splitlines()):
-        raise RuntimeError('/dev/shm must be mounted as tmpfs.')
+        raise RuntimeError(tr('/dev/shm must be mounted as tmpfs.'))
     lock_fd = os.open(base / 'stage.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
     with os.fdopen(lock_fd, 'w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         marker = target / '.cachyborne-complete'
         if marker.is_symlink():
-            raise RuntimeError('Unsafe staging marker')
+            raise RuntimeError(tr('Unsafe staging marker'))
         if marker.is_file() and marker.read_text() == profile['game']:
             return target
         game = Path(profile['game'])
@@ -487,7 +488,7 @@ def stage(profile):
         available = available_memory()
         # Conservatively budget the entire copy even when a previous copy was interrupted.
         if shutil.disk_usage(base).free < size + 1024**3 or available < size + reserve:
-            raise RuntimeError(f'Insufficient tmpfs/RAM space for {size / 1024**3:.1f} GiB; keep 8 GiB free.')
+            raise RuntimeError(tr('Insufficient tmpfs/RAM space for {:.1f} GiB; keep 8 GiB free.').format(size / 1024**3))
         print(f'Precargando {size / 1024**3:.1f} GiB en {target}…', flush=True)
         subprocess.run(['rsync', '-rltL', '--delete', '--info=progress2', '--', str(game) + '/', str(target) + '/'], check=True)
         marker.write_text(profile['game'])
@@ -626,12 +627,12 @@ def check_runtime_requirements(profile):
     check_memory_budget(s)
     for key, tool in (('gamemode', 'gamemoderun'), ('gamescope', 'gamescope')):
         if s[key] and not shutil.which(tool):
-            raise RuntimeError(f'Missing optional wrapper: {tool}')
+            raise RuntimeError(tr('Missing optional wrapper: {}').format(tool))
     scheduler = s['scheduler']
     if scheduler != 'current':
         active = Path('/sys/kernel/sched_ext/root/ops')
         if not active.exists() or scheduler.removeprefix('scx_') not in active.read_text():
-            raise RuntimeError(f'Enable {scheduler} through CachyOS scx-manager first, or select current scheduler.')
+            raise RuntimeError(tr('Enable {} through CachyOS scx-manager first, or select current scheduler.').format(scheduler))
 
 
 def icon_path(configuration=False):
@@ -667,7 +668,7 @@ def download_desktop_icon():
         data = response.read(5 * 1024**2 + 1)
     # Sony's CDN may serve JPEG even when the source URL ends in .png.
     if len(data) > 5 * 1024**2 or not (data.startswith(b'\x89PNG\r\n\x1a\n') or data.startswith(b'\xff\xd8\xff')):
-        raise ValueError('Invalid downloaded icon: expected a PNG or JPEG up to 5 MiB.')
+        raise ValueError(tr('Invalid downloaded icon: expected a PNG or JPEG up to 5 MiB.'))
     import gi
     gi.require_version('GdkPixbuf', '2.0')
     from gi.repository import GdkPixbuf, GLib
@@ -677,7 +678,7 @@ def download_desktop_icon():
         loader.close()
         pixbuf = loader.get_pixbuf()
         if pixbuf is None:
-            raise ValueError('Downloaded icon has no image data.')
+            raise ValueError(tr('Downloaded icon has no image data.'))
         # Contain the source instead of asking the CDN to stretch its dimensions.
         ratio = min(512 / pixbuf.get_width(), 512 / pixbuf.get_height())
         width, height = max(1, round(pixbuf.get_width() * ratio)), max(1, round(pixbuf.get_height() * ratio))
@@ -687,9 +688,9 @@ def download_desktop_icon():
         scaled.copy_area(0, 0, width, height, square, (512 - width) // 2, (512 - height) // 2)
         success, data = square.save_to_bufferv('png', [], [])
         if not success:
-            raise ValueError('Could not encode the desktop icon.')
+            raise ValueError(tr('Could not encode the desktop icon.'))
     except GLib.Error as error:
-        raise ValueError(f'Invalid downloaded image: {error}') from error
+        raise ValueError(tr('Invalid downloaded image: {}').format(error)) from error
     path = icon_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(dir=path.parent, prefix='.cachyborne-icon-')
@@ -719,7 +720,7 @@ def desktop(on_desktop=False, configuration=False):
         if shutil.which('xdg-user-dir'):
             location = subprocess.check_output(['xdg-user-dir', 'DESKTOP'], text=True).strip()
             if not location or not Path(location).is_absolute():
-                raise ValueError('Invalid XDG desktop directory')
+                raise ValueError(tr('Invalid XDG desktop directory'))
             directory = Path(location)
         else:
             directory = Path.home() / 'Desktop'

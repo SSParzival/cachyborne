@@ -6833,6 +6833,10 @@ ES = {'As launched': 'Como al iniciar',
  '— not on this GPU': '— no disponible en esta GPU',
  '— on with DLSS frame generation': '— activada con generación DLSS'}
 
+# Keep the current Bloodborne messages alongside the historical shared catalog.
+from bbport_i18n_es import BLOODBORNE_ES
+ES.update(BLOODBORNE_ES)
+
 SUPPORTED = ("es", "en", "pt_BR", "zh_CN", "fr_FR")
 
 def system_language():
