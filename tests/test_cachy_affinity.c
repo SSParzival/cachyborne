@@ -31,6 +31,13 @@ int main(void) {
     assert(sched_getaffinity(0, sizeof(actual), &actual) == 0 && CPU_ISSET(last, &actual));
     cachy_pin_thread(pthread_self(), "bb:FsrBuild");
     assert(sched_getaffinity(0, sizeof(actual), &actual) == 0 && CPU_ISSET(last, &actual));
+    cachy_pin_thread(pthread_self(), "FMOD mixer");
+    assert(sched_getaffinity(0, sizeof(actual), &actual) == 0 && CPU_ISSET(first, &actual));
+    cachy_pin_thread(pthread_self(), "FMOD Decompress");
+    assert(sched_getaffinity(0, sizeof(actual), &actual) == 0 && CPU_ISSET(first, &actual));
+    cachy_pin_thread(pthread_self(), "SDLAudioP1");
+    assert(sched_getaffinity(0, sizeof(actual), &actual) == 0 && CPU_ISSET(first, &actual));
+    cachy_pin_thread(pthread_self(), "bb:FsrBuild");
     setenv("BB_CPU_PINNING", "0", 1);
     cachy_pin_thread(pthread_self(), "main");
     assert(sched_getaffinity(0, sizeof(actual), &actual) == 0 && CPU_ISSET(last, &actual));

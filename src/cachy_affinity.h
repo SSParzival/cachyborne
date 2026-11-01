@@ -36,7 +36,8 @@ static inline void cachy_pin_thread(pthread_t thread, const char *name) {
     const char *enabled = getenv("BB_CPU_PINNING");
     if (!enabled || strcmp(enabled, "1") || !cachy_allowed_valid) return;
     /* Explicit known worker roles; unknown guest threads stay on the P cores. */
-    int background = name && (strstr(name, "ShaderCompile") || strstr(name, "ShaderImport") || strstr(name, "ShaderRebuild") || strstr(name, "PipeCacheIO") ||
+    int audio = name && (strcasestr(name, "audio") || strcasestr(name, "fmod"));
+    int background = !audio && name && (strstr(name, "ShaderCompile") || strstr(name, "ShaderImport") || strstr(name, "ShaderRebuild") || strstr(name, "PipeCacheIO") ||
         strstr(name, "AssetWorker") || strstr(name, "Decompress") || strstr(name, "FsrBuild"));
     const char *cpus = getenv(background ? "BB_E_CPUS" : "BB_P_CPUS");
     cpu_set_t requested, selected;

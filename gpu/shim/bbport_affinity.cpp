@@ -90,8 +90,8 @@ void Keep(std::vector<int> stage_cpus, cpu_set_t rest) {
 
 void Start() {
     // Cachyborne's explicit P/E policy owns placement; the upstream monitor must
-    // not reset those masks once per second. BB_CORE_RESERVE remains an opt-in override.
-    if (bb_env_on("BB_CPU_PINNING") && !bb_env("BB_CORE_RESERVE")) return;
+    // not reset those masks once per second, including audio onto E cores.
+    if (bb_env_on("BB_CPU_PINNING")) return;
 #ifndef _WIN32
     const char* env = bb_env("BB_CORE_RESERVE");
     if (env && env[0] == '0') {
