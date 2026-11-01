@@ -1,192 +1,118 @@
-# Cachyborne 0.7.4 — Bisexual Midnight para CachyOS
+# Cachyborne 0.8.2 — Midnight para CachyOS
 
-[English](README.md) · **Español**
+**Español** · [English](README.md)
 
-Cachyborne ejecuta Bloodborne de forma nativa en Linux x86-64. Se basa en
-[bbport](https://github.com/deadinside28/bloodborne_pc): el código x86-64 original
-se ejecuta directamente en la CPU; un runtime C sustituye los servicios del
-sistema PS4 y el renderizador C++ traduce sus comandos y shaders a Vulkan.
-El centro de control utiliza Python, GTK4 y Libadwaita.
+Bloodborne nativo en Linux x86-64, basado en bbport estable 0.7. El código del
+juego se ejecuta en la CPU; el runtime C implementa servicios de PS4 y el renderer
+C++ traduce comandos y shaders a Vulkan. Midnight es la interfaz GTK4/Libadwaita.
+Necesitas tu dump descifrado de Bloodborne **1.09**, con la actualización y el DLC
+combinados. No se distribuyen el juego, partidas ni binarios propietarios de AMD.
 
-Necesitas tu propio dump descifrado, con la actualización **1.09** combinada con
-el juego base. El perfil objetivo es CUSA03173, Bloodborne + The Old Hunters.
-El proyecto no distribuye el juego, partidas ni assets propietarios de FSR.
+Esta versión revisa los ports comunitarios y añade protección de memoria también
+en copias/clears GPU, tablas SRT nulas sin señales por draw, motion vectors finitos,
+assets de **AMD FSR 4.1.2** y dos iconos propios con los colores de Sweet Purple.
+Los menús del port funcionan en español e inglés; las voces son independientes.
 
-## Equipo objetivo y alcance
+[Notas de versión](docs/RELEASE_0.8.2.md) ·
+[Validación y límites](docs/VALIDATION_0.8.2.md) ·
+[Auditoría de forks](docs/COMMUNITY_AUDIT_0.8.2.md)
 
-| Componente | Perfil precalibrado |
+## Perfil de este PC
+
+| Componente | Configuración |
 | --- | --- |
-| Sistema | CachyOS, kernel 6.18 LTS, KDE Plasma 6 sobre Wayland |
-| CPU | Intel Core i5-14600KF, 6 P-cores con HT y 8 E-cores |
-| GPU | Radeon RX 9070 XT, RDNA 4 / GFX1201, 16 GB VRAM |
-| Controlador | Mesa RADV; validación local con Mesa 26.2.5 |
-| RAM | 16 GB DDR4; juego y cachés persistentes en disco |
-| Imagen | Salida 2560×1440, escena 1706×960, FSR Quality |
-| Objetivo | Límite de 144 FPS; el rendimiento depende de la escena |
+| GPU | Radeon RX 9070 XT, RDNA4/GFX1201, Mesa RADV |
+| CPU | i5-14600KF; P-Cores 0–11, E-Cores 12–19, verificados en este equipo |
+| RAM | 16 GB; assets/cachés en disco, sin precarga completa en tmpfs |
+| Imagen | FSR 4.1 Quality; escena 1706×960, salida 2560×1440 |
+| Modelo | Automático por capacidades Vulkan; FP8 nativo en este equipo |
+| Presentación | Mailbox, objetivo 144 FPS, generación de cuadros desactivada |
+| Compilación | Clang, instrucciones nativas, ThinLTO y mold |
 
-El objetivo de 144 FPS no garantiza esa tasa durante toda la partida. Consulta
-[las mediciones de esta versión](docs/VALIDATION_0.7.4.md). La compilación utiliza
-instrucciones nativas de la CPU anfitriona; recompila al cambiar de equipo.
+144 FPS es un límite objetivo, no una garantía por escena. La numeración de CPU
+no es universal: revisa las máscaras al cambiar de máquina. Los hilos principales,
+físicas, audio y render usan P-Cores; compilación/descompresión nombradas usan
+E-Cores, respetando el cpuset permitido.
 
-## Instalación y primera ejecución
+## Instalar y preparar
 
-```bash
+```sh
 git submodule update --init --recursive
 ./cachyborne-install.sh
-cachyborne-setup "$PWD/CUSA03173" --performance-profile 144
+cachyborne-setup /ruta/al/app0 --performance-profile 144
 cachyborne-launch --dry-run
 cachyborne-launch
 ```
 
-El instalador instala dependencias mediante pacman, compila con Clang, mold,
-optimización nativa y ThinLTO, y registra comandos en `~/.local/bin`. Conserva el
-checkout y `out/`. Con dependencias ya instaladas puedes usar
-`./cachyborne-install.sh --user`; `--skip-build` registra una compilación existente.
-Sin comandos instalados, usa `./cachyborne-setup.sh` y `./cachyborne-launch.sh`.
+El instalador usa pacman con sudo para dependencias, compila y registra comandos,
+menú y accesos directos. Con dependencias ya instaladas usa `--user`; con una
+compilación lista, `--user --skip-build`. Conserva este checkout y `out/`: los
+comandos de `~/.local/bin` apuntan aquí. Sin instalación puedes usar los scripts
+`cachyborne-setup.sh`, `cachyborne-launch.sh` y `cachyborne-gui`.
 
-La preparación verifica identidad del ejecutable y archivos DCX, enlaza módulos,
-compila parches y publica una generación de configuración solamente al terminar.
-Si falla, conserva el perfil anterior. Repite setup después de modificar ajustes,
-dump, mods o parches. El lanzamiento habitual ejecuta el plan Bash preparado sin
-recompilar ni volver a escanear todos los assets.
+La preparación valida identidad del ejecutable y archivos DCX, enlaza módulos y
+parches, aplica mods en una vista separada y publica una generación solamente al
+terminar. Un fallo conserva la generación anterior. Preparar no modifica el dump.
+El lanzamiento normal consume el perfil preparado, sin reinstalar ni recompilar.
+Repite la preparación después de cambiar ajustes, mods, parches o contenido.
 
-## Textos en español y voces en inglés
+## FSR 4.1.2 en Linux
 
-Son selecciones independientes en **Imagen y sonido → Textos y voces**:
-
-- **Idioma de interfaz y textos**: Español Latinoamericano (`BB_LANGUAGE=20`,
-  archivos `dvdroot_ps4/msg/spaar`). Si falta, setup intenta Español España
-  (`3`, `spaes`), después inglés (`1`). El selector muestra archivos completos.
-- **Idioma de voces**: inglés por defecto (`BB_VOICE_LANGUAGE=eng`). También
-  admite `esa`, `ese`, `jaj`, `ded`, `frf`, `iti` y `ptb`.
-- La interfaz Midnight y los menús propios del port (incluido System y el panel de gráficos) usan español por defecto
-  (`BB_MENU_LANGUAGE=es`).
-
-El runtime redirige los bancos `dvdroot_ps4/sound/*_<idioma>.fsb` a su equivalente
-del idioma de voces si existe y no está vacío. Conserva la ruta original si no
-hay alternativa. Los mensajes, layouts y fuentes se resuelven aparte según `BB_LANGUAGE`, incluso
-si el ejecutable europeo pide una ruta inglesa. No se modifica el dump. En las
-cinemáticas elige el stream de audio correspondiente, tanto en inicio automático
-como cuando el juego selecciona streams explícitamente; conserva la selección
-original si la pista solicitada no está disponible. La apertura de CUSA03173
-carece de etiquetas de idioma: se reconoce su estructura y tamaño para asignar
-las pistas; la segunda pista de audio es la inglesa. La variante regional del
-español depende también de los metadatos presentes en el MP4.
-
-```bash
-cachyborne-setup "$PWD/CUSA03173" --voice-language eng
-BB_AUDIO_TRACE=1 cachyborne-launch
+```sh
+# Extracción opcional: requiere herramientas MinGW/SPIR-V y un Proton utilizable.
+bash tools/fetch_fsr412_assets.sh
+cachyborne-setup /ruta/al/app0 --performance-profile 144
 ```
 
-`BB_AUDIO_TRACE=1` registra cada redirección. Cambiar el idioma en la GUI exige
-preparar de nuevo para actualizar el plan persistente.
+El helper descarga la DLL oficial **4.1.2.4555 del SDK 2.4.0**, verifica SHA-256 y
+genera shaders/modelos locales en `~/.local/share/cachyborne/fsr4_412` (o XDG).
+La DLL se usa durante la extracción; el juego ejecuta el modelo directamente en
+Vulkan. La clave interna `fsr411` se conserva por compatibilidad. Si faltan assets
+válidos, se informa y se prepara FSR3 como alternativa.
 
-## Perfil de rendimiento y escalado
+La comparación sintética a 1440p coincide byte a byte con la DLL en la prueba de
+tres frames. Se detectaron diferencias en dos combinaciones 4K/ultrawide: esos
+modos siguen siendo experimentales. No se afirma equivalencia universal ni una
+ganancia de FPS por actualizar el SDK. [Detalles y otros escaladores](docs/upscaler.md).
 
-El botón **Perfil recomendado para este PC (1440p · 144 FPS)** selecciona FSR 4
-Quality, escena 1706×960, salida 2560×1440, límite 144, presentación Mailbox,
-voces inglesas y textos españoles. Apaga motion blur, aberración cromática y
-profundidad de campo. Conserva controles, rutas, HDR y selección de contenido.
+## Ajustes, idiomas y contenido
 
-```bash
-bash tools/fetch_fsr4_assets.sh
-```
+Abre `cachyborne-gui`, guarda y prepara antes de jugar. Midnight reúne gráficos,
+rendimiento, controles y bindings, mods/parches, multijugador, trofeos y diagnóstico.
+Los iconos distinguen juego y configuración y se instalan sin descargar artwork.
 
-Los assets propietarios FSR 4 son opcionales. La GUI comprueba los archivos
-básicos del dump, los idiomas y los shaders seleccionados antes de preparar;
-setup realiza después la validación completa. Si faltan o están dañados los
-assets FSR 4, informa del problema y prepara **FSR 3.1** automáticamente.
-FSR 4.1.1 y DLSS mantienen sus requisitos propios; consulta
-[la guía de escaladores](docs/upscaler.md).
+El perfil recomendado usa textos españoles y voces inglesas. La selección de
+voces redirige bancos existentes y audio de cinemáticas cuando hay una pista
+compatible; conserva el original si no existe alternativa. El menú propio del
+port tiene su selección español/inglés. No cambia los archivos del dump.
 
-Para salida 4K elige 3840×2160 y mantén la escena dentro de 1920×1080. El preset
-Performance corresponde a esa proporción 2×; Balanced no equivale a 1080p en 4K.
-La resolución interna también puede editarse manualmente. Comprueba el tamaño
-resultante y el presupuesto antes de preparar. No se ha certificado aquí un
-recorrido completo a 4K/144 FPS.
+La selección de mods, parches, guardados y servidores se conserva al aplicar el
+perfil recomendado. Los cambios de mods pueden generar una copia de guardados.
+No confundas el co-op BBSC existente con el protocolo room de Lantern: no son
+intercambiables. Los controles experimentales solo aparecen cuando tienen backend.
 
-El plan solicita RADV, `RADV_PERFTEST=sam`, anisotropía 16×, caché Mesa de 4G en
-`~/.cache/cachyborne/mesa`, desactivación de capas implícitas, envío asíncrono y
-3 hilos de grabación Vulkan. La memoria compartida utiliza `BB_GUEST_IN_PLACE=1`
-y `BB_LAYER_MEMORY=1`, sujeto a las capacidades detectadas. ReBAR depende de
-firmware y controlador; una variable de entorno no lo activa en el hardware.
-RADV gestiona su compilador ACO. No hace falta instalar AMDVLK para este perfil.
+[Configuración](docs/CONFIGURATION.md) · [CachyOS y memoria](docs/CACHYOS.md) ·
+[Mods](docs/MODS.md) · [Multijugador](docs/BBSC.md) ·
+[Variables avanzadas](docs/ENVIRONMENT.md)
 
-La afinidad se solicita con `BB_CPU_PINNING=1`, `BB_P_CPUS=0-11` y
-`BB_E_CPUS=12-19`. Los hilos de juego, audio y envío permanecen en P-cores;
-ShaderCompile, PipeCacheIO, AssetWorker y Decompress usan E-cores. Se respeta la
-máscara de CPU permitida por el sistema. Comprueba `lscpu -e` si cambias de equipo.
-Los workers internos del controlador no reciben esta política por nombre.
+## Actualizar y comprobar
 
-GameMode es opcional (`--gamemode`) y necesita `gamemoderun`. Gamescope y los
-planificadores sched_ext también son opcionales. No envuelvas todo el proceso
-con `taskset 0-11` si quieres que sus workers puedan utilizar los E-cores.
-
-## Memoria: límite para equipos de 16 GB
-
-El dump ocupa unos 30 GB; no cabe en el tmpfs de aproximadamente 7,7 GiB. El
-staging completo en RAM está desactivado por defecto. Si se solicita manualmente,
-se comprueban capacidad y memoria disponible antes de copiar.
-
-| Recurso | Perfil seguro |
-| --- | --- |
-| Pool directo (`BB_DMEM_MB`) | 5056 MiB, escena hasta 1920×1080 |
-| Pool extra (`BB_DMEM_EXTRA_MB`) | 256 MiB |
-| Caché de recursos (`BB_RENDER_RESOURCE_CACHE_MB`) | 256 MiB |
-| Prefetch (`BB_MEMORY_WILLNEED`) | 0 |
-| Compiladores de pipelines | 2 workers |
-
-El nombre consumido por este runtime es **`BB_DMEM_MB`**. Una escena 1440p nativa
-requiere un pool de 9152 MiB y se rechaza en el perfil de 16 GB incluso cuando
-sysfs no permite consultar GTT. Los 16 GB de VRAM no sustituyen la RAM/GTT
-necesaria para este modelo de memoria. Utiliza escalado para salida 1440p o 4K.
-
-## Centro de control, controles y mods
-
-Abre `cachyborne-gui`. La paleta Bisexual Midnight respeta el modo de alto
-contraste. Incluye los 41 ajustes originales de bbport, 44 mapeos de teclado y
-mando, diagnóstico, contenido y herramientas de cuentas. Los borradores se
-guardan automáticamente; **Guardar como mis predeterminados** crea un perfil
-personal. La validación CSS funciona también sin display en tests.
-
-Con mando SDL se conservan las acciones del juego. El mouse-look nativo gira
-la cámara directamente. Por defecto: WASD para moverse, clic izquierdo para
-ataque, clic derecho para disparo, espacio para esquivar, Q para vial y Escape
-para menú. Ajusta sensibilidad, inversión y cada mapeo en **Controles**.
-
-En **Mods y parches**, activa capas y ordena su prioridad: la última capa activa
-prevalece. Se prepara una vista mediante enlaces, sin sobrescribir el dump.
-Conserva las fuentes de mods mientras uses esa generación. Los parches XML se
-seleccionan y compilan durante setup. Consulta [MODS](docs/MODS.md).
-
-```bash
-python3 launcher/cachyborne.py desktop --desktop
-```
-
-Crea accesos separados para jugar y configurar con un icono original de sigilo
-sobre luna de sangre, en SVG y PNG cuadrado. La ventana usa `cachyborne-play`
-como identificador para que KDE/Wayland encuentre el mismo icono; X11 recibe
-además el icono SDL. La GUI conserva las proporciones de la imagen.
-`--download-icon` permite optar por el arte oficial: se encaja en un lienzo
-cuadrado sin deformarlo y, si falla la red, conserva el icono anterior.
-
-## Archivos y comprobaciones
-
-Preferencias y perfil: `~/.config/cachyborne/`. Generaciones, partidas y logs:
-`~/.local/share/cachyborne/`. Se respetan las rutas XDG. Las credenciales son
-privadas; no deben incorporarse a distribuciones ni commits.
-
-```bash
-bash build.sh --test
+```sh
+git pull --ff-only
+git submodule update --init --recursive
 bash scripts/check-all.sh
-python3 scripts/smoke-game.py --seconds 15
+./cachyborne-install.sh --user --skip-build
+cachyborne-setup /ruta/al/app0
 ```
 
-La suite verifica C/C++, CTest, Python, SPIR-V y operaciones Vulkan reales. La
-comprobación sintáctica Python usa AST en memoria y no escribe `__pycache__`.
-La compilación y las pruebas que generan artefactos siguen necesitando un
-`out/` escribible. La prueba de humo copia las partidas a una carpeta aislada,
-exige una imagen GPU visible y comprueba que el proceso siga vivo.
+`check-all.sh` compila el runtime y los tests GPU, ejecuta CTest/Python y comprueba
+SPIR-V y Vulkan real. `build.sh` aplica los parches versionados del submódulo FSR;
+no dependas de cambios locales sin registrar en terceros. Los assets AMD y los
+cachés generados no se suben a Git.
 
-[Configuración](docs/CONFIGURATION.md) · [CachyOS](docs/CACHYOS.md) ·
-[Validación 0.7.4](docs/VALIDATION_0.7.4.md) · [Arquitectura](RESEARCH_AND_ARCHITECTURE.md)
+Para investigar un fallo puedes activar la espera de diagnóstico en Midnight y
+usar `bash tools/debug_attach.sh PID`. El helper guarda un informe privado y se
+desconecta sin terminar el proceso por defecto. La suite y los smoke tests no
+sustituyen recorridos prolongados, pruebas de jefes o validación de todos los mods.
+
+[Arquitectura](RESEARCH_AND_ARCHITECTURE.md) · [Trabajo pendiente](docs/ROADMAP.md)

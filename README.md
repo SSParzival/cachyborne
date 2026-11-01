@@ -1,245 +1,104 @@
-# Cachyborne 0.7.4 — Bisexual Midnight for CachyOS
+# Cachyborne 0.8.2 — Midnight for CachyOS
 
-[Español](README.es.md)
+**English** · [Español](README.es.md)
 
-Linux-native Bloodborne runtime specialized for **CachyOS, 16 GB of system RAM,
-Intel Core i5-14600KF and AMD Radeon RX 9070 XT with Mesa RADV**. Based on
-[bbport / deadinside28/bloodborne_pc](https://github.com/deadinside28/bloodborne_pc).
-The game's original x86-64 executable runs on the host CPU; the runtime replaces
-PS4 system interfaces and translates graphics to Vulkan.
+Native Bloodborne on Linux x86-64, based on stable bbport 0.7. Original game code
+runs on the host CPU; the C runtime supplies PS4 services and the C++ renderer
+translates GPU commands and shaders to Vulkan. Midnight uses GTK4/Libadwaita.
+You need your decrypted **1.09** dump with the update/DLC merged. This repository
+distributes no game, saves or proprietary AMD binaries.
 
-You must supply your own decrypted retail Bloodborne dump with update **1.09**
-merged into the game directory. Game files, saves and proprietary upscaler assets
-are not included or downloaded by this project.
+This release reviews community ports, extends guest-memory ownership checks to
+GPU copies/clears, handles null SRT subtrees without per-draw signals, sanitizes
+motion vectors, prepares **AMD FSR 4.1.2** assets and introduces separate original
+Sweet Purple game/settings icons. Port-owned menus support English and Spanish;
+speech is selected independently.
+
+[Release notes](docs/RELEASE_0.8.2.md) · [Validation](docs/VALIDATION_0.8.2.md) ·
+[Community audit](docs/COMMUNITY_AUDIT_0.8.2.md)
+
+## Target profile
+
+| Component | Configuration |
+| --- | --- |
+| GPU | Radeon RX 9070 XT, RDNA4/GFX1201, Mesa RADV |
+| CPU | i5-14600KF; P CPUs 0–11, E CPUs 12–19, verified on this PC |
+| Memory | 16 GB system RAM; disk assets/caches; no full game in tmpfs |
+| Image | FSR 4.1 Quality, 1706×960 scene → 2560×1440 output |
+| Model | Capability-based automatic selection; native FP8 on this GPU |
+| Presentation | Mailbox, 144 FPS target cap; frame generation off |
+| Build | Clang, native CPU instructions, ThinLTO and mold |
+
+The FPS target does not guarantee that rate in every scene. CPU numbering is
+machine-specific. Foreground simulation/audio/render threads use P CPUs; named
+shader/decompression workers use E CPUs, intersected with the allowed cpuset.
 
 ## Install
 
-From a checkout of this repository:
-
-```bash
+```sh
 git submodule update --init --recursive
 ./cachyborne-install.sh
-```
-
-The installer uses `sudo pacman -Syu --needed`, builds with Clang/LLVM, mold,
-`-march=native -mtune=native -O3`, and ThinLTO, then registers commands in
-`~/.local/bin`, menu entries and game/configuration shortcuts on your XDG desktop.
-The resulting binary targets the CPU on which it was built. Keep the checkout
-and its `out/` directory in place.
-
-For a user installation with existing dependencies, including development
-packages already extracted under `out/native-deps/usr`, use:
-
-```bash
-./cachyborne-install.sh --user
-```
-
-`--user` does not run pacman or request administrator access. It still builds
-and checks for the runtime artifacts. `--skip-build` registers an already built
-checkout. Missing header-only dependencies are fetched by CMake at pinned
-versions during the build; the first build needs network access.
-
-## Prepare once, launch directly
-
-```bash
-cachyborne-setup /path/to/CUSA03173 --performance-profile 144
+cachyborne-setup /path/to/app0 --performance-profile 144
+cachyborne-launch --dry-run
 cachyborne-launch
 ```
 
-Without installed commands, use `./cachyborne-setup.sh` and
-`./cachyborne-launch.sh`. The game directory must contain `eboot.bin`,
-`sce_module`, `sce_sys` and the extracted assets.
+The installer uses pacman with sudo, builds and registers user commands/menu and
+desktop entries. `--user` uses existing dependencies; `--user --skip-build` installs
+an existing build. Keep this checkout and `out/` in place. Direct equivalents are
+`cachyborne-setup.sh`, `cachyborne-launch.sh` and `cachyborne-gui`.
 
-Setup validates the executable identity and compressed assets, links the game
-modules, compiles patches and prepares persistent saves/caches. It publishes a
-profile only after success. Run setup again after changing the dump, mods,
-patches or prepared settings. A failed setup preserves the previous profile.
+Setup validates executable identity/DCX files, prepares linked modules/patches and
+a separate mod view, then atomically publishes a generation. Failed preparation
+preserves the old profile. Normal launch consumes prepared files without package
+installation, compilation or a full content scan. Prepare again after changing
+settings, mods, patches or game content. The source dump remains untouched.
 
-Launch uses the prepared Bash execution plan and directly executes `bb-probe`.
-It does not build, hash the game or recompile patches. `run.sh` is an alias for
-this prepared launch path. A clean installation must complete setup first.
+## Current FSR assets
 
-```bash
-cachyborne-launch --dry-run             # inspect command and environment
-cachyborne-gui                          # GTK4 / Libadwaita settings
-cachyborne-setup --gui                  # open the setup interface
-python3 launcher/cachyborne.py desktop --desktop
+```sh
+# Optional extraction needs MinGW/SPIR-V tools and a usable Proton installation.
+bash tools/fetch_fsr412_assets.sh
+cachyborne-setup /path/to/app0 --performance-profile 144
 ```
 
-The GUI has separate setup, play and shortcut actions. Save preferences and run
-Setup to publish them; Play uses the last successfully prepared profile. The two desktop entries open the game and settings separately. The game
-shortcut launches directly without opening the settings hub.
-It can also be added to Steam as a non-Steam application.
+The helper downloads official **AMD SDK 2.4.0 / upscaler 4.1.2.4555**, verifies a
+pinned SHA-256 and builds native Vulkan replay assets in
+`$XDG_DATA_HOME/cachyborne/fsr4_412` (default `~/.local/share`). The DLL is used only
+for extraction, not loaded by the Linux game. The internal `fsr411` setting key
+is retained. Missing/invalid assets produce an explicit FSR3 fallback.
 
-## The Midnight control center
+The three-frame synthetic comparison is byte-identical at the target 1440p size;
+two tested 4K/ultrawide combinations differ and remain experimental. Updating the
+SDK does not establish a game-FPS improvement or universal bit equivalence.
+[Details and other backends](docs/upscaler.md).
 
-The GTK4/Libadwaita interface matches the BiMidnight palette: near-black violet
-surfaces, lavender text and pink, purple and blue accents. A sidebar separates
-home, performance, graphics/audio, controls, mods/patches, online/accounts,
-advanced settings and setup. Native high-contrast mode keeps its accessible appearance.
+## Configuration and updates
 
-All **41 original bbport settings**, **44 keyboard/gamepad bindings**, and all
-original INI controls now live in these native Midnight pages. No second legacy
-window or import/apply step is required. See [the configuration catalog](docs/CONFIGURATION.md).
+`cachyborne-gui` provides native graphics/performance, controls/bindings, mods,
+patches, online/account, trophy and diagnostic pages. Save and prepare to publish
+changes. The recommended profile preserves content selections, bindings, HDR and
+servers. Text defaults to Spanish and speech to English; menu language remains
+independent. Missing voice alternatives preserve the game's original audio.
 
-The distribution defaults target **144 FPS**, with **FSR 4 Quality**, 1440p output
-and 1706×960 internally. Motion blur, chromatic aberration and depth of field are
-disabled; full RAM staging is off for 16 GB systems. FSR 4 requires separately
-downloaded assets: use **Avanzado → Descargar assets FSR 4** or run
-`bash tools/fetch_fsr4_assets.sh` before setup. Missing assets produce a clear
-warning and automatically prepare FSR 3.1 instead. Sustained 144 FPS depends on
-the scene and must be measured.
+The existing BBSC/shadNet co-op implementation does not implement Lantern's room
+protocol; those features cannot be enabled with a launcher switch alone.
 
-**Perfil recomendado para este PC (1440p · 144 FPS)** applies FSR 4 Quality,
-1706×960 → 2560×1440, Mailbox, English voices, Spanish text and the P/E CPU
-lists. It resets costly effects while preserving HDR, bindings, paths and
-content selection. `--performance-profile 60` applies the same preset at 60 FPS.
-Native 1440p uses a larger guest-memory pool
-that exceeds GTT capacity on this 16 GB machine. Setup now rejects that profile
-with a clear error. **FSR 4 with a lower internal resolution and 1440p output**
-was tested with the real game; the original settings were backed up locally.
-The installed personal default uses Quality (1706×960), HDR off and preupload
-off; the first playable room reached 144 FPS in warmed test intervals.
-Changing the quality preset automatically recalculates the internal size;
-custom internal dimensions remain editable.
-
-Widget changes are automatically saved as a draft after a short pause. **Guardar
-ajustes** also saves incomplete forms; invalid fields must be corrected before
-setup, but do not erase the draft or previous prepared game. **Preparar juego →
-Guardar como mis predeterminados** writes `~/.config/cachyborne/defaults.json`;
-**Restaurar mis predeterminados** restores that private snapshot. Drafts,
-credentials and personal defaults are never included in releases.
-
-Setup defaults to **Spanish (Latin America)** when its message archives are
-installed, then falls back to Spanish (Spain), then English. The language
-selector lists only complete item/menu archive pairs actually present in the
-selected dump. Voice language is independent: `voice_language` defaults to `eng`
-and is exported as `BB_VOICE_LANGUAGE=eng`, alongside `BB_LANGUAGE=20` and
-`BB_MENU_LANGUAGE=es`. Select **Idioma de voces** in the native GUI or pass
-`--voice-language eng` to setup. Runtime FSB interception redirects known language
-suffixes only when the alternative bank exists; `BB_AUDIO_TRACE=1` logs redirects.
-Cutscene audio selection follows the same policy, including explicit guest stream
-selection. GTK stylesheet registration safely skips a missing display in headless
-tests and high-contrast callbacks. Game text availability does not imply dubbed audio.
-
-Setup shows file-validation progress and supports cancellation. A failed or
-cancelled preparation retains the previous profile. Game-side INI changes newer
-than the GUI draft are kept when loading settings, including custom bindings.
-
-## The 16 GB memory profile
-
-- The roughly **30 GB game stays on disk**. Full tmpfs staging is disabled by
-  default and cannot fit this machine's available RAM or `/dev/shm` capacity.
-- Direct memory uses **5056 MiB** at internal resolutions up to 1080p. Higher
-  internal resolutions retain the 9152 MiB pool needed by the resolution patches;
-  they increase memory pressure on a 16 GB system.
-- The port pairs a 256 MiB extra direct pool with a 256 MiB render resource cache
-  and uses two asynchronous pipeline compiler workers. Pool prefetch is disabled by default through
-  `BB_MEMORY_WILLNEED=0`; transparent huge-page advice remains enabled.
-- The persistent Mesa shader cache has a **4G disk budget**. This is disk storage,
-  not a reservation of system RAM. Saves and caches remain persistent.
-
-Close memory-heavy applications before playing. Optional RAM staging remains
-available for smaller asset trees or machines with sufficient free memory; it
-checks both tmpfs capacity and available RAM, retaining an 8 GiB reserve.
-
-The installer includes an original square hunter-sigil icon in SVG/PNG and a
-native window icon. KDE/Wayland matches the runtime's `cachyborne-play` app ID
-to the installed desktop entry; X11 also receives an SDL window icon. The GUI
-uses the same artwork without cropping or stretching. `--download-icon` is an
-optional official-artwork override: it preserves the source proportions on a
-square canvas and keeps the previous icon if downloading fails. The default
-installation works offline. The GUI shortcut action installs both game and
-configuration entries on the desktop and in the application menu.
-
-## CPU, GPU and display
-
-The default CPU topology is P CPUs `0-11` and E CPUs `12-19`. Foreground guest,
-audio and named rendering workers use P CPUs; pipeline compiler/cache workers
-can use E CPUs. The policy respects the process's initial allowed mask. Verify
-CPU numbering with `lscpu -e`; change the lists in preferences when needed.
-
-The RADV preset selects an installed Radeon ICD, uses driver-managed SAM/ReBAR,
-requests 16x anisotropy and disables implicit Vulkan layers. Explicit environment
-overrides are supported. Vulkan memory capability checks remain active; ReBAR
-and huge pages do not eliminate physical memory or PCIe latency.
-
-GameMode and Gamescope are optional. Gamescope settings include output size,
-fullscreen, HDR, spatial FSR and Adaptive Sync. These require suitable display
-and compositor support. Mailbox is the default presentation request. FSR 4 is the default upscaler;
-FSR 3.1 remains available. FSR 4.1.1 requires separately prepared assets and
-compatible GPU features. See [the CachyOS guide](docs/CACHYOS.md) for details.
-
-Scheduler settings use the current scheduler or require an already active
-`scx_lavd`/`scx_bpfland`. Enable the selected scheduler through CachyOS's scheduler
-manager. The launcher does not start privileged services or change kernel policy.
-The direct path uses the prepared online/offline choice and starts no community
-server or authentication helper. Online sign-in and endpoint checks are explicit
-actions in **Online y cuentas**; multiplayer itself requires a working account
-and service.
-
-## Configuration and saves
-
-| Data | Default location |
-| --- | --- |
-| Validated profile | `~/.config/cachyborne/game_profile.json` |
-| Draft GUI preferences | `~/.config/cachyborne/settings.json` |
-| Prepared generations | `~/.local/share/cachyborne/prepared/` |
-| Saves and renderer caches | `~/.local/share/cachyborne/user/` |
-| Mesa cache | `~/.cache/cachyborne/` |
-
-XDG directory overrides are respected. The profile symlink atomically identifies
-a generation containing both JSON and its quoted shell execution plan. Keep the
-source dump and selected mod files in place. Neither setup nor launch modifies
-the supplied game assets. Do not remove active prepared generations.
-
-## Build and test
-
-```bash
-bash build.sh                          # native runtime and GPU modules
-bash scripts/check-all.sh              # full project regression suite
+```sh
+git pull --ff-only
+git submodule update --init --recursive
+bash scripts/check-all.sh
+./cachyborne-install.sh --user --skip-build
+cachyborne-setup /path/to/app0
 ```
 
-The full check runs shell/Python checks, native C regressions, all registered
-C++/Vulkan CTest targets, Python tests, SPIR-V validation when available, and the
-Vulkan smoke test. Device-backed tests require a working Vulkan driver. Shader
-corpus replay additionally requires captured `.bbsc` records; the regular suite
-runs its independent auxiliary hash regression. No game dump is required for
-unit tests. Real-game validation is a separate setup and launch step.
+The check script builds runtime/GPU tests, runs CTest/Python, validates SPIR-V and
+exercises real Vulkan. `build.sh` applies versioned patches to the pinned FSR
+submodule; proprietary assets and generated caches stay outside Git. Debug fault
+waiting is optional in Midnight; `tools/debug_attach.sh PID` saves a private GDB
+report and detaches without killing the process by default.
 
-See [research and architecture](RESEARCH_AND_ARCHITECTURE.md) and the
-[CachyOS guide](docs/CACHYOS.md) for implementation details and measured limits.
-Launcher overhead measurements exclude game initialization and cold asset copies;
-they do not establish gameplay FPS or prove stutter-free traversal.
-
-## Releases
-
-[Version 0.7.4 notes](docs/RELEASE_0.7.4.md) and the
-[validation record](docs/VALIDATION_0.7.4.md) describe the source distribution and
-validation scope. Source release assets include the pinned submodules and a
-SHA256SUMS file. Extract the source archive and run `./cachyborne-install.sh`;
-the installer builds for the local CPU. Game files, saves and account data are
-never included. `python3 scripts/package-release.py` packages tracked sources
-and submodules only.
-
-## Credits and license
-
-This fork builds on bbport, its native runtime and the Vulkan renderer derived
-from shadPS4, plus the third-party projects identified in their source directories
-and `gpu/VENDOR.txt`. Preserve their licenses and attribution. See [LICENSE](LICENSE).
-
-### Real-game startup check
-
-After setup, run `python3 scripts/smoke-game.py --seconds 60`. It copies the save
-directory into a private test directory under `out/`, starts the actual prepared
-game, and requires visible GPU output plus frame statistics without an early
-exit. `--replay /path/to/route` accepts a recorded input route. This requires
-the user's own dump and an active graphical session. It does not certify a full
-playthrough or sustained 144 FPS in every area.
-
-
-In 0.7.4, `es` is a real runtime menu locale, including the native System pages
-and graphics overlay. Explicit `BB_MENU_LANGUAGE` overrides older English INI
-choices. Localized message/layout/font paths resolve according to `BB_LANGUAGE`
-even when the EU executable requests an English asset, independently of speech.
-After updating, run setup again to regenerate an old prepared execution plan.
+[Configuration](docs/CONFIGURATION.md) · [CachyOS/memory](docs/CACHYOS.md) ·
+[Upscaling](docs/upscaler.md) · [Mods](docs/MODS.md) · [Co-op](docs/BBSC.md) ·
+[Environment](docs/ENVIRONMENT.md) · [Architecture](RESEARCH_AND_ARCHITECTURE.md) ·
+[Remaining validation](docs/ROADMAP.md)

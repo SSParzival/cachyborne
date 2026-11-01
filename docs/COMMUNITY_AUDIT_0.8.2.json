@@ -1,0 +1,3265 @@
+{
+  "date": "2026-11-01",
+  "base": "bbport 0.7 / 0fc2921c",
+  "previous_audit_sources": [
+    {
+      "short": "453c6c57",
+      "sha": "453c6c57532028ed278599fd543ce105c52fcfa2",
+      "author": "ethan <ethanmurphy267@gmail.com>",
+      "subject": "Send frames in parts: off on AMD Radeon",
+      "ref": "community/supermedo",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp",
+        "launcher/bbport_lang_latency.py",
+        "launcher/bbport_launcher_win.py"
+      ],
+      "url": "https://github.com/Supermedo/bloodborne_pc/commit/453c6c57532028ed278599fd543ce105c52fcfa2"
+    },
+    {
+      "short": "33ffd3a5",
+      "sha": "33ffd3a57c952dcb09b790b13d41ed5a9d6b840a",
+      "author": "ethan <ethanmurphy267@gmail.com>",
+      "subject": "FPS counter: colour-coded or plain values",
+      "ref": "community/supermedo",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "gpu/shim/bbport_overlay.cpp",
+        "gpu/shim/bbport_settings.cpp",
+        "gpu/shim/bbport_settings.h",
+        "launcher/bbport_lang_readouts.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_news.py"
+      ],
+      "url": "https://github.com/Supermedo/bloodborne_pc/commit/33ffd3a57c952dcb09b790b13d41ed5a9d6b840a"
+    },
+    {
+      "short": "e149ab89",
+      "sha": "e149ab8993c53e6481529a4329eb8af819994f4e",
+      "author": "ethan <ethanmurphy267@gmail.com>",
+      "subject": "FPS counter: render latency on its own line, every line a choice",
+      "ref": "community/supermedo",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "gpu/shim/bbport_overlay.cpp",
+        "gpu/shim/bbport_settings.cpp",
+        "gpu/shim/bbport_settings.h",
+        "launcher/bbport_lang_readouts.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_news.py",
+        "launcher/bbport_search.py"
+      ],
+      "url": "https://github.com/Supermedo/bloodborne_pc/commit/e149ab8993c53e6481529a4329eb8af819994f4e"
+    },
+    {
+      "short": "65fad4c5",
+      "sha": "65fad4c52cb88f00b9244ae2ed29658bf3da3258",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Texture collector: no write-back over memory the game reused (#25, #32, #35)",
+      "ref": "community/linux",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.cpp",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.h"
+      ],
+      "url": "https://github.com/ayozetr/bloodborne_linux/commit/65fad4c52cb88f00b9244ae2ed29658bf3da3258"
+    },
+    {
+      "short": "28bb6331",
+      "sha": "28bb63315fc52bac23b87351b8374b4949414f4c",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Texture collector: no tiled write-back over memory the game reused (#25, #32)",
+      "ref": "community/linux",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md",
+        "gpu/shadps4/video_core/texture_cache/image.h",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.cpp",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.h"
+      ],
+      "url": "https://github.com/ayozetr/bloodborne_linux/commit/28bb63315fc52bac23b87351b8374b4949414f4c"
+    },
+    {
+      "short": "df102802",
+      "sha": "df102802047d3e637856ad7e89c372843b452820",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Texture collector: \"maybe touched by the CPU\" checked before a GPU-written image is dropped (#30)",
+      "ref": "community/linux",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.cpp"
+      ],
+      "url": "https://github.com/ayozetr/bloodborne_linux/commit/df102802047d3e637856ad7e89c372843b452820"
+    },
+    {
+      "short": "42ec043c",
+      "sha": "42ec043c3e69dc1deb2dca7d28302ebfd0368d40",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Texture cache: a GPU-written image is downloaded with all its mip levels (#30)",
+      "ref": "community/linux",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.cpp"
+      ],
+      "url": "https://github.com/ayozetr/bloodborne_linux/commit/42ec043c3e69dc1deb2dca7d28302ebfd0368d40"
+    },
+    {
+      "short": "8d18daeb",
+      "sha": "8d18daeb965b7a3d64346b956de19b0d2c71c807",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Mouse: the direct camera by default, as in bbport 0.6 (#31)",
+      "ref": "community/linux",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md",
+        "launcher/bbport_launcher.py",
+        "src/runtime_pad.c"
+      ],
+      "url": "https://github.com/ayozetr/bloodborne_linux/commit/8d18daeb965b7a3d64346b956de19b0d2c71c807"
+    },
+    {
+      "short": "55f9db99",
+      "sha": "55f9db99416b340941767b7101332cad7c80b77c",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Shaders: per-mip image bindings counted the same everywhere a stage's bindings start",
+      "ref": "community/linux",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "gpu/shadps4/shader_recompiler/info.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp"
+      ],
+      "url": "https://github.com/ayozetr/bloodborne_linux/commit/55f9db99416b340941767b7101332cad7c80b77c"
+    },
+    {
+      "short": "930c88f6",
+      "sha": "930c88f630c462e081a64651fa807f6851e7bf06",
+      "author": "cryptopepe <184545674+cryptopepy@users.noreply.github.com>",
+      "subject": "Merge pull request #1 from nullsumlabs/nocrash-optimizations",
+      "ref": "community/deck",
+      "fork": "nullsumlabs/bloodborne_pc-deck-optimized",
+      "files": [
+        "OPTIMATION_GOALS.md",
+        "README.md",
+        "build_steam_deck.sh",
+        "docs/APPIMAGE_DEPENDENCIES.md",
+        "docs/history/SESSION_2026-10-15.md",
+        "packaging/appimage-libs.txt",
+        "packaging/appimage-ubuntu.sh",
+        "packaging/bbport-apprun.c",
+        "packaging/bbport-wrapper.sh",
+        "packaging/bbport.desktop",
+        "packaging/bbport.png"
+      ],
+      "url": "https://github.com/nullsumlabs/bloodborne_pc-deck-optimized/commit/930c88f630c462e081a64651fa807f6851e7bf06"
+    },
+    {
+      "short": "9c3036a8",
+      "sha": "9c3036a85aa9ec9b9f4d2f5c006fd30b843b8ab0",
+      "author": "realcryptopepe <184545674+cryptopepy@users.noreply.github.com>",
+      "subject": "docs: session handoff for optimisation goal 1, with the copy path's anchors",
+      "ref": "community/deck",
+      "fork": "nullsumlabs/bloodborne_pc-deck-optimized",
+      "files": [
+        "docs/history/SESSION_2026-10-15.md"
+      ],
+      "url": "https://github.com/nullsumlabs/bloodborne_pc-deck-optimized/commit/9c3036a85aa9ec9b9f4d2f5c006fd30b843b8ab0"
+    },
+    {
+      "short": "c65c1bd9",
+      "sha": "c65c1bd99110d7bf6e37d8299cf195f871c0a646",
+      "author": "realcryptopepe <184545674+cryptopepy@users.noreply.github.com>",
+      "subject": "docs: correct the vk_runtime anchor in the goal 1 handoff",
+      "ref": "community/deck",
+      "fork": "nullsumlabs/bloodborne_pc-deck-optimized",
+      "files": [
+        "docs/history/SESSION_2026-10-15.md"
+      ],
+      "url": "https://github.com/nullsumlabs/bloodborne_pc-deck-optimized/commit/c65c1bd99110d7bf6e37d8299cf195f871c0a646"
+    },
+    {
+      "short": "a7cbfae6",
+      "sha": "a7cbfae63ea1494b4e87f76c1cbbb5e165e1dc87",
+      "author": "Mrsuss60 <135135776+Mrsuss60@users.noreply.github.com>",
+      "subject": "core: implement dynamic live FPS patching and high-framerate physics stabilization",
+      "ref": "community/mrsuss",
+      "fork": "Mrsuss60/bloodborne_pc_windows_port",
+      "files": [
+        "bblauncherAPP/bblauncher_UI.py",
+        "bblauncherAPP/bblauncher_Utils.py",
+        "bblauncherAPP/bblauncher_app.py",
+        "gpu/bbgpu.h",
+        "gpu/shadps4/core/libraries/videoout/driver.cpp",
+        "gpu/shim/bbgpu.cpp",
+        "gpu/shim/bbport_overlay.cpp",
+        "gpu/shim/bbport_settings.cpp",
+        "gpu/shim/bbport_settings.h",
+        "patches/Bloodborne.xml",
+        "run.bat",
+        "scripts/patches.py",
+        "src/probe.c"
+      ],
+      "url": "https://github.com/Mrsuss60/bloodborne_pc_windows_port/commit/a7cbfae63ea1494b4e87f76c1cbbb5e165e1dc87"
+    },
+    {
+      "short": "f8f450b1",
+      "sha": "f8f450b19f92ac8afac8e5015665d734b4a67cf2",
+      "author": "Mrsuss60 <135135776+Mrsuss60@users.noreply.github.com>",
+      "subject": "renderer & runtime: fix crashes 139/140, BC6H format rejections, and texture stalls",
+      "ref": "community/mrsuss",
+      "fork": "Mrsuss60/bloodborne_pc_windows_port",
+      "files": [
+        "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.h",
+        "gpu/shadps4/video_core/texture_cache/image.cpp",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.cpp",
+        "src/probe.c"
+      ],
+      "url": "https://github.com/Mrsuss60/bloodborne_pc_windows_port/commit/f8f450b19f92ac8afac8e5015665d734b4a67cf2"
+    },
+    {
+      "short": "466e8e7d",
+      "sha": "466e8e7dd47f38d53fc63d3ee119f9857f8dbd7d",
+      "author": "Mrsuss60 <135135776+Mrsuss60@users.noreply.github.com>",
+      "subject": "renderer_vulkan: improve temporal upscaler clarity and depth downsampling",
+      "ref": "community/mrsuss",
+      "fork": "Mrsuss60/bloodborne_pc_windows_port",
+      "files": [
+        "gpu/shadps4/video_core/host_shaders/depth_resample.frag",
+        "gpu/shadps4/video_core/host_shaders/taa.comp",
+        "gpu/shadps4/video_core/renderer_vulkan/fsr411/fsr411.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_draw_prep.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_draw_prep.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_scene_resolution.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_scene_resolution.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_temporal_upscaler.cpp",
+        "gpu/shim/bbport_settings.cpp",
+        "gpu/shim/bbport_toggles.h"
+      ],
+      "url": "https://github.com/Mrsuss60/bloodborne_pc_windows_port/commit/466e8e7dd47f38d53fc63d3ee119f9857f8dbd7d"
+    },
+    {
+      "short": "a4719168",
+      "sha": "a47191680f15aa1429d32cdf5cf040ce2855936f",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "Lantern Engine 0.9.39 beta 16: FSR through AMD's official FSR SDK 2.4 (FSR 4.1.2 on RX 6000 and newer and Ryzen APUs, FSR 3.1.6 elsewhere), fsr4vk kept as experimental FSR 4.1.1 for NVIDIA and Intel",
+      "ref": "community/lantern",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "engine/docs/upscaler.md",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_amd_ffx_driver.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_amd_ffx_driver.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_fsr4.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_fsr4vk.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_fsr_sdk.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_fsr_sdk.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_instance.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_instance.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_temporal_upscaler.cpp",
+        "engine/gpu/shim/bbport_overlay.cpp",
+        "engine/gpu/shim/bbport_settings.cpp",
+        "engine/gpu/shim/bbport_settings.h",
+        "engine/scripts/run_windows.py",
+        "engine/start/main.cpp",
+        "launcher/windows/BloodborneLauncher/Core/AmdFsrDriver.cs",
+        "launcher/windows/BloodborneLauncher/Core/Choices.cs",
+        "launcher/windows/BloodborneLauncher/Core/EngineSwitches.cs",
+        "launcher/windows/BloodborneLauncher/Core/Hardware.cs",
+        "launcher/windows/BloodborneLauncher/Core/IniFile.cs",
+        "launcher/windows/BloodborneLauncher/Core/Updater.cs",
+        "launcher/windows/BloodborneLauncher/Views/GraphicsPage.cs",
+        "launcher/windows/LanternLauncher/Views/GraphicsPage.cs"
+      ],
+      "url": "https://github.com/Awakenchan/LanternEngine/commit/a47191680f15aa1429d32cdf5cf040ce2855936f"
+    },
+    {
+      "short": "ad2d8161",
+      "sha": "ad2d81617476558ddbb74e354fccd19aff14efbe",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "Lantern Engine 0.9.39 beta 13: lamps in a party, guests stay after bosses, shared progress, Chalice Dungeons together, new party HUD with portraits",
+      "ref": "community/lantern",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "engine/gpu/CMakeLists.txt",
+        "engine/gpu/bbnet/room/room_service.cpp",
+        "engine/gpu/bbnet/room/room_service.h",
+        "engine/gpu/bbnet/room/room_ws.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_presenter.cpp",
+        "engine/gpu/shim/bbport_overlay.cpp",
+        "engine/gpu/shim/engine/features.cpp",
+        "engine/gpu/shim/engine/online_fixes.cpp",
+        "engine/gpu/shim/engine/progress_flags.inc",
+        "engine/gpu/shim/face_shot.cpp",
+        "engine/gpu/shim/face_shot.h",
+        "engine/gpu/shim/hud_gauge.cpp",
+        "engine/gpu/shim/hud_gauge.h",
+        "engine/gpu/third_party/fonts/FleshAndBlood.ttf",
+        "engine/tests/test_room_service.cpp",
+        "launcher/windows/BloodborneLauncher/Core/Updater.cs"
+      ],
+      "url": "https://github.com/Awakenchan/LanternEngine/commit/ad2d81617476558ddbb74e354fccd19aff14efbe"
+    },
+    {
+      "short": "08af891e",
+      "sha": "08af891e9bd0efe5689164e9840446c453d165e8",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "Seamless co-op: lamp travel takes the party along, rebuilt bodies shown, party HUD with the game's own gauge art and only for players in your world, room protocol 12 (0.9.39 beta 12)",
+      "ref": "community/lantern",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "engine/gpu/bbnet/room/room_service.cpp",
+        "engine/gpu/bbnet/room/room_service.h",
+        "engine/gpu/bbnet/room/room_ws.h",
+        "engine/gpu/shim/bbport_overlay.cpp",
+        "engine/gpu/shim/engine/online_fixes.cpp",
+        "engine/gpu/shim/hud_gauge.cpp",
+        "engine/gpu/shim/hud_gauge.h",
+        "engine/tests/test_room_service.cpp",
+        "launcher/windows/BloodborneLauncher/Core/Updater.cs"
+      ],
+      "url": "https://github.com/Awakenchan/LanternEngine/commit/08af891e9bd0efe5689164e9840446c453d165e8"
+    },
+    {
+      "short": "b112d5a4",
+      "sha": "b112d5a4d86ad434ca9b6bafae4aa7e89abb3585",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "Seamless co-op: peers rebuild the revived member's own tracked body a moment after it is up, and log each step (0.9.39 beta 11)",
+      "ref": "community/lantern",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "engine/gpu/shim/engine/online_fixes.cpp",
+        "launcher/windows/BloodborneLauncher/Core/Updater.cs"
+      ],
+      "url": "https://github.com/Awakenchan/LanternEngine/commit/b112d5a4d86ad434ca9b6bafae4aa7e89abb3585"
+    },
+    {
+      "short": "8bc0ce68",
+      "sha": "8bc0ce68cb34b50dc6551071ffd5fbae6cdf0f8d",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Shader cache: never reuse a cached permutation's index",
+      "ref": "community/runtime",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp"
+      ],
+      "url": "https://github.com/bloodborne-native/bloodborne-runtime/commit/8bc0ce68cb34b50dc6551071ffd5fbae6cdf0f8d"
+    },
+    {
+      "short": "3c7140f6",
+      "sha": "3c7140f62fafaa36ee4b37bcfe1ec76fffb384c2",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "UPSTREAM: bbport 0.7's occlusion intervals measured without a gain on Metal",
+      "ref": "community/runtime",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/UPSTREAM.md"
+      ],
+      "url": "https://github.com/bloodborne-native/bloodborne-runtime/commit/3c7140f62fafaa36ee4b37bcfe1ec76fffb384c2"
+    },
+    {
+      "short": "1bc4f375",
+      "sha": "1bc4f37504cd036961a01c99b3bdbabe2b064be7",
+      "author": "0xCydral <29049439+0xCydral@users.noreply.github.com>",
+      "subject": "fix(texture-cache): hash the same guest range at marking and refresh",
+      "ref": "community/linux",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "gpu/shadps4/video_core/texture_cache/texture_cache.cpp",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.h"
+      ],
+      "url": "https://github.com/ayozetr/bloodborne_linux/commit/1bc4f37504cd036961a01c99b3bdbabe2b064be7",
+      "additional_dependency": true
+    }
+  ],
+  "refresh": [
+    {
+      "name": "linux",
+      "repo": "ayozetr/bloodborne_linux",
+      "branch": "main",
+      "before": "9507c9c392d0ffce689689cdf4cd193947ccb310",
+      "after": "b27d0715b897486b6115a34b801661714c0a988f"
+    },
+    {
+      "name": "supermedo",
+      "repo": "Supermedo/bloodborne_pc",
+      "branch": "windows",
+      "before": "41fa92047006ed5c78b833c3f68a8ecfdc601361",
+      "after": "b48052617a919fc4d6b10ae3395e209c9e94e17a"
+    },
+    {
+      "name": "deck",
+      "repo": "nullsumlabs/bloodborne_pc-deck-optimized",
+      "branch": "master",
+      "before": "2fc2c6b01b0c323fac9fd2298f3cf2cce08ce721",
+      "after": "2fc2c6b01b0c323fac9fd2298f3cf2cce08ce721"
+    },
+    {
+      "name": "mrsuss",
+      "repo": "Mrsuss60/bloodborne_pc_windows_port",
+      "branch": "master",
+      "before": "83a168eee2a559859cb6066f517dbd11da859eb3",
+      "after": "b62051dba14377bb229e2c7dfc43534f0a028d37"
+    },
+    {
+      "name": "lantern",
+      "repo": "Awakenchan/LanternEngine",
+      "branch": "main",
+      "before": "a47191680f15aa1429d32cdf5cf040ce2855936f",
+      "after": "0920acbbc5ffcb2018236ece0eba1f8f49bde5ff"
+    },
+    {
+      "name": "runtime",
+      "repo": "bloodborne-native/bloodborne-runtime",
+      "branch": "main",
+      "before": "2698959b94e1ff861e2df3ad413c2cf255f0f3be",
+      "after": "14dbd84263b3a08d001eb7fb1128e98f4c5f2be9"
+    }
+  ],
+  "inventoried_commits": [
+    {
+      "sha": "b27d0715b897486b6115a34b801661714c0a988f",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Launcher: version 0.51-linux.20",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "launcher/bbport_update.py"
+      ]
+    },
+    {
+      "sha": "a0f120f5be24e3dd4ef8a924b0283bf37367966e",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Controller: a round stick dead zone",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md",
+        "src/runtime_pad.c",
+        "tests/test_pad.c"
+      ]
+    },
+    {
+      "sha": "a5ffb11cb121a5e10878916a7e9f17b9c0e55957",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Credits: whp199 and nick24051998; what emurphy04 added",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/CREDITS.md",
+        "docs/ENVIRONMENT.md",
+        "launcher/bbport_i18n.py",
+        "launcher/bbport_launcher.py"
+      ]
+    },
+    {
+      "sha": "eec77ba22395af10628dccfe6ad576a5a4932123",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Crash guards: an online event without its data, from Supermedo's port",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md",
+        "scripts/crash_guards.py",
+        "scripts/patches.py",
+        "tests/test_crash_guards.py"
+      ]
+    },
+    {
+      "sha": "a9f292a7e804237ffbab1e7c14009acbbe81354d",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Effects in whole 1/60 s steps with the uncap and 90 presets, from Supermedo's port",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md",
+        "scripts/effect_time.py",
+        "scripts/patches.py",
+        "tests/test_effect_time.py"
+      ]
+    },
+    {
+      "sha": "ad24c9f0de82bb5bb4e58c0c5db72fd1118077ec",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Jumps as at 30 FPS at any frame rate, from Supermedo's port",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md",
+        "scripts/air_drag.py",
+        "scripts/patches.py",
+        "tests/test_air_drag.py"
+      ]
+    },
+    {
+      "sha": "850c7869a252bdd5fdc89618672471a0c7400bdd",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Cloth and plants as on the PS4 at any frame rate, from Supermedo's port",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md",
+        "scripts/cloth.py",
+        "scripts/cloth_time.py",
+        "scripts/foliage_time.py",
+        "scripts/patches.py",
+        "tests/test_cloth.py",
+        "tests/test_cloth_time.py",
+        "tests/test_code_caves.py",
+        "tests/test_foliage_time.py"
+      ]
+    },
+    {
+      "sha": "4a001fa55aa815725d10da51e57ba41bcf0201cc",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "SRT walker: a null table pointer zeroes its subtree without a fault",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "gpu/shadps4/shader_recompiler/ir/passes/flatten_extended_userdata_pass.cpp"
+      ]
+    },
+    {
+      "sha": "3ce0dde399733edbd92f0f73d00e984e738d22cd",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Layer memory: reads across guest chunks stitched from them, from upstream 0.7 (#25)",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md",
+        "gpu/shadps4/video_core/buffer_cache/buffer_cache.cpp",
+        "gpu/shadps4/video_core/buffer_cache/buffer_cache.h"
+      ]
+    },
+    {
+      "sha": "6650b7dc6e2496a41bb5d148c54e0069b1ef8e7f",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Guest hooks: the GX occlusion query guard (crash 0x2169edc), from upstream 0.7",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md",
+        "gpu/shim/bbport_guest_hooks.cpp"
+      ]
+    },
+    {
+      "sha": "562bb095a15bd18540af3a50572dde18e1f5876a",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Occlusion queries: samples counted only while one of the game's queries is open, from upstream 0.7",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_occlusion.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_occlusion.h"
+      ]
+    },
+    {
+      "sha": "db43d0cb19a3886f16f6b8aab6d9bd92316ca390",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Window: Wayland display scaling, gamescope fullscreen and full pad reports, from upstream 0.7",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md",
+        "gpu/shim/window.cpp"
+      ]
+    },
+    {
+      "sha": "18205f83d14f91be82065185d9dd4e8218733663",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Launcher: version 0.51-linux.19",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "launcher/bbport_update.py"
+      ]
+    },
+    {
+      "sha": "e10e2a8fb4d7afc4949e01cd8f17eac415a29436",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Credits: zFenrys and Aman9das; deadinside28's menu pointer and 0.6 keyboard layout",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/CREDITS.md",
+        "docs/ENVIRONMENT.md",
+        "launcher/bbport_i18n.py",
+        "launcher/bbport_launcher.py"
+      ]
+    },
+    {
+      "sha": "14c0d9b426d97882ad16972ce3c68665f219ac22",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Docs: line references after the menu pointer and the 0.6 keyboard layout",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md"
+      ]
+    },
+    {
+      "sha": "b76c950a66b55d85fa5ff9efd9088c94647e200d",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Keyboard: bbport 0.6's layout as a choice in Controls (#33)",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "README.md",
+        "docs/ENVIRONMENT.md",
+        "launcher/bbport_i18n.py",
+        "launcher/bbport_launcher.py",
+        "scripts/menu_prompts.py",
+        "src/runtime_pad.c",
+        "tests/test_menu_prompts.py",
+        "tests/test_pad.c",
+        "tests/test_pad_atlas.c"
+      ]
+    },
+    {
+      "sha": "cd8b014ab3cf5e0cc46ddfd95832931cfe34cc7a",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Menu pointer from bbport 0.6: the mouse points and clicks in the game's menus",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "README.md",
+        "docs/ENVIRONMENT.md",
+        "gpu/bbgpu.h",
+        "gpu/games/bloodborne.cpp",
+        "gpu/games/bloodborne_menu_pointer.cpp",
+        "gpu/games/bloodborne_menu_pointer.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_presenter.cpp",
+        "gpu/shim/bbport_guest_code_hooks.cpp",
+        "gpu/shim/bbport_guest_code_hooks.h",
+        "gpu/shim/sdl_window.h",
+        "gpu/shim/window.cpp",
+        "src/runtime_pad.c",
+        "tests/test_pad.c",
+        "tests/test_pad_atlas.c"
+      ]
+    },
+    {
+      "sha": "74ed838daf4a2d8b7c8498286ac30bf6122eb5f9",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Docs: line references after the changes above",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md"
+      ]
+    },
+    {
+      "sha": "976027ea53daed121b2070b2aeddaf1ef639e10d",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Credits: iannitram, molnar-a and gibs2193; what Awaken, Mrsuss60 and Nahnahchi added since 0.51-linux.18",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/CREDITS.md",
+        "launcher/bbport_i18n.py",
+        "launcher/bbport_launcher.py"
+      ]
+    },
+    {
+      "sha": "916bcd1ceb812feea709098e5590e3aa8d66fffe",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Image clears: one layer of a cube or array too",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.cpp",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.h"
+      ]
+    },
+    {
+      "sha": "8ffbf6b5dfedf6c347d281cb495d0071138edd2e",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "FSR 3.1: never a protected memory type unless asked for",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "gpu/patches/fsr-vulkan/0003-ffx_vk-never-pick-a-protected-memory-type.patch",
+        "gpu/patches/fsr-vulkan/README.md"
+      ]
+    },
+    {
+      "sha": "6530aa16417037680d2656bf13c1aa74859c02c4",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Camera motion: no NaN, Inf or wild vectors into the upscaler",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "gpu/shadps4/video_core/host_shaders/camera_motion.comp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_camera_motion.cpp"
+      ]
+    },
+    {
+      "sha": "5cc279af740d69b6405cfea75984eaa6dd7216bf",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Texel buffers: no miss remembered over an image not drawn yet (#1)",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "gpu/shadps4/video_core/buffer_cache/buffer_cache.cpp"
+      ]
+    },
+    {
+      "sha": "12d76b386269668806dc8c114b885f62b41c1c80",
+      "author": "ayozetr <53948812+ayozetr@users.noreply.github.com>",
+      "subject": "Texture collector: the memory check for images written by copies and clears too (#29, #32, #35)",
+      "fork": "ayozetr/bloodborne_linux",
+      "files": [
+        "docs/ENVIRONMENT.md",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_runtime.cpp",
+        "gpu/shadps4/video_core/texture_cache/image.cpp",
+        "gpu/shadps4/video_core/texture_cache/image.h",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.cpp",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.h"
+      ]
+    },
+    {
+      "sha": "b48052617a919fc4d6b10ae3395e209c9e94e17a",
+      "author": "Supermedo <mohmmad.pod@gmail.com>",
+      "subject": "Update README.md",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "sha": "000f6bd0d54d269cb984ee8cb4558f141926c5ee",
+      "author": "Supermedo <mohmmad.pod@gmail.com>",
+      "subject": "Fix Discord link in README",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "sha": "22a6a3cdada0d1e5b6e8220ef41f1cf847e55453",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Release: 1.9.7",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_news.py"
+      ]
+    },
+    {
+      "sha": "c4425cd0929bee02027f1cd34c9276de882ae279",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Online: The Hunter's Dream is no longer offered",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_lang_thd.py",
+        "launcher/bbport_launcher_win.py",
+        "tests/test_launcher_background.py",
+        "tests/test_launcher_hunters.py"
+      ]
+    },
+    {
+      "sha": "962d564aad5b2d58aa0c4e6dd0c31afe80c3980d",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Merge branch 'launcher-online-signin' into release-1.9.7",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_launcher_win.py",
+        "packaging/windows/BB-Report-Tool.bat",
+        "tests/test_launcher_report.py",
+        "tests/test_player_mistakes.py"
+      ]
+    },
+    {
+      "sha": "0feadbf7437119a38c5aceaacc370370ecd8b183",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Play page: the device switch fits a narrow goal card",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_launcher_win.py"
+      ]
+    },
+    {
+      "sha": "a8c455bb0d1afba7b746c8f2cb204c724e12ee8a",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Merge follow-ups: the fixes made side by side, fitted together",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_launcher_win.py",
+        "tests/test_launcher_background.py",
+        "tests/test_launcher_safe_writes.py"
+      ]
+    },
+    {
+      "sha": "1bfacd35499014d85b8663851f6cb7f80c287b08",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Merge audit/8-defaults",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_hardware.py",
+        "launcher/bbport_lang_audit8.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_saves.py",
+        "launcher/bbport_search.py",
+        "launcher/bbport_setup.py",
+        "launcher/bbport_trophies.py",
+        "run.py",
+        "tests/test_fsr41_readiness.py",
+        "tests/test_launcher_auto_profile.py",
+        "tests/test_launcher_findable.py",
+        "tests/test_launcher_frame_rate.py",
+        "tests/test_launcher_hardware.py",
+        "tests/test_launcher_saves.py",
+        "tests/test_trophies.py"
+      ]
+    },
+    {
+      "sha": "c458344bfd91bde4d48edd04f448e9a4cdd2e5d5",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Merge audit/7-saves",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_respec.py",
+        "launcher/bbport_saves.py",
+        "launcher/bbport_steam.py",
+        "launcher/bbport_textfile.py",
+        "run.py",
+        "tests/test_launcher_character.py",
+        "tests/test_launcher_safe_writes.py",
+        "tests/test_launcher_saves.py",
+        "tests/test_respec.py",
+        "tests/test_save_backups.py"
+      ]
+    },
+    {
+      "sha": "6a9fdcd00110aec924642752ad57c50c09bf5379",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Merge audit/6-restart",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "gpu/bbnet/thd/thd_net.cpp",
+        "gpu/bbnet/vendor/shadps4/core/libraries/np/np_handler/np_handler.cpp",
+        "gpu/bbnet/vendor/shadps4/shadnet/client.cpp",
+        "src/probe.c"
+      ]
+    },
+    {
+      "sha": "ca9f44dd0ae7db907ad5af02aa4ce75042ab7df8",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Merge audit/5-sidebar",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_help.py",
+        "launcher/bbport_lang_audit5.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_pad.py",
+        "launcher/bbport_setup.py",
+        "tests/test_launcher_findable.py",
+        "tests/test_launcher_side_bar.py",
+        "tests/test_launcher_window.py"
+      ]
+    },
+    {
+      "sha": "2ce0842204e7c7b6ed4774659b5d659ae5b4f00b",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Merge audit/4-search",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_help.py",
+        "launcher/bbport_lang_audit4.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_search.py",
+        "launcher/bbport_setup.py",
+        "tests/test_launcher_findable.py",
+        "tests/test_launcher_search.py",
+        "tests/test_launcher_search_live.py",
+        "tests/test_launcher_search_questions.py"
+      ]
+    },
+    {
+      "sha": "e8f41b81462858dd42b93cadc786653d31a140f4",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Merge audit/3-threads",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_benchmark.py",
+        "launcher/bbport_display.py",
+        "launcher/bbport_help.py",
+        "launcher/bbport_lang_audit3.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_setup.py",
+        "tests/test_launcher_background.py"
+      ]
+    },
+    {
+      "sha": "7a2f26b3f7087abf86b22a77e5c4cbb612dd3fa6",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Merge audit/2-texts",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "README.md",
+        "launcher/bbport_hardware.py",
+        "launcher/bbport_help.py",
+        "launcher/bbport_lang_audit2.py",
+        "launcher/bbport_lang_mistakes.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_search.py",
+        "launcher/bbport_setup.py",
+        "packaging/windows/BB-Report-Tool.bat",
+        "packaging/windows/README-Windows.txt",
+        "tests/test_launcher_auto_profile.py",
+        "tests/test_launcher_completeness.py",
+        "tests/test_launcher_findable.py",
+        "tests/test_launcher_hardware.py",
+        "tests/test_launcher_help.py"
+      ]
+    },
+    {
+      "sha": "cbb189801f713cf0a13d05104c0d77a2ab46bfa5",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Merge audit/1-update",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_lang_audit1.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_setup.py",
+        "launcher/bbport_update.py",
+        "packaging/windows/package.sh",
+        "tests/test_launcher_update.py"
+      ]
+    },
+    {
+      "sha": "f191fe1f3c201f268c58243ba4ba52e74e5e21b5",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Launcher: side bar keeps its by-line, clearer scroll hint, no page text cut off at 1000 points",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_pad.py",
+        "launcher/bbport_setup.py",
+        "tests/test_launcher_side_bar.py",
+        "tests/test_launcher_window.py"
+      ]
+    },
+    {
+      "sha": "a0dacc374052b5a25f9484b53e6e95ddb5913c26",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Launcher update: always install with this launcher, recover a swap that stopped halfway",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_lang_audit1.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_setup.py",
+        "launcher/bbport_update.py",
+        "packaging/windows/package.sh",
+        "tests/test_launcher_update.py"
+      ]
+    },
+    {
+      "sha": "edaf41772e9d6c963e2d42ffe8f780d29e0a446b",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Achievements import: make only this port's own user/ before writing",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_launcher_win.py",
+        "tests/test_launcher_saves.py"
+      ]
+    },
+    {
+      "sha": "c1a6b32af84cd53765a47f689ad20f00c6bea498",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "bbport_lang_audit2: wrap the module docstring",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_lang_audit2.py"
+      ]
+    },
+    {
+      "sha": "3b07ce4367ccd243d0dc6a2e6aa24f9281d95af2",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Achievements import: shadPS4 on an old drive, no saves folder made anew, only other installations",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_saves.py",
+        "launcher/bbport_trophies.py",
+        "tests/test_launcher_saves.py",
+        "tests/test_trophies.py"
+      ]
+    },
+    {
+      "sha": "2d85ad133ca5202cdc779a3514664b5a15fb7aaf",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Graphics: sharpening stays with DLSS on a new installation, a new card counts with automatic settings off",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_setup.py",
+        "tests/test_fsr41_readiness.py",
+        "tests/test_launcher_auto_profile.py"
+      ]
+    },
+    {
+      "sha": "cf53b72d59b6bafc1c04b0192c705418f4693008",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Frame rate: the launcher follows what the running game holds, also after a choice in its menu",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_launcher_win.py",
+        "tests/test_launcher_frame_rate.py"
+      ]
+    },
+    {
+      "sha": "176b02bb65f30720e722bfc36c4ca4140336c5b4",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Launcher search: German small words, plurals and the sign-in spellings",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_search.py",
+        "tests/test_launcher_findable.py",
+        "tests/test_launcher_search.py",
+        "tests/test_launcher_search_live.py",
+        "tests/test_launcher_search_questions.py"
+      ]
+    },
+    {
+      "sha": "704592f4edf5817098674e8bcd3712062d7c701a",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Launcher: error texts read as before, Add to Steam survives closing the window",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_lang_audit3.py",
+        "launcher/bbport_launcher_win.py",
+        "tests/test_launcher_background.py"
+      ]
+    },
+    {
+      "sha": "f66abc20b6bb1a65b65b35ea48f5148af8bc13fd",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Saves and bbport.ini: fixes from the review of the safe-write change",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_saves.py",
+        "tests/test_launcher_safe_writes.py",
+        "tests/test_launcher_saves.py",
+        "tests/test_respec.py",
+        "tests/test_save_backups.py"
+      ]
+    },
+    {
+      "sha": "9872f965aee278755a3fb3416218e32b7be10adc",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Launcher: side bar fits small windows, upkeep buttons on Help, texts follow the width",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_help.py",
+        "launcher/bbport_lang_audit5.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_setup.py",
+        "tests/test_launcher_findable.py",
+        "tests/test_launcher_side_bar.py",
+        "tests/test_launcher_window.py"
+      ]
+    },
+    {
+      "sha": "dd57dfc3b7f24c747b9d085f68038121096794fa",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Help: R78 also after the update and after a failed start; a friend's server address",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_help.py",
+        "launcher/bbport_lang_audit2.py",
+        "tests/test_launcher_help.py"
+      ]
+    },
+    {
+      "sha": "f26c135dd48a71e84c346f95a76217e805ca9e75",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Achievements: bring them from another installation",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_lang_audit8.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_saves.py",
+        "launcher/bbport_search.py",
+        "launcher/bbport_trophies.py",
+        "tests/test_launcher_findable.py",
+        "tests/test_launcher_saves.py",
+        "tests/test_trophies.py"
+      ]
+    },
+    {
+      "sha": "6d22b4a887c1b596d471dde236e8abf1d7b8faa1",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Graphics for the PC: no sharpening on top of FSR 4, a goal gives a new card its own upscaler",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_hardware.py",
+        "launcher/bbport_lang_audit8.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_setup.py",
+        "tests/test_fsr41_readiness.py",
+        "tests/test_launcher_auto_profile.py",
+        "tests/test_launcher_hardware.py"
+      ]
+    },
+    {
+      "sha": "cedc28b3c5f2767fdf1ab45dc1b2111e0c7c7dd8",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Frame rate: the in-game restart paces its own mode, a launcher choice survives the game's saves",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_launcher_win.py",
+        "run.py",
+        "tests/test_launcher_frame_rate.py"
+      ]
+    },
+    {
+      "sha": "72097e6ed177cfc90662bbd0b3640e8b9ce2fda7",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Launcher: write files whole, go on with a read-only bbport.ini, keep a test's save",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_respec.py",
+        "launcher/bbport_steam.py",
+        "launcher/bbport_textfile.py",
+        "run.py",
+        "tests/test_launcher_safe_writes.py",
+        "tests/test_respec.py",
+        "tests/test_save_backups.py"
+      ]
+    },
+    {
+      "sha": "c021f461e212d143c0620ed28b8cc31c40896c60",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Saves: swap imported and restored files in as one step",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_saves.py",
+        "tests/test_launcher_character.py",
+        "tests/test_launcher_saves.py"
+      ]
+    },
+    {
+      "sha": "23c56805301ba4c65596e97840d17d3c6a5f94a6",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Launcher search: answer players' questions, find the actions it missed",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_help.py",
+        "launcher/bbport_lang_audit4.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_search.py",
+        "launcher/bbport_setup.py",
+        "tests/test_launcher_findable.py",
+        "tests/test_launcher_search.py",
+        "tests/test_launcher_search_live.py",
+        "tests/test_launcher_search_questions.py"
+      ]
+    },
+    {
+      "sha": "8a17e90456480a939699f42fea5530d2696310bf",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Packaging: freeze the launcher with Python 3.14 only",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "packaging/windows/package.sh"
+      ]
+    },
+    {
+      "sha": "0dfeec278cae502edba0a7d06d8ebd6fba784b1b",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Launcher: install updates by renaming, and undo them when a file is in use",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_lang_audit1.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_update.py",
+        "tests/test_launcher_update.py"
+      ]
+    },
+    {
+      "sha": "33356c6f52985bcc3d81aa4c96230639bb53c132",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Online: Sign out only while someone is signed in to SuperMedo Server",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_launcher_win.py",
+        "tests/test_launcher_completeness.py"
+      ]
+    },
+    {
+      "sha": "c9c4818fd086a61c557126e4c8837ab10b168663",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Help: a full-size eboot.bin that does not read is not \"cut off\" (R78)",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_help.py",
+        "tests/test_launcher_help.py"
+      ]
+    },
+    {
+      "sha": "6452b39ad049caf93341b27d770c4672a139adb3",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Launcher: help on the forum, the new Discord invite, pages named as they are now",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "README.md",
+        "launcher/bbport_hardware.py",
+        "launcher/bbport_help.py",
+        "launcher/bbport_lang_audit2.py",
+        "launcher/bbport_lang_mistakes.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_search.py",
+        "launcher/bbport_setup.py",
+        "packaging/windows/BB-Report-Tool.bat",
+        "packaging/windows/README-Windows.txt",
+        "tests/test_launcher_auto_profile.py",
+        "tests/test_launcher_findable.py",
+        "tests/test_launcher_hardware.py"
+      ]
+    },
+    {
+      "sha": "c8ca1ce6e17f9ce07acfa9394658151912b31c60",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Launcher: background work always answers the window (R85), log writes cannot freeze the game",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_benchmark.py",
+        "launcher/bbport_display.py",
+        "launcher/bbport_help.py",
+        "launcher/bbport_lang_audit3.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_setup.py",
+        "tests/test_launcher_background.py"
+      ]
+    },
+    {
+      "sha": "44ca939ed14c8dab5849c0860adc87557c87af54",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Keep online after the in-game restart: do not hand the old shadNet session to the new launch",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "gpu/bbnet/thd/thd_net.cpp",
+        "gpu/bbnet/vendor/shadps4/core/libraries/np/np_handler/np_handler.cpp",
+        "gpu/bbnet/vendor/shadps4/shadnet/client.cpp",
+        "src/probe.c"
+      ]
+    },
+    {
+      "sha": "6586e6536322e201c9452845aacd978869b40ee1",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Launcher: check the start's other prerequisites, put a clean eboot.bin back",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_help.py",
+        "launcher/bbport_lang_gpu.py",
+        "launcher/bbport_lang_ready.py",
+        "launcher/bbport_launcher_win.py",
+        "launcher/bbport_search.py",
+        "run.py",
+        "scripts/clean_eboot.py",
+        "scripts/game_files.py",
+        "scripts/game_files_0109.txt.gz",
+        "scripts/vulkan_check.py",
+        "tests/test_launcher_findable.py",
+        "tests/test_launcher_help.py",
+        "tests/test_ready_checks.py",
+        "tests/test_vulkan_check.py",
+        "tools/check_launcher.py"
+      ]
+    },
+    {
+      "sha": "eb3a46736446c8f12017b0d5f693a86e6a66f6a7",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Launcher: say when Windows has a graphics card that Vulkan does not see",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_help.py",
+        "launcher/bbport_lang_gpu.py",
+        "launcher/bbport_launcher_win.py",
+        "run.py",
+        "scripts/vulkan_check.py",
+        "tests/test_launcher_help.py",
+        "tests/test_vulkan_check.py"
+      ]
+    },
+    {
+      "sha": "ccf0bf0179d06ecdd1fe233c619fed75c767a357",
+      "author": "nick24051998 <177353002+nick24051998@users.noreply.github.com>",
+      "subject": "Online without an account: shortcut starts play offline, the report says sign in",
+      "fork": "Supermedo/bloodborne_pc",
+      "files": [
+        "launcher/bbport_launcher_win.py",
+        "packaging/windows/BB-Report-Tool.bat",
+        "tests/test_launcher_report.py",
+        "tests/test_player_mistakes.py"
+      ]
+    },
+    {
+      "sha": "b62051dba14377bb229e2c7dfc43534f0a028d37",
+      "author": "Mrsuss60 <135135776+Mrsuss60@users.noreply.github.com>",
+      "subject": "shader_recompiler: modernize CFG reconstruction, Phi optimization, and math lowering",
+      "fork": "Mrsuss60/bloodborne_pc_windows_port",
+      "files": [
+        "gpu/shadps4/shader_recompiler/backend/spirv/emit_spirv.cpp",
+        "gpu/shadps4/shader_recompiler/backend/spirv/emit_spirv_floating_point.cpp",
+        "gpu/shadps4/shader_recompiler/backend/spirv/emit_spirv_undefined.cpp",
+        "gpu/shadps4/shader_recompiler/frontend/control_flow_graph.cpp",
+        "gpu/shadps4/shader_recompiler/frontend/format.cpp",
+        "gpu/shadps4/shader_recompiler/frontend/opcodes.h",
+        "gpu/shadps4/shader_recompiler/frontend/structured_control_flow.cpp",
+        "gpu/shadps4/shader_recompiler/frontend/translate/scalar_flow.cpp",
+        "gpu/shadps4/shader_recompiler/frontend/translate/translate.h",
+        "gpu/shadps4/shader_recompiler/frontend/translate/vector_memory.cpp",
+        "gpu/shadps4/shader_recompiler/ir/passes/phi_simplification_pass.cpp",
+        "gpu/shadps4/shader_recompiler/ir/passes/shared_memory_barrier_pass.cpp",
+        "gpu/shadps4/shader_recompiler/profile.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp",
+        "gpu/shim/core/emulator_settings.h"
+      ]
+    },
+    {
+      "sha": "6b2cc0e07c252a177f4cbcdeaff1e6b1a491e50b",
+      "author": "Mrsuss60 <135135776+Mrsuss60@users.noreply.github.com>",
+      "subject": "video_core: modernize command processor sync, packet pacing, and texture cache",
+      "fork": "Mrsuss60/bloodborne_pc_windows_port",
+      "files": [
+        "gpu/shadps4/video_core/amdgpu/liverpool.cpp",
+        "gpu/shadps4/video_core/amdgpu/pixel_format.cpp",
+        "gpu/shadps4/video_core/amdgpu/pm4_cmds.h",
+        "gpu/shadps4/video_core/amdgpu/regs.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp",
+        "gpu/shadps4/video_core/texture_cache/image.h",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.cpp",
+        "gpu/shadps4/video_core/texture_cache/types.h"
+      ]
+    },
+    {
+      "sha": "c3f55890c2e5be26b404ba6dce920730086c4c2b",
+      "author": "Mrsuss60 <135135776+Mrsuss60@users.noreply.github.com>",
+      "subject": "audio: resolve crackling, stuttering, and clipping on low-spec CPUs",
+      "fork": "Mrsuss60/bloodborne_pc_windows_port",
+      "files": [
+        "src/runtime_audio.c"
+      ]
+    },
+    {
+      "sha": "da42893471d35fd0d7c931298ae3d7558814d211",
+      "author": "Mrsuss60 <135135776+Mrsuss60@users.noreply.github.com>",
+      "subject": "Revert 624ac74921c77cb16497b65020dbcefb29c4cbc4",
+      "fork": "Mrsuss60/bloodborne_pc_windows_port",
+      "files": [
+        "gpu/CMakeLists.txt",
+        "gpu/buffers/memory_model.cpp",
+        "gpu/buffers/memory_model.h",
+        "gpu/layer/bblayer_gpu_memory.cpp",
+        "gpu/layer/bblayer_gpu_memory.h",
+        "gpu/shadps4/video_core/buffer_cache/buffer.cpp",
+        "gpu/shadps4/video_core/buffer_cache/buffer.h",
+        "gpu/shadps4/video_core/buffer_cache/buffer_cache.cpp",
+        "gpu/shadps4/video_core/buffer_cache/buffer_cache.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_instance.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp"
+      ]
+    },
+    {
+      "sha": "624ac74921c77cb16497b65020dbcefb29c4cbc4",
+      "author": "Mrsuss60 <135135776+Mrsuss60@users.noreply.github.com>",
+      "subject": "vulkan: remove legacy sparse arena and implement dense VRAM buffer mirrors",
+      "fork": "Mrsuss60/bloodborne_pc_windows_port",
+      "files": [
+        "gpu/CMakeLists.txt",
+        "gpu/buffers/memory_model.cpp",
+        "gpu/buffers/memory_model.h",
+        "gpu/layer/bblayer_gpu_memory.cpp",
+        "gpu/layer/bblayer_gpu_memory.h",
+        "gpu/shadps4/video_core/buffer_cache/buffer.cpp",
+        "gpu/shadps4/video_core/buffer_cache/buffer.h",
+        "gpu/shadps4/video_core/buffer_cache/buffer_cache.cpp",
+        "gpu/shadps4/video_core/buffer_cache/buffer_cache.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_instance.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp"
+      ]
+    },
+    {
+      "sha": "dcdb834f996d033854dd397e52298b8c98ea2e43",
+      "author": "Mrsuss60 <135135776+Mrsuss60@users.noreply.github.com>",
+      "subject": "vulkan: import upstream shader caching & memory optimizations, fix live FPS camera tracking",
+      "fork": "Mrsuss60/bloodborne_pc_windows_port",
+      "files": [
+        "gpu/CMakeLists.txt",
+        "gpu/bbgpu.h",
+        "gpu/platform/win32/nvidia_profile.cpp",
+        "gpu/platform/win32/nvidia_profile.h",
+        "gpu/shadps4/shader_recompiler/frontend/fetch_shader.cpp",
+        "gpu/shadps4/shader_recompiler/info.h",
+        "gpu/shadps4/video_core/cache_storage.cpp",
+        "gpu/shadps4/video_core/cache_storage.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_constant_ring.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_import.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_platform.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_shader_capture.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_shader_capture.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_shader_hle.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_shader_rebuild.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_shader_rebuild.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_shader_rebuild_internal.h",
+        "gpu/shim/bb_env.h",
+        "gpu/shim/bbgpu.cpp",
+        "gpu/shim/bbport_overlay.cpp",
+        "patches/Bloodborne.xml",
+        "run.bat",
+        "src/probe.c",
+        "src/win32_memory.c"
+      ]
+    },
+    {
+      "sha": "0920acbbc5ffcb2018236ece0eba1f8f49bde5ff",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "0.9.39 beta 26",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "engine/docs/MODS.md",
+        "engine/gpu/CMakeLists.txt",
+        "engine/gpu/bbnet/room/room_service.cpp",
+        "engine/gpu/bbnet/room/room_service.h",
+        "engine/gpu/bbnet/room/room_status.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp",
+        "engine/gpu/shim/bbport_overlay.cpp",
+        "engine/gpu/shim/engine/kept_travel.h",
+        "engine/gpu/shim/engine/online_fixes.cpp",
+        "engine/gpu/shim/engine/world_copy.h",
+        "engine/packaging/linux/README-linux.txt",
+        "engine/packaging/linux/build.sh",
+        "engine/run.sh",
+        "engine/scripts/engine_assets.py",
+        "engine/scripts/engine_features.py",
+        "engine/scripts/first_layers.py",
+        "engine/scripts/online.py",
+        "engine/scripts/patches.py",
+        "engine/tests/test_kept_travel.cpp",
+        "engine/tests/test_room_service.cpp",
+        "engine/tests/test_world_copy.cpp",
+        "launcher/windows/BloodborneLauncher/Core/Mods.cs",
+        "launcher/windows/BloodborneLauncher/Core/Updater.cs",
+        "launcher/windows/LanternLauncher/MainWindow.cs",
+        "launcher/windows/LanternLauncher/Views/Controls.cs",
+        "launcher/windows/LanternLauncher/Views/GraphicsPage.cs",
+        "launcher/windows/LanternLauncher/Views/OnlinePage.cs",
+        "launcher/windows/LanternLauncher/Views/PlayPage.cs",
+        "launcher/windows/LanternLauncher/Views/SetupGuide.cs",
+        "launcher/windows/LanternLauncher/Views/Symbols.cs"
+      ]
+    },
+    {
+      "sha": "126142523b3b2b39dc3949010d32dfa0c4506786",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "Hooks: Commit makes the site's pages writable on Linux",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "engine/gpu/shim/engine/engine_hooks.cpp"
+      ]
+    },
+    {
+      "sha": "42d6542ea11144dbc19f4173083632368da91cad",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "Linux package: the Lamp2Lamp patch files",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "engine/packaging/linux/build.sh"
+      ]
+    },
+    {
+      "sha": "58fdb80850b26de736d4636a83f07c6e93e7918f",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "0.9.39 beta 25",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        ".github/workflows/discord-release.yml",
+        "engine/README.md",
+        "engine/build.sh",
+        "engine/docs/MODS.md",
+        "engine/docs/dlss-audit.md",
+        "engine/docs/upscaler.md",
+        "engine/gpu/bbgpu.h",
+        "engine/gpu/bbnet/room/room_link.cpp",
+        "engine/gpu/bbnet/room/room_link.h",
+        "engine/gpu/bbnet/room/room_service.cpp",
+        "engine/gpu/bbnet/room/room_service.h",
+        "engine/gpu/bbnet/room/room_status.cpp",
+        "engine/gpu/bbnet/room/room_status.h",
+        "engine/gpu/shadps4/video_core/buffer_cache/buffer.cpp",
+        "engine/gpu/shadps4/video_core/buffer_cache/buffer.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/scene_resolution.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_dlss.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_effect_pass.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_effect_pass.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_instance.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_instance.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_presenter.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_scene_resolution.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_scene_resolution.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_staging_buffer_pool.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_staging_buffer_pool.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_streamline.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_temporal_upscaler.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_temporal_upscaler.h",
+        "engine/gpu/shadps4/video_core/texture_cache/image.cpp",
+        "engine/gpu/shadps4/video_core/texture_cache/texture_cache.cpp",
+        "engine/gpu/shim/bbport_looks.cpp",
+        "engine/gpu/shim/bbport_looks.h",
+        "engine/gpu/shim/bbport_menu_i18n.cpp",
+        "engine/gpu/shim/bbport_overlay.cpp",
+        "engine/gpu/shim/bbport_settings.cpp",
+        "engine/gpu/shim/bbport_settings.h",
+        "engine/gpu/shim/engine/camera_timing.cpp",
+        "engine/gpu/shim/engine/camera_timing.h",
+        "engine/gpu/shim/engine/kept_travel.h",
+        "engine/gpu/shim/engine/online_fixes.cpp",
+        "engine/gpu/shim/engine/online_fixes.h",
+        "engine/gpu/shim/engine/option_menu.cpp",
+        "engine/gpu/shim/engine/progress_flags.inc",
+        "engine/gpu/shim/engine/shared_progress.h",
+        "engine/gpu/shim/lantern_anti_lag.cpp",
+        "engine/gpu/shim/lantern_anti_lag.h",
+        "engine/gpu/shim/lantern_anti_lag_pacer.h",
+        "engine/patches/Bloodborne.xml",
+        "engine/scripts/engine_assets.py",
+        "engine/scripts/mods.py",
+        "engine/scripts/run_windows.py",
+        "engine/src/lantern.ico",
+        "engine/src/sys/pad.c",
+        "engine/src/sys/pad_host.c",
+        "engine/start/assets.cpp",
+        "engine/start/assets.h",
+        "engine/start/main.cpp",
+        "engine/start/mods.cpp",
+        "engine/start/mods.h",
+        "engine/start/online.cpp",
+        "engine/start/patches.cpp",
+        "engine/start/prepare.cpp",
+        "engine/start/toml_patch.cpp",
+        "engine/start/toml_patch.h",
+        "engine/tests/sys_test_host.c",
+        "engine/tests/test_anti_lag_pacer.cpp",
+        "engine/tests/test_kept_travel.cpp",
+        "engine/tests/test_menu_assets.cpp",
+        "engine/tests/test_pad.c",
+        "engine/tests/test_room_link.cpp",
+        "engine/tests/test_room_service.cpp",
+        "engine/tests/test_room_status.cpp",
+        "engine/tests/test_settings.cpp",
+        "engine/tests/test_shared_progress.cpp",
+        "engine/tests/test_toml_patch.cpp",
+        "engine/tools/engine/menu_assets.cpp",
+        "engine/tools/engine/pc_option_messages.tsv",
+        "engine/tools/make_debug_font.py",
+        "engine/tools/make_lamp2lamp.py",
+        "faq/index.html",
+        "faq/lantern-logo.png",
+        "launcher/windows/BloodborneLauncher/Assets/discord-logo.png",
+        "launcher/windows/BloodborneLauncher/Assets/lantern-orange.png",
+        "launcher/windows/BloodborneLauncher/Assets/lantern-purple.png",
+        "launcher/windows/BloodborneLauncher/BloodborneLauncher.csproj",
+        "launcher/windows/BloodborneLauncher/Core/AppIcon.cs",
+        "launcher/windows/BloodborneLauncher/Core/Choices.cs",
+        "launcher/windows/BloodborneLauncher/Core/DiscordPresence.cs",
+        "launcher/windows/BloodborneLauncher/Core/IniFile.cs",
+        "launcher/windows/BloodborneLauncher/Core/LauncherSettings.cs",
+        "launcher/windows/BloodborneLauncher/Core/Looks.cs",
+        "launcher/windows/BloodborneLauncher/Core/Mods.cs",
+        "launcher/windows/BloodborneLauncher/Core/TomlPatch.cs",
+        "launcher/windows/BloodborneLauncher/Core/Updater.cs",
+        "launcher/windows/BloodborneLauncher/Localization/de.json",
+        "launcher/windows/BloodborneLauncher/Localization/es.json",
+        "launcher/windows/BloodborneLauncher/Localization/fr.json",
+        "launcher/windows/BloodborneLauncher/Localization/it.json",
+        "launcher/windows/BloodborneLauncher/Localization/ja.json",
+        "launcher/windows/BloodborneLauncher/Localization/ko.json",
+        "launcher/windows/BloodborneLauncher/Localization/pl.json",
+        "launcher/windows/BloodborneLauncher/Localization/pt-BR.json",
+        "launcher/windows/BloodborneLauncher/Localization/ru.json",
+        "launcher/windows/BloodborneLauncher/Localization/tr.json",
+        "launcher/windows/BloodborneLauncher/Localization/uk.json",
+        "launcher/windows/BloodborneLauncher/Localization/zh-CN.json",
+        "launcher/windows/BloodborneLauncher/Localization/zh-TW.json",
+        "launcher/windows/BloodborneLauncher/MainWindow.xaml",
+        "launcher/windows/BloodborneLauncher/MainWindow.xaml.cs",
+        "launcher/windows/BloodborneLauncher/Views/GraphicsPage.cs",
+        "launcher/windows/BloodborneLauncher/Views/LooksPage.cs",
+        "launcher/windows/BloodborneLauncher/Views/OnlinePage.cs",
+        "launcher/windows/BloodborneLauncher/Views/SettingsPage.cs",
+        "launcher/windows/BloodborneLauncher/app.ico",
+        "launcher/windows/BloodborneLauncher/lantern-beta.ico",
+        "launcher/windows/BloodborneLauncher/lantern-j3loo.ico",
+        "launcher/windows/BloodborneLauncher/lantern-orange.ico",
+        "launcher/windows/BloodborneLauncher/lantern-purple.ico",
+        "launcher/windows/BloodborneLauncher/lantern-stable.ico",
+        "launcher/windows/LanternLauncher/LanternLauncher.csproj",
+        "launcher/windows/LanternLauncher/MainWindow.cs",
+        "launcher/windows/LanternLauncher/Views/GraphicsPage.cs",
+        "launcher/windows/LanternLauncher/Views/LooksPage.cs",
+        "launcher/windows/LanternLauncher/Views/SettingsPage.cs",
+        "launcher/windows/LauncherBuilder/app.ico",
+        "launcher/windows/tests/LooksChecks/LooksChecks.csproj",
+        "launcher/windows/tests/LooksChecks/Program.cs"
+      ]
+    },
+    {
+      "sha": "4889a8a8bd72d74adc7ce49b89ddd951eba48bd2",
+      "author": "fromsoftserve <fromsoftserveofficial@gmail.com>",
+      "subject": "Optional lighting effects: GTAO, reflections, contact and soft shadows, indirect lighting, volumetric light, lamp fog, point light shadows; occlusion and camera fixes",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "engine/docs/COMPATIBILITY.md",
+        "engine/docs/NATIVE_ENGINE_PLAN.md",
+        "engine/gpu/CMakeLists.txt",
+        "engine/gpu/shadps4/video_core/host_shaders/contact_shadow.comp",
+        "engine/gpu/shadps4/video_core/host_shaders/gtao.frag",
+        "engine/gpu/shadps4/video_core/host_shaders/native_motion_blur.frag",
+        "engine/gpu/shadps4/video_core/host_shaders/native_motion_blur.glsl",
+        "engine/gpu/shadps4/video_core/host_shaders/native_motion_blur_test.comp",
+        "engine/gpu/shadps4/video_core/host_shaders/point_shadow.comp",
+        "engine/gpu/shadps4/video_core/host_shaders/point_volumetric.comp",
+        "engine/gpu/shadps4/video_core/host_shaders/ssgi.comp",
+        "engine/gpu/shadps4/video_core/host_shaders/ssr.frag",
+        "engine/gpu/shadps4/video_core/host_shaders/ssr_temporal.comp",
+        "engine/gpu/shadps4/video_core/host_shaders/ssr_trace.comp",
+        "engine/gpu/shadps4/video_core/host_shaders/volumetric_light.comp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/occlusion_model.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_camera_motion.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_camera_motion.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_contact_shadow.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_contact_shadow.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_effect_shaders.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_effect_shaders.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_occlusion.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_point_shadow.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_point_shadow.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_pom_patch.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer_effects.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_ssgi.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_ssgi.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_ssr_composite_patch.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_ssr_temporal.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_ssr_temporal.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_volumetric_light.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_volumetric_light.h",
+        "engine/gpu/shim/engine/features.cpp",
+        "engine/gpu/shim/engine/graphics.cpp",
+        "engine/gpu/shim/engine/graphics.h",
+        "engine/tests/test_directional_shadows.cpp",
+        "engine/tests/test_effect_pipelines.cpp",
+        "engine/tests/test_motion_blur.cpp",
+        "engine/tests/test_native_local_shadows.cpp",
+        "engine/tests/test_occlusion.cpp",
+        "engine/tests/test_point_volumetric.cpp",
+        "engine/tests/test_ssr_geometry.py",
+        "engine/tests/test_ssr_intensity.py",
+        "engine/tools/re/ssr_composite_patch.py"
+      ]
+    },
+    {
+      "sha": "7e083be97433113433cedadfb100f20465b41608",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "Update README.md",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "sha": "60783baf1fb932f367c5627fb043b711f6a917e1",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "0.9.39 beta 24.1",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "launcher/windows/BloodborneLauncher/Core/TestedSettings.cs",
+        "launcher/windows/BloodborneLauncher/MainWindow.xaml.cs"
+      ]
+    },
+    {
+      "sha": "b4e803b0ae102faa3b7ad98057f3da80d7549e93",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "0.9.39 beta 24",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "engine/docs/GX_NATIVE_PLAN.md",
+        "engine/docs/NATIVE_ENGINE_PLAN.md",
+        "engine/docs/upscaler.md",
+        "engine/gpu/bbnet/CMakeLists.txt",
+        "engine/gpu/bbnet/room/room_link.cpp",
+        "engine/gpu/bbnet/room/room_link.h",
+        "engine/gpu/bbnet/room/room_service.cpp",
+        "engine/gpu/bbnet/room/room_service.h",
+        "engine/gpu/bbnet/room/room_status.cpp",
+        "engine/gpu/bbnet/room/room_status.h",
+        "engine/gpu/bbnet/room/room_ws.cpp",
+        "engine/gpu/bbnet/thd/thd_matching2.cpp",
+        "engine/gpu/bbnet/thd/thd_session.cpp",
+        "engine/gpu/shadps4/video_core/amdgpu/liverpool.cpp",
+        "engine/gpu/shadps4/video_core/buffer_cache/buffer_cache.cpp",
+        "engine/gpu/shadps4/video_core/buffer_cache/buffer_cache.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_fsr4vk.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_fsr_sdk.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_optiscaler.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_optiscaler.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.h",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_temporal_upscaler.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_temporal_upscaler.h",
+        "engine/gpu/shadps4/video_core/texture_cache/texture_cache.cpp",
+        "engine/gpu/shim/bbport_gnm_hooks.cpp",
+        "engine/gpu/shim/bbport_overlay.cpp",
+        "engine/gpu/shim/bbport_settings.cpp",
+        "engine/gpu/shim/bbport_settings.h",
+        "engine/gpu/shim/engine/features.cpp",
+        "engine/gpu/shim/engine/gx_draws.cpp",
+        "engine/gpu/shim/engine/gx_objects.cpp",
+        "engine/gpu/shim/engine/gx_objects.h",
+        "engine/gpu/shim/engine/gx_records.cpp",
+        "engine/gpu/shim/engine/gx_records.h",
+        "engine/gpu/shim/engine/online_fixes.cpp",
+        "engine/gpu/shim/engine/online_fixes.h",
+        "engine/gpu/shim/hud_gauge.cpp",
+        "engine/gpu/shim/hud_gauge.h",
+        "engine/gpu/shim/lifter/bridge.cpp",
+        "engine/gpu/shim/voice.cpp",
+        "engine/gpu/shim/voice.h",
+        "engine/gpu/shim/voice_gate.h",
+        "engine/tests/test_room_service.cpp",
+        "engine/tests/test_room_status.cpp",
+        "engine/tools/engine/ui_4k.cpp",
+        "engine/tools/re/gx_facts.py",
+        "faq/index.html",
+        "launcher/windows/BloodborneLauncher/Core/EngineSwitches.cs",
+        "launcher/windows/BloodborneLauncher/Core/GameEnvironment.cs",
+        "launcher/windows/BloodborneLauncher/Core/SaveBackups.cs",
+        "launcher/windows/BloodborneLauncher/Core/SaveCatalog.cs",
+        "launcher/windows/BloodborneLauncher/Core/SaveEditorSession.cs",
+        "launcher/windows/BloodborneLauncher/Core/SaveGuard.cs",
+        "launcher/windows/BloodborneLauncher/Core/SaveSlot.cs",
+        "launcher/windows/BloodborneLauncher/Core/SaveStore.cs",
+        "launcher/windows/BloodborneLauncher/Core/SaveWorld.cs",
+        "launcher/windows/BloodborneLauncher/Core/TestedSettings.cs",
+        "launcher/windows/BloodborneLauncher/Core/UiUpscale.cs",
+        "launcher/windows/BloodborneLauncher/Core/Updater.cs",
+        "launcher/windows/BloodborneLauncher/MainWindow.xaml",
+        "launcher/windows/BloodborneLauncher/MainWindow.xaml.cs",
+        "launcher/windows/BloodborneLauncher/Views/MorePage.cs",
+        "launcher/windows/BloodborneLauncher/Views/PlayPage.cs",
+        "launcher/windows/BloodborneLauncher/Views/SaveEditorPage.cs",
+        "launcher/windows/BloodborneLauncher/Views/SavesPage.cs",
+        "launcher/windows/BloodborneLauncher/Views/SettingsPage.cs",
+        "launcher/windows/BloodborneLauncher/Views/SetupGuide.cs",
+        "launcher/windows/LanternLauncher/MainWindow.cs",
+        "launcher/windows/LanternLauncher/Views/MorePage.cs",
+        "launcher/windows/LanternLauncher/Views/PlayPage.cs",
+        "launcher/windows/LanternLauncher/Views/SaveEditorPage.cs",
+        "launcher/windows/LanternLauncher/Views/SavesPage.cs",
+        "launcher/windows/LanternLauncher/Views/SettingsPage.cs",
+        "launcher/windows/tests/SaveEditorChecks/Program.cs",
+        "launcher/windows/tests/SaveEditorChecks/SaveEditorChecks.csproj",
+        "launcher/windows/tests/SaveEditorChecks/Stubs.cs"
+      ]
+    },
+    {
+      "sha": "be0810f349a4d49da9b87e71f980a124abdb5b74",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "Lantern Engine 0.9.39 beta 23: seamless co-op copes better with slow and unstable connections, guest boss drops and trophies, Direct P2P rooms, the PC memory model off on AMD's legacy driver, more of the system layer on Lantern's own code",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "engine/build.sh",
+        "engine/docs/GX_NATIVE_PLAN.md",
+        "engine/docs/NATIVE_ENGINE_PLAN.md",
+        "engine/docs/native_shader_compiler.md",
+        "engine/gpu/CMakeLists.txt",
+        "engine/gpu/VENDOR.txt",
+        "engine/gpu/bbnet/CMakeLists.txt",
+        "engine/gpu/bbnet/include/core/file_sys/fs.h",
+        "engine/gpu/bbnet/room/room_announce.cpp",
+        "engine/gpu/bbnet/room/room_announce.h",
+        "engine/gpu/bbnet/room/room_host.cpp",
+        "engine/gpu/bbnet/room/room_host.h",
+        "engine/gpu/bbnet/room/room_link.cpp",
+        "engine/gpu/bbnet/room/room_link.h",
+        "engine/gpu/bbnet/room/room_service.cpp",
+        "engine/gpu/bbnet/room/room_service.h",
+        "engine/gpu/bbnet/room/room_ws.cpp",
+        "engine/gpu/bbnet/room/room_ws.h",
+        "engine/gpu/bbnet/vendor/shadps4/core/libraries/system/systemservice.h",
+        "engine/gpu/bbnet/vendor/shadps4/core/libraries/system/userservice.h",
+        "engine/gpu/shadps4/common/aes.h",
+        "engine/gpu/shadps4/common/assert.cpp",
+        "engine/gpu/shadps4/common/bounded_threadsafe_queue.h",
+        "engine/gpu/shadps4/common/cstring.h",
+        "engine/gpu/shadps4/common/debug.h",
+        "engine/gpu/shadps4/common/discord_rpc_handler.cpp",
+        "engine/gpu/shadps4/common/discord_rpc_handler.h",
+        "engine/gpu/shadps4/common/endian.h",
+        "engine/gpu/shadps4/common/fixed_value.h",
+        "engine/gpu/shadps4/common/key_manager.cpp",
+        "engine/gpu/shadps4/common/key_manager.h",
+        "engine/gpu/shadps4/common/logging/log.cpp",
+        "engine/gpu/shadps4/common/logging/log.h",
+        "engine/gpu/shadps4/common/logging/log_file_sink.h",
+        "engine/gpu/shadps4/common/memory_patcher.cpp",
+        "engine/gpu/shadps4/common/memory_patcher.h",
+        "engine/gpu/shadps4/common/ntapi.cpp",
+        "engine/gpu/shadps4/common/ntapi.h",
+        "engine/gpu/shadps4/common/ring_buffer_queue.h",
+        "engine/gpu/shadps4/common/sha1.h",
+        "engine/gpu/shadps4/common/slab_heap.h",
+        "engine/gpu/shadps4/common/slot_array.h",
+        "engine/gpu/shadps4/common/stb.cpp",
+        "engine/gpu/shadps4/common/stb.h",
+        "engine/gpu/shadps4/common/support/avdec.h",
+        "engine/gpu/shadps4/common/va_ctx.h",
+        "engine/gpu/shadps4/core/libraries/avplayer/avplayer.cpp",
+        "engine/gpu/shadps4/core/libraries/avplayer/avplayer.h",
+        "engine/gpu/shadps4/core/libraries/avplayer/avplayer_common.cpp",
+        "engine/gpu/shadps4/core/libraries/avplayer/avplayer_common.h",
+        "engine/gpu/shadps4/core/libraries/avplayer/avplayer_data_streamer.h",
+        "engine/gpu/shadps4/core/libraries/avplayer/avplayer_error.h",
+        "engine/gpu/shadps4/core/libraries/avplayer/avplayer_file_streamer.cpp",
+        "engine/gpu/shadps4/core/libraries/avplayer/avplayer_file_streamer.h",
+        "engine/gpu/shadps4/core/libraries/avplayer/avplayer_impl.cpp",
+        "engine/gpu/shadps4/core/libraries/avplayer/avplayer_impl.h",
+        "engine/gpu/shadps4/core/libraries/avplayer/avplayer_source.cpp",
+        "engine/gpu/shadps4/core/libraries/avplayer/avplayer_source.h",
+        "engine/gpu/shadps4/core/libraries/avplayer/avplayer_state.cpp",
+        "engine/gpu/shadps4/core/libraries/avplayer/avplayer_state.h",
+        "engine/gpu/shadps4/core/libraries/error_codes.h",
+        "engine/gpu/shadps4/core/libraries/gnmdriver/gnmdriver.cpp",
+        "engine/gpu/shadps4/core/libraries/gnmdriver/gnmdriver.h",
+        "engine/gpu/shadps4/core/libraries/kernel/equeue.cpp",
+        "engine/gpu/shadps4/core/libraries/kernel/equeue.h",
+        "engine/gpu/shadps4/core/libraries/kernel/orbis_error.h",
+        "engine/gpu/shadps4/core/libraries/kernel/posix_error.h",
+        "engine/gpu/shadps4/core/libraries/kernel/process.h",
+        "engine/gpu/shadps4/core/libraries/kernel/time.h",
+        "engine/gpu/shadps4/core/libraries/system/systemservice.h",
+        "engine/gpu/shadps4/core/libraries/system/userservice.h",
+        "engine/gpu/shadps4/core/libraries/videodec/video_utils.cpp",
+        "engine/gpu/shadps4/core/libraries/videodec/video_utils.h",
+        "engine/gpu/shadps4/core/libraries/videoout/buffer.h",
+        "engine/gpu/shadps4/core/libraries/videoout/driver.cpp",
+        "engine/gpu/shadps4/core/libraries/videoout/driver.h",
+        "engine/gpu/shadps4/core/libraries/videoout/video_out.cpp",
+        "engine/gpu/shadps4/core/libraries/videoout/video_out.h",
+        "engine/gpu/shadps4/core/libraries/videoout/videoout_error.h",
+        "engine/gpu/shadps4/core/platform.h",
+        "engine/gpu/shadps4/video_core/amdgpu/liverpool.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.h",
+        "engine/gpu/shadps4/video_core/texture_cache/texture_cache.cpp",
+        "engine/gpu/shim/bbgpu.cpp",
+        "engine/gpu/shim/bbport_gnm_hooks.cpp",
+        "engine/gpu/shim/bbport_guest_memory_win.cpp",
+        "engine/gpu/shim/bbport_overlay.cpp",
+        "engine/gpu/shim/core/libraries/error_codes.h",
+        "engine/gpu/shim/core/libraries/kernel/orbis_error.h",
+        "engine/gpu/shim/core/libraries/kernel/process.h",
+        "engine/gpu/shim/core/libraries/kernel/time.h",
+        "engine/gpu/shim/core/libraries/videoout/buffer.h",
+        "engine/gpu/shim/core/libraries/videoout/driver.h",
+        "engine/gpu/shim/core/platform.h",
+        "engine/gpu/shim/engine/boss_rewards.h",
+        "engine/gpu/shim/engine/engine_hooks.cpp",
+        "engine/gpu/shim/engine/engine_hooks.h",
+        "engine/gpu/shim/engine/features.cpp",
+        "engine/gpu/shim/engine/gx_draws.cpp",
+        "engine/gpu/shim/engine/gx_draws.h",
+        "engine/gpu/shim/engine/gx_objects.cpp",
+        "engine/gpu/shim/engine/gx_objects.h",
+        "engine/gpu/shim/engine/gx_trace.cpp",
+        "engine/gpu/shim/engine/gx_trace.h",
+        "engine/gpu/shim/engine/kept_travel.h",
+        "engine/gpu/shim/engine/loading.cpp",
+        "engine/gpu/shim/engine/online_fixes.cpp",
+        "engine/gpu/shim/engine/online_fixes.h",
+        "engine/gpu/shim/engine/option_menu.cpp",
+        "engine/gpu/shim/engine/party_death.h",
+        "engine/gpu/shim/engine/rebirth.cpp",
+        "engine/gpu/shim/input/input.cpp",
+        "engine/gpu/shim/lantern_av_decode.cpp",
+        "engine/gpu/shim/lantern_frame_report.cpp",
+        "engine/gpu/shim/lantern_frame_report.h",
+        "engine/gpu/shim/lantern_video_out.cpp",
+        "engine/gpu/shim/lifter/bridge.cpp",
+        "engine/gpu/shim/lifter/bridge.h",
+        "engine/gpu/shim/lifter/gcn.h",
+        "engine/gpu/shim/lifter/gcn_decode.cpp",
+        "engine/gpu/shim/lifter/lift.cpp",
+        "engine/gpu/shim/lifter/lift.h",
+        "engine/gpu/shim/lifter/lift_alu.cpp",
+        "engine/gpu/shim/lifter/lift_core.h",
+        "engine/gpu/shim/lifter/lift_flow.cpp",
+        "engine/gpu/shim/lifter/lift_mem.cpp",
+        "engine/gpu/shim/lifter/lift_stage.cpp",
+        "engine/gpu/shim/lifter/lift_tess.cpp",
+        "engine/gpu/shim/lifter/lift_tone.cpp",
+        "engine/gpu/shim/lifter/module.h",
+        "engine/gpu/shim/voice.cpp",
+        "engine/gpu/shim/voice_gate.h",
+        "engine/src/blocked.c",
+        "engine/src/host.c",
+        "engine/src/host_sync.h",
+        "engine/src/probe.c",
+        "engine/src/runtime.c",
+        "engine/src/runtime.h",
+        "engine/src/runtime_blocked.c",
+        "engine/src/runtime_file.c",
+        "engine/src/runtime_host.c",
+        "engine/src/runtime_kernel.c",
+        "engine/src/runtime_memory.c",
+        "engine/src/runtime_services.c",
+        "engine/src/sys/app_content.c",
+        "engine/src/sys/av_player.c",
+        "engine/src/sys/av_player.h",
+        "engine/src/sys/clock.c",
+        "engine/src/sys/equeue.c",
+        "engine/src/sys/file.c",
+        "engine/src/sys/file_stream.c",
+        "engine/src/sys/imports.c",
+        "engine/src/sys/libc_start.c",
+        "engine/src/sys/memory.c",
+        "engine/src/sys/net_offline.c",
+        "engine/src/sys/play_go.c",
+        "engine/src/sys/process.c",
+        "engine/src/sys/save_data.c",
+        "engine/src/sys/sys.c",
+        "engine/src/sys/sys.h",
+        "engine/src/sys/video_out.c",
+        "engine/src/sys/video_out.h",
+        "engine/src/wait_stats.c",
+        "engine/src/win32_compat.c",
+        "engine/start/online.cpp",
+        "engine/tests/room_link_bench.cpp",
+        "engine/tests/shader_gpu_stats.cpp",
+        "engine/tests/shader_lab.cpp",
+        "engine/tests/spirv_diff.cpp",
+        "engine/tests/sys_test_host.c",
+        "engine/tests/test_content.c",
+        "engine/tests/test_file_mods.c",
+        "engine/tests/test_gpu_runtime_stubs.cpp",
+        "engine/tests/test_kept_travel.cpp",
+        "engine/tests/test_party_death.cpp",
+        "engine/tests/test_room_announce.cpp",
+        "engine/tests/test_room_host.cpp",
+        "engine/tests/test_room_service.cpp",
+        "engine/tests/test_runtime.c",
+        "engine/tests/test_sema.c",
+        "engine/tests/test_shared_progress.cpp",
+        "engine/tests/test_sys_av_player.c",
+        "engine/tests/test_sys_file.c",
+        "engine/tests/test_sys_memory.c",
+        "engine/tests/test_sys_video_out.c",
+        "engine/tests/test_voice_gate.cpp",
+        "engine/tools/re/gcn_census.py",
+        "engine/tools/re/gcn_dis.py",
+        "engine/tools/re/gx_facts.py",
+        "engine/tools/re/import_census.py",
+        "engine/tools/re/shader_files.py",
+        "launcher/windows/BloodborneLauncher/Core/Choices.cs",
+        "launcher/windows/BloodborneLauncher/Core/Updater.cs",
+        "launcher/windows/BloodborneLauncher/Views/LauncherPage.cs",
+        "launcher/windows/BloodborneLauncher/Views/OnlinePage.cs"
+      ]
+    },
+    {
+      "sha": "a2e858c4d02f3eeba083c3449cdc06722baeabcd",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "Lantern Engine 0.9.39 beta 22: seamless co-op without bells (Start summon and Send sign in the co-op menu), guests who start before the host no longer stay offline, 4K menus built on your own PC, SuperMedo as a second online server, and empty plate titles show only the name",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "NOTICE",
+        "README.md",
+        "engine/build.sh",
+        "engine/gpu/CMakeLists.txt",
+        "engine/gpu/bbnet/room/room_service.cpp",
+        "engine/gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp",
+        "engine/gpu/shadps4/video_core/texture_cache/image.h",
+        "engine/gpu/shadps4/video_core/texture_cache/texture_cache.cpp",
+        "engine/gpu/shadps4/video_core/texture_cache/texture_cache.h",
+        "engine/gpu/shim/bbport_overlay.cpp",
+        "engine/gpu/shim/hud_gauge.cpp",
+        "engine/gpu/shim/hud_gauge.h",
+        "engine/licenses/REAL-ESRGAN.txt",
+        "engine/packaging/linux/build.sh",
+        "engine/start/main.cpp",
+        "engine/tools/engine/ui_4k.cpp",
+        "faq/index.html",
+        "launcher/windows/BloodborneLauncher/Core/Choices.cs",
+        "launcher/windows/BloodborneLauncher/Core/GameEnvironment.cs",
+        "launcher/windows/BloodborneLauncher/Core/SuperMedo.cs",
+        "launcher/windows/BloodborneLauncher/Core/UiUpscale.cs",
+        "launcher/windows/BloodborneLauncher/Core/Updater.cs",
+        "launcher/windows/BloodborneLauncher/Localization/de.json",
+        "launcher/windows/BloodborneLauncher/Localization/es.json",
+        "launcher/windows/BloodborneLauncher/Localization/fr.json",
+        "launcher/windows/BloodborneLauncher/Localization/it.json",
+        "launcher/windows/BloodborneLauncher/Localization/ja.json",
+        "launcher/windows/BloodborneLauncher/Localization/ko.json",
+        "launcher/windows/BloodborneLauncher/Localization/pl.json",
+        "launcher/windows/BloodborneLauncher/Localization/pt-BR.json",
+        "launcher/windows/BloodborneLauncher/Localization/ru.json",
+        "launcher/windows/BloodborneLauncher/Localization/tr.json",
+        "launcher/windows/BloodborneLauncher/Localization/uk.json",
+        "launcher/windows/BloodborneLauncher/Localization/zh-CN.json",
+        "launcher/windows/BloodborneLauncher/Localization/zh-TW.json",
+        "launcher/windows/BloodborneLauncher/MainWindow.xaml.cs",
+        "launcher/windows/BloodborneLauncher/Views/GraphicsPage.cs",
+        "launcher/windows/BloodborneLauncher/Views/OnlinePage.cs"
+      ]
+    },
+    {
+      "sha": "775bf0796572a587f050b0ca5b909448c38a1d50",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "Lantern Engine 0.9.39 beta 21: guests keep their own stats, a guest's lamp no longer moves the host's world, smoother following, voice on its own connection with server-side limits, talk key and voice volume, and the co-op menu's new flourishes",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "engine/gpu/bbnet/room/room_link.cpp",
+        "engine/gpu/bbnet/room/room_link.h",
+        "engine/gpu/bbnet/room/room_service.cpp",
+        "engine/gpu/bbnet/room/room_service.h",
+        "engine/gpu/bbnet/room/room_ws.cpp",
+        "engine/gpu/bbnet/room/room_ws.h",
+        "engine/gpu/shim/bbport_overlay.cpp",
+        "engine/gpu/shim/bbport_settings.cpp",
+        "engine/gpu/shim/bbport_settings.h",
+        "engine/gpu/shim/engine/online_fixes.cpp",
+        "engine/gpu/shim/voice.cpp",
+        "engine/gpu/shim/voice.h",
+        "faq/index.html",
+        "launcher/windows/BloodborneLauncher/Core/Updater.cs"
+      ]
+    },
+    {
+      "sha": "ab09ffabd4c1f27b86e05b6b47dcb9a8bf45df26",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "Lantern Engine 0.9.39 beta 20: seamless co-op menu (F2), voice chat over the encrypted room, real bells for the automatic summons, reconnects that can be summoned again, a quieter co-op banner, custom plate titles, and Lantern's own threads, locks, clocks and process calls",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "engine/build.sh",
+        "engine/docs/NATIVE_ENGINE_PLAN.md",
+        "engine/gpu/CMakeLists.txt",
+        "engine/gpu/bbnet/CMakeLists.txt",
+        "engine/gpu/bbnet/include/ip_mask.h",
+        "engine/gpu/bbnet/room/room_service.cpp",
+        "engine/gpu/bbnet/room/room_service.h",
+        "engine/gpu/bbnet/thd/thd_internal.h",
+        "engine/gpu/bbnet/thd/thd_matching2.cpp",
+        "engine/gpu/bbnet/thd/thd_net.cpp",
+        "engine/gpu/bbnet/thd/thd_np.cpp",
+        "engine/gpu/bbnet/thd/thd_session.cpp",
+        "engine/gpu/bbnet/vendor/shadps4/core/libraries/net/net_log.cpp",
+        "engine/gpu/bbnet/vendor/shadps4/core/libraries/net/net_p2p.cpp",
+        "engine/gpu/bbnet/vendor/shadps4/core/libraries/net/net_resolver.cpp",
+        "engine/gpu/bbnet/vendor/shadps4/core/libraries/net/net_upnp.cpp",
+        "engine/gpu/bbnet/vendor/shadps4/core/libraries/net/net_util.cpp",
+        "engine/gpu/bbnet/vendor/shadps4/core/libraries/network/netctl.cpp",
+        "engine/gpu/bbnet/vendor/shadps4/core/libraries/np/np_matching2/np_matching2.cpp",
+        "engine/gpu/bbnet/vendor/shadps4/core/libraries/np/np_matching2/np_matching2_internal.cpp",
+        "engine/gpu/bbnet/vendor/shadps4/core/libraries/np/np_matching2/np_matching2_mm.cpp",
+        "engine/gpu/bbnet/vendor/shadps4/core/libraries/np/np_matching2/np_matching2_signaling.cpp",
+        "engine/gpu/bbnet/vendor/shadps4/core/libraries/np/np_signaling/np_signaling.cpp",
+        "engine/gpu/bbnet/vendor/shadps4/core/libraries/np/signaling_handler.cpp",
+        "engine/gpu/shim/bbport_overlay.cpp",
+        "engine/gpu/shim/bbport_settings.cpp",
+        "engine/gpu/shim/bbport_settings.h",
+        "engine/gpu/shim/engine/online_fixes.cpp",
+        "engine/gpu/shim/engine/online_fixes.h",
+        "engine/gpu/shim/voice.cpp",
+        "engine/gpu/shim/voice.h",
+        "engine/packaging/linux/setup-ubuntu.sh",
+        "engine/src/runtime.c",
+        "engine/src/runtime.h",
+        "engine/src/runtime_blocked.c",
+        "engine/src/runtime_kernel.c",
+        "engine/src/runtime_mutex.c",
+        "engine/src/runtime_thread.c",
+        "engine/src/sys/clock.c",
+        "engine/src/sys/mutex.c",
+        "engine/src/sys/process.c",
+        "engine/src/sys/sys.c",
+        "engine/src/sys/sys.h",
+        "engine/src/sys/thread.c",
+        "engine/start/assets.cpp",
+        "engine/start/assets.h",
+        "engine/start/main.cpp",
+        "engine/tests/sys_test_host.c",
+        "engine/tests/test_ip_mask.cpp",
+        "engine/tests/test_log_privacy.py",
+        "engine/tests/test_runtime.c",
+        "engine/tests/test_sys_clock.c",
+        "engine/tests/test_sys_mutex.c",
+        "engine/tests/test_sys_thread.c",
+        "engine/tools/engine/menu_assets.cpp",
+        "engine/tools/engine/menu_assets.h",
+        "engine/tools/engine/menu_assets_main.cpp",
+        "engine/tools/re/import_census.py",
+        "faq/index.html",
+        "launcher/windows/BloodborneLauncher/Core/Updater.cs",
+        "launcher/windows/BloodborneLauncher/Localization/de.json",
+        "launcher/windows/BloodborneLauncher/Localization/es.json",
+        "launcher/windows/BloodborneLauncher/Localization/fr.json",
+        "launcher/windows/BloodborneLauncher/Localization/it.json",
+        "launcher/windows/BloodborneLauncher/Localization/ja.json",
+        "launcher/windows/BloodborneLauncher/Localization/ko.json",
+        "launcher/windows/BloodborneLauncher/Localization/pl.json",
+        "launcher/windows/BloodborneLauncher/Localization/pt-BR.json",
+        "launcher/windows/BloodborneLauncher/Localization/ru.json",
+        "launcher/windows/BloodborneLauncher/Localization/tr.json",
+        "launcher/windows/BloodborneLauncher/Localization/uk.json",
+        "launcher/windows/BloodborneLauncher/Localization/zh-CN.json",
+        "launcher/windows/BloodborneLauncher/Localization/zh-TW.json",
+        "launcher/windows/BloodborneLauncher/Views/OnlinePage.cs"
+      ]
+    },
+    {
+      "sha": "bde5747c488d27e54351ff3ba58bafa69312718a",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "Lantern Engine 0.9.39 beta 19: Play online off keeps seamless co-op off (cheats work offline), only the host can summon in seamless co-op, the Role and name plates choice no longer turns the native menus off",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "engine/gpu/bbnet/room/room_service.cpp",
+        "engine/start/online.cpp",
+        "engine/tools/engine/menu_assets_main.cpp",
+        "faq/index.html",
+        "launcher/windows/BloodborneLauncher/Core/Updater.cs",
+        "launcher/windows/BloodborneLauncher/Views/OnlinePage.cs"
+      ]
+    },
+    {
+      "sha": "87babf1db112a7a071ae63c8d00a2cd30ae00b03",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "Lantern Engine 0.9.39 beta 18: seamless co-op shares only a guest's own progress, boss rewards only for bosses fought, party cards leave promptly, live summon status, name-only plates and plate names with spaces, new-character crash fixed, FAQ seamless co-op guide",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "engine/gpu/CMakeLists.txt",
+        "engine/gpu/bbnet/room/room_service.cpp",
+        "engine/gpu/bbnet/room/room_service.h",
+        "engine/gpu/shim/bbport_overlay.cpp",
+        "engine/gpu/shim/engine/change_appearance.cpp",
+        "engine/gpu/shim/engine/features.cpp",
+        "engine/gpu/shim/engine/online_fixes.cpp",
+        "engine/gpu/shim/engine/shared_progress.h",
+        "engine/start/assets.cpp",
+        "engine/start/assets.h",
+        "engine/start/main.cpp",
+        "engine/start/online.cpp",
+        "engine/tests/test_shared_progress.cpp",
+        "engine/tools/engine/menu_assets.cpp",
+        "engine/tools/engine/menu_assets.h",
+        "engine/tools/engine/menu_assets_main.cpp",
+        "faq/index.html",
+        "launcher/windows/BloodborneLauncher/Core/Choices.cs",
+        "launcher/windows/BloodborneLauncher/Core/Updater.cs",
+        "launcher/windows/BloodborneLauncher/Localization/de.json",
+        "launcher/windows/BloodborneLauncher/Localization/es.json",
+        "launcher/windows/BloodborneLauncher/Localization/fr.json",
+        "launcher/windows/BloodborneLauncher/Localization/it.json",
+        "launcher/windows/BloodborneLauncher/Localization/ja.json",
+        "launcher/windows/BloodborneLauncher/Localization/ko.json",
+        "launcher/windows/BloodborneLauncher/Localization/pl.json",
+        "launcher/windows/BloodborneLauncher/Localization/pt-BR.json",
+        "launcher/windows/BloodborneLauncher/Localization/ru.json",
+        "launcher/windows/BloodborneLauncher/Localization/tr.json",
+        "launcher/windows/BloodborneLauncher/Localization/uk.json",
+        "launcher/windows/BloodborneLauncher/Localization/zh-CN.json",
+        "launcher/windows/BloodborneLauncher/Localization/zh-TW.json",
+        "launcher/windows/BloodborneLauncher/Views/OnlinePage.cs"
+      ]
+    },
+    {
+      "sha": "f3351ee6f2d1458c657b38d6a4e132bb5bf414d7",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "Engine source: Linux build fixes for the new system libraries (0.9.39 beta 17)",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "engine/src/sys/ajm.c",
+        "engine/src/sys/save_data.c",
+        "engine/tests/sys_test_host.c",
+        "engine/tests/test_runtime.c"
+      ]
+    },
+    {
+      "sha": "0bcb83aa2c6fca115ed147a617752d11b0353f5a",
+      "author": "Awaken <93601997+Awakenchan@users.noreply.github.com>",
+      "subject": "Lantern Engine 0.9.39 beta 17: seamless co-op on a dedicated server sponsored by 1337 Hosting, Lantern's own system libraries (services, dialogs, input, audio, saves, semaphores and rwlocks)",
+      "fork": "Awakenchan/LanternEngine",
+      "files": [
+        "README.md",
+        "engine/build.sh",
+        "engine/docs/GX_NATIVE_PLAN.md",
+        "engine/docs/NATIVE_ENGINE_PLAN.md",
+        "engine/gpu/bbnet/room/room_service.cpp",
+        "engine/gpu/bbnet/room/room_service.h",
+        "engine/gpu/bbnet/room/room_ws.h",
+        "engine/gpu/shadps4/core/libraries/videoout/driver.cpp",
+        "engine/gpu/shim/bbport_overlay.cpp",
+        "engine/gpu/shim/engine/key_prompts.cpp",
+        "engine/gpu/shim/input/input.h",
+        "engine/src/probe.c",
+        "engine/src/runtime.c",
+        "engine/src/runtime.h",
+        "engine/src/runtime_ajm.c",
+        "engine/src/runtime_audio.c",
+        "engine/src/runtime_blocked.c",
+        "engine/src/runtime_content.c",
+        "engine/src/runtime_pad.c",
+        "engine/src/runtime_rtc.c",
+        "engine/src/runtime_rwlock.c",
+        "engine/src/runtime_savedata.c",
+        "engine/src/runtime_sema.c",
+        "engine/src/runtime_services.c",
+        "engine/src/runtime_time.c",
+        "engine/src/sys/ajm.c",
+        "engine/src/sys/app_content.c",
+        "engine/src/sys/audio_out.c",
+        "engine/src/sys/dialogs.c",
+        "engine/src/sys/ime_dialog.c",
+        "engine/src/sys/np_trophy.c",
+        "engine/src/sys/pad.c",
+        "engine/src/sys/pad.h",
+        "engine/src/sys/pad_host.c",
+        "engine/src/sys/pad_script.c",
+        "engine/src/sys/play_go.c",
+        "engine/src/sys/posix_time.c",
+        "engine/src/sys/rtc.c",
+        "engine/src/sys/rwlock.c",
+        "engine/src/sys/save_data.c",
+        "engine/src/sys/semaphore.c",
+        "engine/src/sys/small_services.c",
+        "engine/src/sys/sys.c",
+        "engine/src/sys/sys.h",
+        "engine/src/sys/system_service.c",
+        "engine/src/sys/user_service.c",
+        "engine/start/online.cpp",
+        "engine/tests/shader_lab.cpp",
+        "engine/tests/sys_test_host.c",
+        "engine/tests/test_content.c",
+        "engine/tests/test_gpu_runtime_stubs.cpp",
+        "engine/tests/test_pad.c",
+        "engine/tests/test_sema.c",
+        "engine/tests/test_sys_rtc.c",
+        "engine/tools/re/dumpfn.py",
+        "engine/tools/re/ghidra.sh",
+        "engine/tools/re/ghidra/LanternDecompile.java",
+        "engine/tools/re/ghidra/LanternDump.java",
+        "engine/tools/re/ghidra/LanternSeed.java",
+        "engine/tools/re/ghidra_elf.py",
+        "engine/tools/re/gx_facts.py",
+        "engine/tools/re/import_census.py",
+        "faq/index.html",
+        "launcher/windows/BloodborneLauncher/Core/Updater.cs"
+      ]
+    },
+    {
+      "sha": "14dbd84263b3a08d001eb7fb1128e98f4c5f2be9",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: where a pipeline's render state comes from",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "a4bcfe72d9c1dfa7deb222e774ad7a4e61f09ffe",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Shader compile: pipelines from states noted on the player's device",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/BUILDING.md",
+        "docs/NATIVE_RENDERER.md",
+        "gpu/shadps4/video_core/renderer_metal/mtl_pso_cache.h",
+        "gpu/shadps4/video_core/renderer_metal/mtl_pso_cache.mm",
+        "gpu/shadps4/video_core/renderer_metal/mtl_shadow.mm",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_metal_shadow.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_ahead.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_ahead.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_shader_scan.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_shader_scan.h"
+      ]
+    },
+    {
+      "sha": "aa7632e4a2ea4227ea03bf387198d30f5515a5fd",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Shader compile: Metal only",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp"
+      ]
+    },
+    {
+      "sha": "6bea053f02665fc29f95806c8aee5191fedb0939",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "The shader compile step, from the game's files on the player's device",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/BUILDING.md",
+        "docs/NATIVE_RENDERER.md",
+        "gpu/CMakeLists.txt",
+        "gpu/shadps4/shader_recompiler/frontend/fetch_shader.cpp",
+        "gpu/shadps4/shader_recompiler/frontend/fetch_shader.h",
+        "gpu/shadps4/shader_recompiler/frontend/translate/vector_alu.cpp",
+        "gpu/shadps4/shader_recompiler/info.h",
+        "gpu/shadps4/shader_recompiler/ir/passes/resource_patching_pass.cpp",
+        "gpu/shadps4/shader_recompiler/resource.h",
+        "gpu/shadps4/video_core/renderer_metal/mtl_shader.mm",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_shader_scan.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_shader_scan.h",
+        "gpu/shim/bbport_overlay.cpp",
+        "gpu/shim/common/assert.cpp",
+        "run.sh"
+      ]
+    },
+    {
+      "sha": "64e2f0ead39e92b5e70e75925f287cfd5bdb5bed",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: first play with shaders independent of the draw",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "b94dac89c8a6aac71f52acd12ad3534838753595",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Vertex shaders independent of the mesh's component count",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "gpu/shadps4/shader_recompiler/backend/spirv/emit_spirv_context_get_set.cpp",
+        "gpu/shadps4/shader_recompiler/backend/spirv/spirv_emit_context.cpp",
+        "gpu/shadps4/shader_recompiler/backend/spirv/spirv_emit_context.h",
+        "gpu/shadps4/shader_recompiler/frontend/fetch_shader.h",
+        "gpu/shadps4/shader_recompiler/frontend/translate/translate.cpp",
+        "gpu/shadps4/shader_recompiler/profile.h",
+        "gpu/shadps4/shader_recompiler/resource.h",
+        "gpu/shadps4/shader_recompiler/specialization.h",
+        "gpu/shadps4/video_core/renderer_backend/resource.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_backend_device.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp"
+      ]
+    },
+    {
+      "sha": "50c73677aabac05e51b1753506540635d2df2ac1",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Shader keys without vertex state the shader cannot read",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp"
+      ]
+    },
+    {
+      "sha": "88519be5071133e3a882cdc354befcf041eb6fcd",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: the extra variants by stage",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "4aeac0d834901b230ff9c55fefb3d69002cf47ba",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Metal: colour exports independent of the target",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md",
+        "gpu/shadps4/shader_recompiler/backend/spirv/emit_spirv_context_get_set.cpp",
+        "gpu/shadps4/shader_recompiler/backend/spirv/spirv_emit_context.cpp",
+        "gpu/shadps4/shader_recompiler/backend/spirv/spirv_emit_context.h",
+        "gpu/shadps4/shader_recompiler/profile.h",
+        "gpu/shadps4/shader_recompiler/resource.h",
+        "gpu/shadps4/video_core/renderer_backend/resource.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_backend_device.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp"
+      ]
+    },
+    {
+      "sha": "3abbd7ac5d685cfb402f5e69a0dea6788a86d464",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Take the shader list prototype back out of main",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "gpu/shadps4/shader_recompiler/frontend/fetch_shader.cpp",
+        "gpu/shadps4/shader_recompiler/frontend/fetch_shader.h",
+        "gpu/shadps4/shader_recompiler/frontend/translate/vector_alu.cpp",
+        "gpu/shadps4/shader_recompiler/info.h",
+        "gpu/shadps4/shader_recompiler/ir/passes/resource_patching_pass.cpp",
+        "gpu/shadps4/shader_recompiler/resource.h",
+        "gpu/shadps4/video_core/renderer_metal/mtl_shader.mm",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.h",
+        "gpu/shim/bbport_overlay.cpp",
+        "gpu/shim/common/assert.cpp"
+      ]
+    },
+    {
+      "sha": "c00066767302ac9c68fa19a2c432a622af294e7a",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: why a first play still compiles",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md",
+        "gpu/shadps4/shader_recompiler/frontend/fetch_shader.cpp",
+        "gpu/shadps4/shader_recompiler/frontend/fetch_shader.h",
+        "gpu/shadps4/shader_recompiler/frontend/translate/vector_alu.cpp",
+        "gpu/shadps4/shader_recompiler/info.h",
+        "gpu/shadps4/shader_recompiler/ir/passes/resource_patching_pass.cpp",
+        "gpu/shadps4/shader_recompiler/resource.h",
+        "gpu/shadps4/video_core/renderer_metal/mtl_shader.mm",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.h",
+        "gpu/shim/bbport_overlay.cpp",
+        "gpu/shim/common/assert.cpp"
+      ]
+    },
+    {
+      "sha": "51ae1326b659b50292a8a6571f38d621761a9a3e",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: the whole game's shaders and pipelines, generated",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "0eae3b040b7a5d71801a45fe8f7260cc088c774e",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: compute shaders from the headers, and fewer pipeline builds",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "2bc5e6f0a28699f06f1c5b4a6af7b372f5231c0a",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: what to look at in Wooloomooloo2's port, reviewed up to 0.5.12",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/UPSTREAM.md"
+      ]
+    },
+    {
+      "sha": "feec2c4ea2d8873effa05c5d079bde8eac19fdfe",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: pipeline state predicted, and the shader list at full size",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "14430575b6a2ad260983a3e133177d7e06f58ddd",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: compiling ahead through Metal's cache, measured",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "176f7b585b3b6a37d7511e2190cceb2e13979387",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: a pipeline list from the game's files, sized",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "cededf293e3fe8b478d7b21da036b53de156a24e",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: what the fixed passes hold",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "b201f37a3b496190c8db1a9fe1e7d09ec0ee794d",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: what decides a pipeline",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "45a4d51964546b660f3c11145328298efe4472e5",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: a shader list from the game's files, measured",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "9788e53d5e5cec9fa3f9ef5feda55c2790b53d16",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: what vertex attributes need from a shader list",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "b63da259045b2963f2a5a8821ed85e879be59242",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Shader threads: only stages that compile plain; what a shader's file gives a list",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md",
+        "gpu/shadps4/video_core/renderer_metal/mtl_pipeline_build.mm"
+      ]
+    },
+    {
+      "sha": "b8927f4c3ce7317429fb54ba66ac54f34199ffb7",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: shaders from default descriptors, without a table",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "81341ffda6b28b4b19baf199d495d6fb060a99e4",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Metal: each stage's bindings from a base of its own",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md",
+        "gpu/shadps4/shader_recompiler/backend/bindings.h",
+        "gpu/shadps4/shader_recompiler/profile.h",
+        "gpu/shadps4/video_core/renderer_backend/resource.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_backend_device.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp"
+      ]
+    },
+    {
+      "sha": "c21cb112ef82df260b8fa2e68d5ce9f2d48e5b7c",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Metal: storage buffers at exact offsets, no offset table in the shaders",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_backend_device.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp"
+      ]
+    },
+    {
+      "sha": "201f8befffb7363bd659cd9e1a637d9eb015313f",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: the rules a shader list can use, and what they leave",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "125fe4f65a0c557c590fcd9c72d010960bee5d40",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: which descriptor fields shader variants depend on",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "d5e7a77d07608c4b015c86830a5d24b171e9b9aa",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: compiling shaders from a list, and what the files give it",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "e243e9346ce9ce872483a10a4d1c7d2664b44a08",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: what a shader step can predict from the game's files",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "0ca2a6ec33fc9211c1331b33a5f8c69efc16e431",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: compiling shaders ahead is an optional recompiler setting",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "9486f86d3a09dea5cd4e8ffbfee79f97adb935f2",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "N2.5: shaders compile ahead of the GPU thread",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/BUILDING.md",
+        "docs/NATIVE_RENDERER.md",
+        "gpu/shadps4/video_core/renderer_metal/mtl_pipeline_build.h",
+        "gpu/shadps4/video_core/renderer_metal/mtl_pipeline_build.mm",
+        "gpu/shadps4/video_core/renderer_metal/mtl_shadow.mm",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.h"
+      ]
+    },
+    {
+      "sha": "4f95f26bf057aa4b525767b66dd2434359fbc5a8",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "N2.5: a true first play measured; library compile time in BB_SHADER_LOG",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md",
+        "gpu/shadps4/video_core/renderer_metal/mtl_pso_cache.mm",
+        "gpu/shadps4/video_core/renderer_metal/mtl_shader.mm"
+      ]
+    },
+    {
+      "sha": "915054d6534fa2e405651aeebda21b6a1e0547c9",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "pad-test: stub bbgpu_touch_pad",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "tests/test_pad.c"
+      ]
+    },
+    {
+      "sha": "affcb07c019d056e41f3b6aec511851bbb1c8ad5",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: IOS_POC for the one app and the public repo; new switches in BUILDING",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/BUILDING.md",
+        "docs/IOS_POC.md"
+      ]
+    },
+    {
+      "sha": "324f5d928a7bb17984f39fee9b763448e9c5b2bd",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "README: bloodborne-ios in the repositories; bump recomp",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "README.md",
+        "recomp"
+      ]
+    },
+    {
+      "sha": "fbaaaae631d4795e24d1a6ed66d2e8dd04e5d9f2",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Aspect ratio auto: the screen's own ratio at the usual heights",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "gpu/shim/bbport_settings.cpp",
+        "gpu/shim/bbport_settings.h"
+      ]
+    },
+    {
+      "sha": "f7ddfe48bf8f89224acb5db7b6cdfe2895f46545",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Touch controls: an on-screen pad for touch screens",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/ARCHITECTURE.md",
+        "docs/CREDITS.md",
+        "gpu/bbgpu.h",
+        "gpu/shim/bbport_overlay.cpp",
+        "gpu/shim/bbport_overlay.h",
+        "gpu/shim/bbport_touch_controls.cpp",
+        "gpu/shim/bbport_touch_controls.h",
+        "gpu/shim/window.cpp",
+        "src/runtime_pad.c"
+      ]
+    },
+    {
+      "sha": "f104d74369160653dd8f9bc586e2856ca93bad82",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "The game builds its patches at start, in C (no patches.py)",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "CLAUDE.md",
+        "CMakeLists.txt",
+        "docs/ARCHITECTURE.md",
+        "run.sh",
+        "src/probe.c",
+        "src/runtime_patches.c",
+        "src/runtime_patches.h",
+        "src/runtime_prepare.c",
+        "src/runtime_prepare.h",
+        "tests/test_run_settings.py",
+        "tools/bb_patches.c"
+      ]
+    },
+    {
+      "sha": "f4d84c57d0bcdd66d34dacf9c94b33df3cc01035",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "iOS: a 32 MiB stream buffer",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "gpu/shadps4/video_core/buffer_cache/buffer_cache.cpp"
+      ]
+    },
+    {
+      "sha": "eaa292eca0b202f2f5ccdf0e5bd9788332d95495",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Less address space at start: BB_METAL_ARCHIVE=0; the linked image grows once",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "gpu/shadps4/video_core/renderer_metal/mtl_pso_cache.mm",
+        "src/runtime_prepare.c"
+      ]
+    },
+    {
+      "sha": "ddf2e1c10363bdf84c6d5076d73eec51b2a627ef",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "iOS: read the game's files in one allocation; say the memory left when Metal refuses a buffer",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "gpu/shadps4/video_core/renderer_metal/mtl_resources.mm",
+        "src/runtime_prepare.c"
+      ]
+    },
+    {
+      "sha": "a296de2ab39e07b73a3b6c98e6b0b90d32e52304",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Prepare the game into a temporary file, not a growing memory stream",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "src/probe.c"
+      ]
+    },
+    {
+      "sha": "d4225b4adcc647f3718514d22b985f9bc0db9a2c",
+      "author": "ByronX1119 <xby2233091@gmail.com>",
+      "subject": "Online: The Hunter's Dream callbacks run through bbcpu (#9)",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "gpu/bbnet20/thd/thd_internal.h"
+      ]
+    },
+    {
+      "sha": "1117ddaa286636a8807920c05bc67ff12a4bd1b5",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Texture collector: keep GPU-only images at every memory level",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/CREDITS.md",
+        "docs/STABILITY.md",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.cpp"
+      ]
+    },
+    {
+      "sha": "84ef35786d7a2292d34569dc18dbbabe1cc6e527",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Texture collector: release kept GPU-only images over the critical mark",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/CREDITS.md",
+        "docs/STABILITY.md",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.cpp"
+      ]
+    },
+    {
+      "sha": "20ffd6ccfb4756dbda7bfbd23dcd9712b0fe3d1b",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "IOS_POC: the phone prepares the game's executable itself",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/IOS_POC.md"
+      ]
+    },
+    {
+      "sha": "ecfb0468529d2be7defe9174abaf75de729f98c8",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "The game prepares itself at start: no Python prepare, link or content profile",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "CLAUDE.md",
+        "docs/ARCHITECTURE.md",
+        "run.sh",
+        "scripts/patches.py",
+        "src/probe.c",
+        "src/runtime_prepare.c",
+        "src/runtime_prepare.h"
+      ]
+    },
+    {
+      "sha": "4be9aee20cce4f13438aecfed52dadf9e3ac2d3f",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "The system modules linked in C: link_modules.py's boot-linked.bin, without Python",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "src/runtime_prepare.c",
+        "src/runtime_prepare.h",
+        "tools/bb_prepare.c"
+      ]
+    },
+    {
+      "sha": "63b813a5527a81b1fbdee7fde054ea2cac36d255",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "The AppContent profile in C: content_profile.py's content.bin, without Python",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "src/runtime_prepare.c",
+        "src/runtime_prepare.h",
+        "tools/bb_prepare.c"
+      ]
+    },
+    {
+      "sha": "96173c7a3c08e942e06cc923b40490a8fa216df9",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "The executable prepared in C: scripts/prepare.py's boot.bin, without Python",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "CMakeLists.txt",
+        "src/runtime_prepare.c",
+        "src/runtime_prepare.h",
+        "tools/bb_prepare.c"
+      ]
+    },
+    {
+      "sha": "1cc53d16c8ebbfdd9854157f1efb2a235c9331af",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Recompiler kit: COMPATIBLE lists the versions with the same library interface; bump recomp",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "CMakeLists.txt",
+        "recomp"
+      ]
+    },
+    {
+      "sha": "44de77d05834ec3f7ce8cb334a8d633d8a563bb6",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Renderer threads on the performance cores; wait call sites only on request",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/BUILDING.md",
+        "docs/IOS_POC.md",
+        "docs/PERFORMANCE.md",
+        "gpu/shadps4/video_core/amdgpu/liverpool.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.cpp",
+        "gpu/shim/bbport_threads.h",
+        "src/runtime_kernel.c"
+      ]
+    },
+    {
+      "sha": "001219f10fa23a5834bcf5326c81a7796193ab2f",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "IOS_POC: current main on the iPhone; lossless texture compression there",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/IOS_POC.md"
+      ]
+    },
+    {
+      "sha": "0dd9ff4da197b49402432ad0e4e463dc88c7e291",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Metal binary archive: a start that ended while loading it begins a new one",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "gpu/shadps4/video_core/renderer_metal/mtl_pso_cache.mm"
+      ]
+    },
+    {
+      "sha": "cad26e60c71b255d3c6ed9eb6bb577019fb0a480",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: credit MojahedAbushawish wherever lossless texture compression's numbers appear",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "CLAUDE.md",
+        "docs/BUILDING.md",
+        "docs/PERFORMANCE.md"
+      ]
+    },
+    {
+      "sha": "316e0eb2cdecc8b452760f3d499fc64ac15b3297",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Lossless texture compression: lazy ShaderWrite and PixelFormatView usages",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "CLAUDE.md",
+        "docs/BUILDING.md",
+        "docs/CREDITS.md",
+        "docs/PERFORMANCE.md",
+        "docs/UPSTREAM.md",
+        "gpu/shadps4/core/libraries/videoout/driver.cpp",
+        "gpu/shadps4/video_core/renderer_backend/transfers.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_runtime.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_runtime.h",
+        "gpu/shadps4/video_core/texture_cache/image.cpp",
+        "gpu/shadps4/video_core/texture_cache/image.h",
+        "gpu/shadps4/video_core/texture_cache/texture_cache.cpp",
+        "gpu/shim/bbport_toggles.h"
+      ]
+    },
+    {
+      "sha": "84f40fe3501aa240dbc5b8abcb5a912c46411044",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: the test save stands in Iosefka's Clinic, not Cathedral Ward; bump recomp",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "CLAUDE.md",
+        "docs/BUILDING.md",
+        "docs/NATIVE_RENDERER.md",
+        "docs/PERFORMANCE.md",
+        "docs/RENDER_ADAPTER.md",
+        "docs/UPSTREAM.md",
+        "recomp"
+      ]
+    },
+    {
+      "sha": "a450d3ecb257262e82fe8e65baf7ee83e3141540",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "N2.5: log shader variants (BB_SHADER_LOG); first-play time is in Metal pipelines",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/BUILDING.md",
+        "docs/NATIVE_RENDERER.md",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp"
+      ]
+    },
+    {
+      "sha": "ed0d8dbb0dfd18d7c565be1ff9b228746df8a51e",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: N2.5's design (a launcher step, first use stays the default) and its inventory",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "42edc2f44323d6e3c7f67ac5fd6d1fd9c3b6e32c",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Render boundary: say why learnt programs have no plan",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md",
+        "gpu/shim/bbport_render_boundary.cpp"
+      ]
+    },
+    {
+      "sha": "9e17fa38a1d7d1e602bbe30fcf8fb9b6874e0fda",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "N2.4: count draw stages without a record that need no walker; N2.4 at 80%",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md",
+        "gpu/shim/bbport_render_boundary.cpp"
+      ]
+    },
+    {
+      "sha": "2733df4bdbfebc2a96982a06fb051ad2594b51fc",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: the compute buffers without a slot are engine-global buffers",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "f25fb12e3e53742d76316fdecfe63861860c3724",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: N2.4's compute passes; N2 at 70%; bump recomp (CgComputeState)",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md",
+        "recomp"
+      ]
+    },
+    {
+      "sha": "b43e2122989e1cf7a1be8c96f39f7a8f93908082",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "N2.4: compute passes from the engine's compute state",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "gpu/shadps4/video_core/amdgpu/liverpool.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "gpu/shim/bbport_render_boundary.cpp",
+        "gpu/shim/bbport_render_boundary.h"
+      ]
+    },
+    {
+      "sha": "8a8d2a1c510753df00ccfb6e52e8104a1200dfa9",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "N2.4: every draw method's draws from the draw state, not only mesh draws",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md",
+        "gpu/shim/bbport_render_boundary.cpp"
+      ]
+    },
+    {
+      "sha": "cc5bef4a1ef801bc0ae79160b529da1d4976c808",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: where N2.3's remaining cost is (the GPU command thread)",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "68e5c2365f90e2a512b32ae1077b83f7e011ec32",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Bump recomp: functions hooked at their entry stay recompiled",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md",
+        "recomp"
+      ]
+    },
+    {
+      "sha": "019c0326dbf6096e826bee64c51bf783e53bd210",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Docs: N2.3's cost now, after the observer fixes (47 CPU points)",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "f462a5951f748e412ff23f6e39250fbf3ddb6bea",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Render boundary: plans keep candidate slots as lists",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "gpu/shim/bbport_render_boundary.cpp"
+      ]
+    },
+    {
+      "sha": "a02a453c41cac9a739b46daafab1b6743aded8c9",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Render boundary: stop learning planned programs; copy only used texture slots",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "gpu/shim/bbport_render_boundary.cpp"
+      ]
+    },
+    {
+      "sha": "8b8b26f5b57521d9128703bb433b5624e1c63a61",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "NATIVE_RENDERER: N2 at 60%, R5 at 80% (N2.3 done)",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "c848f3cf46331c9f7c027f7b9aa2413cbe8fe70e",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "N2.3: mesh draws' flattened user data from the draw state, without the walker (opt-in)",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_draw_prep.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_draw_prep.h",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp",
+        "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.h",
+        "gpu/shim/bbport_render_boundary.cpp",
+        "gpu/shim/bbport_render_boundary.h"
+      ]
+    },
+    {
+      "sha": "96eddc19bd9b27963017ac55f8fad44532d8721d",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Bump recomp: build_library reports each task",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "recomp"
+      ]
+    },
+    {
+      "sha": "2ff5eb87de4cb92ea5d04042d7c7377d0dc54956",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "N2.3's design: the flattened user data of mesh draws from the draw state, without the walker",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/NATIVE_RENDERER.md"
+      ]
+    },
+    {
+      "sha": "691936bb6e5927677e78d0463ac745556655be35",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "N5 accepted (the maintainer, 2026-10-29): R5 at 77%",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "README.md",
+        "docs/NATIVE_RENDERER.md",
+        "docs/RENDER_ADAPTER.md"
+      ]
+    },
+    {
+      "sha": "2eece5ebdcd1a1e09f02d76c5cbea199fc5f963d",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "bbport 0.7: cloth stiffness per frame time, play time, hit collector cap, character id guard",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "docs/CREDITS.md",
+        "docs/UPSTREAM.md",
+        "gpu/shim/bbgpu.cpp",
+        "gpu/shim/bbport_frame_rate.cpp",
+        "gpu/shim/bbport_guest_hooks.cpp",
+        "gpu/shim/bbport_guest_hooks.h"
+      ]
+    },
+    {
+      "sha": "45d81d64eb235b92c7dece884fcf05811d6968e6",
+      "author": "Pablo Souza <30412188+PabloVSouza@users.noreply.github.com>",
+      "subject": "Bump recomp: compiled files counted as each one finishes",
+      "fork": "bloodborne-native/bloodborne-runtime",
+      "files": [
+        "recomp"
+      ]
+    }
+  ],
+  "selected_followups": [
+    "12d76b386269668806dc8c114b885f62b41c1c80",
+    "6530aa16417037680d2656bf13c1aa74859c02c4",
+    "4a001fa55aa815725d10da51e57ba41bcf0201cc"
+  ],
+  "inventory_scope": "166 new commits inventoried; relevant source diffs reviewed selectively, not every changed line",
+  "additional_fork_screen": [
+    {
+      "repo": "EthanBlazkowicz/bloodborne_pc",
+      "status": "identical",
+      "ahead": 0,
+      "behind": 0,
+      "head": "0fc2921c45f8ff3900f6bfa43a299e9a4f532af4",
+      "subjects": []
+    },
+    {
+      "repo": "fabioesantos/bloodborne_pc",
+      "status": "ahead",
+      "ahead": 1,
+      "behind": 0,
+      "head": "cdf48b9f392ae1c81bcacace1f4c94bdb33bf334",
+      "subjects": [
+        "add musl support"
+      ]
+    },
+    {
+      "repo": "Just-a-Spider/bloodborne_pc",
+      "status": "identical",
+      "ahead": 0,
+      "behind": 0,
+      "head": "0fc2921c45f8ff3900f6bfa43a299e9a4f532af4",
+      "subjects": []
+    },
+    {
+      "repo": "Heus-Sueh/bloodborne_pc",
+      "status": "diverged",
+      "ahead": 40,
+      "behind": 1,
+      "head": "a249d37972e5cb7a7f6905a9e8454d136a79a09a",
+      "subjects": [
+        "refactor(runtime): migrate compat subsystem to C++23",
+        "refactor(runtime): migrate toypad subsystem to C++23",
+        "refactor(runtime): migrate ajm subsystem to C++23",
+        "refactor(runtime): migrate ngs2 subsystem to C++23",
+        "refactor(runtime): migrate file subsystem and file-mods test to C++23",
+        "refactor(runtime): migrate pad subsystem and pad-test to C++23",
+        "refactor(runtime): migrate memory subsystem to C++23",
+        "refactor(runtime): migrate core runtime initialization to C++23",
+        "build(cmake): adopt native CMakePresets and CMake-managed lint/format targets",
+        "docs(architecture): document directory layout, naming conventions and unify runtime_error",
+        "refactor(launcher): standardize launcher headers to .hpp and run native binary directly",
+        "refactor(launcher): upgrade launcher and launcher-test to modern C++23"
+      ]
+    },
+    {
+      "repo": "godlyfast/bloodborne_pc",
+      "status": "ahead",
+      "ahead": 18,
+      "behind": 0,
+      "head": "095b279f734ef0a9ebf9471a8d932a53dd4b7b98",
+      "subjects": [
+        "Align standalone regression fixtures with upstream callbacks",
+        "Respect the game's per-context motion blur and AA switches",
+        "Prime screen-space reflections after each setup, with A/B experiment bits",
+        "Skip the compute-clear shortcut when the cache image has another format",
+        "Merge upstream 0.7 while retaining Linux diagnostics and English UI",
+        "Align the settings regression with 0.7's output and frame generation defaults",
+        "Move the clear-format fallback to experiment bit 32768",
+        "Make the Windows launcher and the shared settings schema English-only",
+        "Define the FFX Vulkan hooks 0.7 uses: FSR-Vulkan patch 0003",
+        "Align the standalone test fixtures with 0.7",
+        "Fit two GPU contracts to 0.7: page table window, local Vulkan-Hpp inlines",
+        "Feed camera-motion-test 0.7's packed object motion target"
+      ]
+    },
+    {
+      "repo": "CharlExMachina/pera-bloodborne",
+      "status": "diverged",
+      "ahead": 11,
+      "behind": 1,
+      "head": "c3c7ba6f8bb2278d55eb072f0cede90ea8ad4bb6",
+      "subjects": [
+        "Upscaler: FSR mip bias log2(render / output) - 1, as AMD's guides",
+        "Upscaler: reset FSR/TAA history on camera cuts",
+        "docs: FSR 3.1 / FSR 4 integration review against AMD's FidelityFX SDK",
+        "docs: performance analysis at the Central Yharnam bonfire crowd, 4K FSR 4 Quality",
+        "Layer memory: render-target memory written as a buffer stays in VRAM",
+        "GPU profile: a label for the compute HLE's image copies and clears",
+        "tests: stub runtime_extra_direct_map for the GPU tests",
+        "Diagnostics: BB_FREEZE_FILE (world frozen, rendering on) and BB_ALLOW_PTRACE",
+        "Window: the display's own pixels on a scaled desktop",
+        "Upscaler on the scene colour at every output; a supersampled reference to prove it",
+        "docs: FSR review verified in game; placement fix and its image-quality proof"
+      ]
+    },
+    {
+      "repo": "ProfessorTee/bloodborne_pc",
+      "status": "identical",
+      "ahead": 0,
+      "behind": 0,
+      "head": "0fc2921c45f8ff3900f6bfa43a299e9a4f532af4",
+      "subjects": []
+    },
+    {
+      "repo": "JOmega321/bloodborne_pc",
+      "status": "identical",
+      "ahead": 0,
+      "behind": 0,
+      "head": "0fc2921c45f8ff3900f6bfa43a299e9a4f532af4",
+      "subjects": []
+    }
+  ],
+  "selected_additional_sources": [
+    {
+      "sha": "e40711cd6ad7fd19093e3565bbf7656421d1ee79",
+      "repo": "CharlExMachina/pera-bloodborne",
+      "author": "Carlos Eduardo Pérez Villanueva",
+      "subject": "FSR material mip bias"
+    },
+    {
+      "sha": "b5d7ae51c3d4174083a07081f834a2cca39ac785",
+      "repo": "CharlExMachina/pera-bloodborne",
+      "author": "Carlos Eduardo Pérez Villanueva",
+      "subject": "Reset temporal history on camera cuts"
+    }
+  ],
+  "additional_source_refs": {
+    "community/pera": "c3c7ba6f8bb2278d55eb072f0cede90ea8ad4bb6"
+  }
+}

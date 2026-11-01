@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-01",
+  "version": "0.8.2",
+  "suite": {
+    "cpp_targets": 21,
+    "python_tests": 228,
+    "python_result": "PASS",
+    "headless_python": "PASS (1 GUI test skipped)"
+  },
+  "gpu": "AMD Radeon RX 9070 XT (RADV GFX1201), Mesa 26.2.5-arch3.1",
+  "fsr": {
+    "sdk": "2.4.0",
+    "dll": "4.1.2.4555",
+    "native_variant": "FP8",
+    "matched_30_frames": [
+      "1706x960 -> 2560x1440",
+      "1708x960 -> 2560x1440"
+    ],
+    "seven_case_3_frame_matches": 5,
+    "seven_case_3_frame_differences": [
+      "2259x1271 -> 3840x2160",
+      "1707x720 -> 2560x1080"
+    ],
+    "synthetic_ms_old": [
+      0.889,
+      0.873,
+      0.892,
+      0.88,
+      0.892,
+      0.888
+    ],
+    "synthetic_median_ms_old": 0.8885000000000001,
+    "synthetic_ms_sdk412": [
+      0.89,
+      0.876,
+      0.889,
+      0.875,
+      0.902,
+      0.885
+    ],
+    "synthetic_median_ms_sdk412": 0.887
+  },
+  "title_smoke": {
+    "alive_at_55s": true,
+    "exit_code": 0,
+    "peak_rss_kib": 926472
+  },
+  "scene_smoke_before_final_graphics_ports": {
+    "alive_at_end": true,
+    "exit_code": 0,
+    "elapsed_seconds": 37.5,
+    "scene_draws_observed": true,
+    "peak_rss_kib": 1260624,
+    "original_saves_unchanged": true
+  },
+  "scene_smoke_final": {
+    "alive_at_end": true,
+    "exit_code": 0,
+    "elapsed_seconds": 43.1,
+    "scene_draws_observed": true,
+    "peak_rss_kib": 1143056,
+    "original_saves_unchanged": true
+  },
+  "asset_helper": "PASS end to end, official checksum, 40 captures, translation rules and source manifest",
+  "vendor_patches": "PASS reproduced exactly from pinned submodule and three versioned patches"
+}

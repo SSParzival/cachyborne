@@ -1,71 +1,60 @@
-# Temporal upscaling in Cachyborne
+# Upscaling on the target Radeon/RADV PC
 
-The renderer reconstructs the scene before composing the interface. The native
-control center and in-game menu expose output size, internal scene size, preset,
-RCAS sharpness and effect controls. Setup prepares the corresponding resolution
-patches. Fixed-resolution sessions need preparation/restart for size changes;
-live resolution is a separate option with a different post-processing cost.
+The default is **FSR 4.1 replay with AMD 4.1.2.4555 assets**, SDK 2.4.0, Quality,
+1706×960 scene → 2560×1440 output. The internal INI key remains `fsr411` for
+configuration compatibility. `fsr4_model=auto` selects native FP8 matrices on
+this RX 9070 XT when supported; it falls back according to device capabilities
+and the models actually present. A missing/invalid asset set causes an explicit
+FSR3 fallback during preparation.
 
-## Providers
+## Install and select current assets
 
-| Provider | Inputs and requirements |
-| --- | --- |
-| Off | Original scene without temporal reconstruction |
-| TAA | Native-resolution temporal anti-aliasing with scene jitter, motion vectors, depth rejection and history |
-| FSR 3.1 | Open-source FSR-Vulkan provider; fallback when FSR 4 assets are missing |
-| FSR 4 | v07 INT8 model, external precompiled shaders, weights and matching manifest |
-| FSR 4.1.1 | Separate replay assets prepared from the user's AMD DLL |
-| DLSS | Supported NVIDIA hardware, the bridge and matching Linux library |
-
-FSR and TAA keep the HUD out of their scene history. Object motion vectors
-improve animated clothing/weapons; camera vectors alone cannot describe every
-moving surface. Reactive-mask controls can reduce trails around transparent
-effects. They are diagnostic/quality tradeoffs, not universal performance fixes.
-
-## Safe presets for the 16 GB target
-
-The recommended profile is FSR 4 Quality: **1706×960 → 2560×1440**, capped at
-144 FPS. Missing/invalid FSR 4 assets produce a visible warning and setup
-publishes an FSR 3.1 profile instead. The active prepared INI and environment
-can be inspected with `cachyborne-launch --dry-run`.
-
-For output 3840×2160, a 1920×1080 scene has the 2× **Performance** ratio.
-Balanced at 4K requires a larger scene and is not equivalent to 1080p.
-The 16 GB profile rejects internal sizes above 1920×1080 because they need the
-9152 MiB direct-memory pool. FSR Native AA renders at output size and still runs
-the reconstruction model; it is not a cheap pass-through.
-
-Install optional FSR 4 assets with:
-
-```bash
-bash tools/fetch_fsr4_assets.sh
+```sh
+bash tools/fetch_fsr412_assets.sh
+cachyborne-setup /path/to/decrypted/app0 --performance-profile 144
+cachyborne-launch --dry-run
 ```
 
-The selected set must contain RCAS, auto exposure, model weights, initializers,
-manifest and the matching pre/pass/post SPIR-V shaders. Setup checks presence,
-nonempty files, SPIR-V headers and the JSON manifest. Game preparation still
-performs its own executable and DCX checks.
+The helper retrieves the signed upscaler from the official AMD SDK v2.4.0 tag,
+checks a pinned SHA-256, validates its model/exports, records dispatches through
+Proton and translates them with the pinned dxil-spirv tool. DLLs and generated
+assets remain local and are never distributed by this repository. The game runs
+the reconstructed model directly on Vulkan; the Windows SDK DLL is not loaded
+into the native Linux game process.
 
-FSR 4.1.1 assets are separate:
+Fresh extraction requires the dependencies described by
+`tools/fsr4cap/build_assets.sh`, an installed usable Proton build and its Steam
+runtime (or umu). Existing tools can be reused with `BB_FSR4CAP_TOOLS`.
+Assets default to `$XDG_DATA_HOME/cachyborne/fsr4_412`; select another directory
+in Midnight's FSR assets field. The 4.1.x DLL and optional loader fields are for
+manual extraction, not libraries loaded at game startup.
 
-```bash
-bash tools/fsr4cap/build_assets.sh /path/to/amd_fidelityfx_upscaler.dll
-```
+## Validation and limits
 
-Follow that tool's dependency checks and optional loader argument. Proprietary
-inputs and generated model assets are not part of the source release. FSR 4.1.1
-selection validates its assets independently; the FSR 4 v07 fallback does not
-silently replace an explicitly selected DLL-based provider.
+The 0.8.2 synthetic FP8 comparison is byte-identical to the SDK DLL at
+2560×1440 with both 1706×960 and aligned 1708×960 input over 30 frames, as well
+as 1707×960 over three frames and several other tested sizes. The pass
+cost in three alternating pairs at 1706×960 → 2560×1440 is about 0.89 ms for both
+the previous assets and SDK 2.4 assets: no FPS gain is inferred from the update.
+Two tested combinations (2259×1271 → 3840×2160 and 1707×720 → 2560×1080) differ
+from the DLL. These modes are experimental; the complete replay is not certified
+bit-exact at every size. See [release validation](VALIDATION_0.8.2.md).
 
-## Measurement and limitations
+FSR scene samplers use `log2(render/output)-1`; other passes retain their bias.
+This changes texture sampling detail/bandwidth, not image allocation budgets.
+Camera cuts reset temporal history; motion vectors are sanitized before entering it. Camera input,
+object identity, disocclusion and exposure can still affect ghosting; sharpening
+cannot repair missing geometry or invalid motion. Frame generation is disabled
+by default and its display rate is not the simulation FPS.
 
-Shader compilation, history resets, provider/preset changes and asset streaming
-can cause long frames. Test both cold and warmed intervals in actual gameplay;
-a standalone upscaler benchmark does not prove the game fits RAM/GTT. Disabling
-motion blur, chromatic aberration and depth of field is part of the recommended
-profile. GameMode, frame generation and driver overrides should be evaluated
-separately. Frame generation does not increase simulation or input sampling
-speed and remains an advanced diagnostic option.
+## Other choices
 
-See [configuration](CONFIGURATION.md), [GPU pipeline notes](parallel_gpu.md),
-and [current validation](VALIDATION_0.7.4.md).
+FSR3 is the native fallback. FSR1 is spatial and cheaper; TAA performs temporal
+anti-aliasing at output resolution; DLSS requires its supported NVIDIA hardware
+and libraries. The older INT8 v07 provider remains optional via
+`tools/fetch_fsr4_assets.sh`; it is not the SDK 4.1.2 model.
+
+At 4K, a 1920×1080 internal scene corresponds to Performance, not Balanced. The
+16 GB profile limits internal size independently of output size. Native AA at
+1440p/4K still runs reconstruction and may require an unsafe game heap size.
+Do not infer safety or stable 144 FPS from the name of a preset.

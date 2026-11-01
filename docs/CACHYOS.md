@@ -29,19 +29,18 @@ again. `--mods-dir DIR --mods-config FILE` uses the existing mods.json selection
 `--patches-dir DIR --patches-config FILE` compiles selected XML patches during
 setup. Mod generations retain a symlink view of the source assets; keep both
 the original app0 and the selected mod files in place. They are never modified.
-Install optional FSR 4 assets with `bash tools/fetch_fsr4_assets.sh`. Missing or
+Install current FSR 4.1.2 assets with `bash tools/fetch_fsr412_assets.sh`. Missing or
 corrupt assets trigger a warning and automatic FSR 3.1 preparation. The recommended
 profile reapplies Quality at 1706x960 → 2560x1440, English voices and Spanish text;
 HDR, bindings and content selections are retained.
 
-FSR 4.1.1 selection checks the relevant replay assets; prepare these separately
-with `tools/fsr4cap/build_assets.sh` using your own required inputs.
+FSR 4.1 replay checks its selected assets; the download helper verifies the official SDK DLL and generates native SPIR-V.
 
 The Midnight GTK control center provides every original bbport setting in native
 pages, including all bindings, mods/patches, online/account tools and diagnostics.
 Save your settings, then run Setup; no separate editor or import step is needed.
 See [the configuration catalog](CONFIGURATION.md). The recommended 144 FPS target
-uses FSR 4 Quality at 1706x960 with 2560x1440 output; sustained FPS must be measured.
+uses FSR 4.1 Quality at 1706x960 with 2560x1440 output; sustained FPS must be measured.
 The 9152 MiB native-1440p pool exceeds the GTT capacity on the 16 GB target;
 setup now rejects it. A 1916x1078 custom internal scene also fits the smaller
 pool and was tested in the real game. Spanish selection is restricted to
@@ -147,20 +146,10 @@ times, Central Yharnam traversal, HDR/VRR and total load time need a real game
 session. See RESEARCH_AND_ARCHITECTURE.md for findings and validation results.
 
 
-## 0.7.4 validation and languages
+## Current validation and desktop identity
 
-`BB_LANGUAGE=20` selects Latin American Spanish text, with installed-archive
-fallback to `3` then `1`. `BB_VOICE_LANGUAGE=eng` independently redirects retail
-FSB banks and selects cutscene audio. The GUI checks dump structure and FSR 4
-assets while editing; setup still performs full identity/DCX validation.
-The requested driver settings do not guarantee a bandwidth or frame rate.
-See [the current validation record](VALIDATION_0.7.4.md) for measured results,
-limits and test commands; older VALIDATION files remain historical records.
-
-
-The runtime now has a Spanish catalog for both the native System pages and the
-graphics overlay; `BB_MENU_LANGUAGE=es` overrides a stale saved English choice.
-Text/layout/font interception follows `BB_LANGUAGE` independently of FSB/audio
-selection. Existing installations must prepare again to replace their old shell
-plan. The original bundled square icon is installed offline and used for both
-desktop shortcuts and the game window's `cachyborne-play` app identity.
+[Release validation](VALIDATION_0.8.2.md) records the current runtime, GPU and
+Python checks and their limits. Text, voice and port-owned menu selections stay
+independent. Prepare again after updating to publish the current launch plan.
+Original Sweet Purple icons distinguish game and settings shortcuts; the native
+window uses the corresponding SDL icon and `cachyborne-play` desktop identity.
