@@ -1,0 +1,282 @@
+{
+  "version": "0.8.3",
+  "date": "2026-11-01",
+  "target": {
+    "gpu": "RX 9070 XT / RADV GFX1201",
+    "cpu": "i5-14600KF",
+    "ram_gib": 16,
+    "output": "2560x1440",
+    "fps_limit": 144,
+    "fsr": "4.1.2 native FP8"
+  },
+  "checks": {
+    "check_all": "PASS",
+    "ctest_passed": 24,
+    "python_tests_passed": 228,
+    "final_reduced_bc3_gpu_regression": "PASS",
+    "native_guard_jit": "PASS",
+    "source_whitespace": "PASS"
+  },
+  "scene_smoke": {
+    "alive_at_end": true,
+    "exit_code": 0,
+    "elapsed_seconds": 203.3,
+    "scene_draws_observed": true,
+    "peak_rss_kib": 1238508,
+    "original_saves_unchanged": true,
+    "samples": [
+      {
+        "seconds": 0.0,
+        "rss_kib": 360
+      },
+      {
+        "seconds": 5.0,
+        "rss_kib": 733480
+      },
+      {
+        "seconds": 10.3,
+        "rss_kib": 922160
+      },
+      {
+        "seconds": 15.3,
+        "rss_kib": 1135352
+      },
+      {
+        "seconds": 20.3,
+        "rss_kib": 1229444
+      },
+      {
+        "seconds": 25.3,
+        "rss_kib": 1229628
+      },
+      {
+        "seconds": 30.4,
+        "rss_kib": 1229636
+      },
+      {
+        "seconds": 35.4,
+        "rss_kib": 1230120
+      },
+      {
+        "seconds": 40.4,
+        "rss_kib": 1230156
+      },
+      {
+        "seconds": 45.4,
+        "rss_kib": 1230168
+      },
+      {
+        "seconds": 50.4,
+        "rss_kib": 1230732
+      },
+      {
+        "seconds": 55.4,
+        "rss_kib": 1237620
+      },
+      {
+        "seconds": 60.4,
+        "rss_kib": 1237640
+      },
+      {
+        "seconds": 65.5,
+        "rss_kib": 1237940
+      },
+      {
+        "seconds": 70.5,
+        "rss_kib": 1237968
+      },
+      {
+        "seconds": 75.5,
+        "rss_kib": 1238452
+      },
+      {
+        "seconds": 80.5,
+        "rss_kib": 1238452
+      },
+      {
+        "seconds": 85.5,
+        "rss_kib": 1238488
+      },
+      {
+        "seconds": 90.6,
+        "rss_kib": 1238492
+      },
+      {
+        "seconds": 95.6,
+        "rss_kib": 1238496
+      },
+      {
+        "seconds": 100.6,
+        "rss_kib": 1238504
+      },
+      {
+        "seconds": 105.6,
+        "rss_kib": 1238504
+      },
+      {
+        "seconds": 110.6,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 115.7,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 120.7,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 125.7,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 130.7,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 135.8,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 140.8,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 145.8,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 150.8,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 155.9,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 160.9,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 165.9,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 171.0,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 176.0,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 181.0,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 186.1,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 191.1,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 196.1,
+        "rss_kib": 1238508
+      },
+      {
+        "seconds": 201.2,
+        "rss_kib": 1238508
+      }
+    ],
+    "scene_seconds": 180.5,
+    "particle_hook_active": true
+  },
+  "final_guard_scene_smoke": {
+    "alive_at_end": true,
+    "exit_code": 0,
+    "elapsed_seconds": 47.0,
+    "scene_draws_observed": true,
+    "peak_rss_kib": 1215472,
+    "original_saves_unchanged": true,
+    "samples": [
+      {
+        "seconds": 0.0,
+        "rss_kib": 796
+      },
+      {
+        "seconds": 5.0,
+        "rss_kib": 917912
+      },
+      {
+        "seconds": 10.3,
+        "rss_kib": 932648
+      },
+      {
+        "seconds": 15.3,
+        "rss_kib": 1214940
+      },
+      {
+        "seconds": 20.3,
+        "rss_kib": 1215260
+      },
+      {
+        "seconds": 25.3,
+        "rss_kib": 1215428
+      },
+      {
+        "seconds": 30.3,
+        "rss_kib": 1215436
+      },
+      {
+        "seconds": 35.4,
+        "rss_kib": 1215444
+      },
+      {
+        "seconds": 40.4,
+        "rss_kib": 1215464
+      },
+      {
+        "seconds": 45.4,
+        "rss_kib": 1215472
+      }
+    ],
+    "scene_seconds": 30.2,
+    "online_guard_active": true,
+    "particle_hook_active": true
+  },
+  "observed_last_ten_fps_windows": [
+    143.0,
+    143.0,
+    143.0,
+    143.0,
+    143.0,
+    143.0,
+    143.0,
+    143.0,
+    143.0,
+    143.0
+  ],
+  "source_commits": [
+    "42ec043c3e69dc1deb2dca7d28302ebfd0368d40",
+    "a9f292a7e804237ffbab1e7c14009acbbe81354d",
+    "eec77ba22395af10628dccfe6ad576a5a4932123"
+  ],
+  "out_of_scope": [
+    "4K",
+    "ultrawide"
+  ],
+  "unresolved": [
+    "Raw concurrent guest CPU writes / heap allocation ownership",
+    "Tiled/MSAA GC writeback and ambiguous multilevel stencil layout",
+    "Lamp-travel pressure and targeted boss comparisons",
+    "Measured nonblocking render-latency HUD",
+    "Lantern room protocol interoperability"
+  ],
+  "code_commits": [
+    "ac2e7eac3b35bf39b103c89252ea5bf6bffaff07",
+    "1dc8bf64c5055dd876d442652075790b0cbbda3c",
+    "56346674e0e33ee962ea6aea8af1f120734ca140"
+  ]
+}

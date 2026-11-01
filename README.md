@@ -1,4 +1,4 @@
-# Cachyborne 0.8.2 — Midnight for CachyOS
+# Cachyborne 0.8.3 — Midnight for CachyOS
 
 **English** · [Español](README.es.md)
 
@@ -14,8 +14,12 @@ motion vectors, prepares **AMD FSR 4.1.2** assets and introduces separate origin
 Sweet Purple game/settings icons. Port-owned menus support English and Spanish;
 speech is selected independently.
 
-[Release notes](docs/RELEASE_0.8.2.md) · [Validation](docs/VALIDATION_0.8.2.md) ·
-[Community audit](docs/COMMUNITY_AUDIT_0.8.2.md)
+Version 0.8.3 restores all resident linear mips without overwriting guest padding,
+uses compact staging and per-slice memory transactions, and adds particle-time
+and null online-event guards. [Source review](docs/COMMUNITY_AUDIT_0.8.3.md).
+
+[Release notes](docs/RELEASE_0.8.3.md) · [Validation](docs/VALIDATION_0.8.3.md) ·
+[Community audit](docs/COMMUNITY_AUDIT_0.8.3.md)
 
 ## Target profile
 

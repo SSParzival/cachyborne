@@ -1,6 +1,6 @@
 # Cachyborne architecture
 
-Cachyborne 0.8.2 targets Linux/CachyOS, a Radeon RX 9070 XT with RADV, an
+Cachyborne 0.8.3 targets Linux/CachyOS, a Radeon RX 9070 XT with RADV, an
 Intel i5-14600KF and 16 GB of system RAM. The stable source base is bbport 0.7.
 
 ## Execution and preparation
@@ -38,8 +38,10 @@ pointers retain per-invocation fault recovery.
 `gpu/textures/` manages Vulkan images and guest ownership. Marking, refresh and
 collection compare the same byte range. A bounded streaming hash captures the
 CPU baseline at GPU binding/copy/clear/resolve and refuses stale GC writeback.
-This hash is a guard, not an atomic exclusion protocol. Full mip restoration and
-all depth/stencil layouts still require a separate validated adaptation.
+Linear writeback restores all resident mips/layers/slices using compact staging and
+valid-row transactions under a VMA lock. Depth and stencil use separate planes.
+This hash and the VMA lock do not exclude raw concurrent guest CPU stores; tiled,
+MSAA and ambiguous stencil layouts remain protected from incomplete GC restoration.
 
 ## Reconstruction, interface and build
 
@@ -58,5 +60,5 @@ The native build uses Clang, native CPU instructions, ThinLTO and mold, with
 bounded build jobs. FSR backend changes are stored as patches against a pinned
 submodule and applied by `build.sh`, so fresh clones reproduce the source.
 
-[Configuration](docs/CONFIGURATION.md) · [validation](docs/VALIDATION_0.8.2.md) ·
-[community provenance](docs/COMMUNITY_AUDIT_0.8.2.md)
+[Configuration](docs/CONFIGURATION.md) · [validation](docs/VALIDATION_0.8.3.md) ·
+[community provenance](docs/COMMUNITY_AUDIT_0.8.3.md)

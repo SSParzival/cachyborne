@@ -46,6 +46,11 @@ Vulkan image allocation does not establish ownership of its guest address.
 Collector writeback checks a full-range CPU baseline established at binding or
 GPU copy/clear/resolve; it remains a heuristic against concurrent reuse, not an
 allocation-generation lock. No image-sized shadow is retained by that guard.
+Linear images restore every resident mip/layer/depth slice. Their staging holds
+only valid rows; guest padding is preserved. Per-slice runtime transactions
+validate mappings before storing rows under one VMA lock, with one buffer-cache
+invalidation per slice. The separate stencil target is included in reuse hashes.
+Layouts without a safe download plan remain resident during collection.
 
 Use existing GPU profiles/timelines and narrowly scoped diagnostic variables
 from [the environment catalog](ENVIRONMENT.md) for comparisons. Record scene,

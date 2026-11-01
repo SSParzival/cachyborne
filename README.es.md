@@ -1,4 +1,4 @@
-# Cachyborne 0.8.2 — Midnight para CachyOS
+# Cachyborne 0.8.3 — Midnight para CachyOS
 
 **Español** · [English](README.md)
 
@@ -11,11 +11,13 @@ combinados. No se distribuyen el juego, partidas ni binarios propietarios de AMD
 Esta versión revisa los ports comunitarios y añade protección de memoria también
 en copias/clears GPU, tablas SRT nulas sin señales por draw, motion vectors finitos,
 assets de **AMD FSR 4.1.2** y dos iconos propios con los colores de Sweet Purple.
+El writeback conserva todos los mips residentes y su relleno; los hooks corrigen
+el tiempo de partículas a altos FPS y los eventos online sin datos.
 Los menús del port funcionan en español e inglés; las voces son independientes.
 
-[Notas de versión](docs/RELEASE_0.8.2.md) ·
-[Validación y límites](docs/VALIDATION_0.8.2.md) ·
-[Auditoría de forks](docs/COMMUNITY_AUDIT_0.8.2.md)
+[Notas de versión](docs/RELEASE_0.8.3.md) ·
+[Validación y límites](docs/VALIDATION_0.8.3.md) ·
+[Auditoría de forks](docs/COMMUNITY_AUDIT_0.8.3.md)
 
 ## Perfil de este PC
 

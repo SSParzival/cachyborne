@@ -1,20 +1,31 @@
 # Current scope and remaining validation
 
-Cachyborne 0.8.2 uses bbport 0.7 plus the reviewed community changes listed in
-[the audit](COMMUNITY_AUDIT_0.8.2.md). The C runtime executes original guest code;
-C++ translates GPU commands/shaders to Vulkan. Midnight owns native GTK4 settings,
-prepared configurations, controls, mods, languages and diagnostics.
+Cachyborne 0.8.3 uses bbport 0.7 plus the reviewed changes in the
+[0.8.2 inventory](COMMUNITY_AUDIT_0.8.2.md) and
+[0.8.3 source review](COMMUNITY_AUDIT_0.8.3.md). The C runtime executes original
+guest code; C++ translates GPU commands/shaders to Vulkan. Midnight owns native
+GTK4 settings, prepared configurations, controls, mods, languages and diagnostics.
 
-Release validation covers the runtime/renderer tests, real RADV operations,
-FSR 4.1.2 replay at the target 1440p configuration and a bounded startup smoke.
-It does not certify every scene, boss, mod or network peer combination.
+Implemented in 0.8.3: full resident-mip linear writeback with padding preservation,
+depth/stencil aspect sizes, compact staging, per-slice VMA transactions, particle
+60 Hz accumulation integrated into the existing frame hook, and a native null-payload
+guard for online events checked against the exact original instruction bytes.
 
-Remaining work: full-mip writeback preserving padding and depth/stencil planes;
-atomic ownership across concurrent guest writes; long lamp-travel/memory soaks;
-review of the new effects-time accumulator against the existing frame hooks;
-4K/ultrawide FSR differences; a defined nonblocking render-latency HUD; and a
-separate interoperable port of Lantern room/co-op features. No placeholder
-settings are exposed for these items.
+The target remains 2560×1440 on RX 9070 XT/RADV with the existing 144 FPS and
+P/E affinity profile. 4K/ultrawide investigation and tuning are outside scope.
 
-See [architecture](../RESEARCH_AND_ARCHITECTURE.md), [GPU pipeline](parallel_gpu.md),
-[upscaling](upscaler.md) and [validation](VALIDATION_0.8.2.md).
+Remaining engineering/validation boundaries:
+
+- Atomic ownership against raw concurrent guest CPU writes and heap reuse.
+  Per-slice VMA locking excludes remapping during a copy; hashing detects many
+  reuses, but neither is a complete guest-allocation ownership protocol.
+- Tiled/MSAA collection writeback and ambiguous multi-mip stencil layouts.
+  Keep those GPU-written images instead of evicting after an incomplete download.
+- Repeated lamp-travel/GC pressure soaks and targeted boss particle/physics
+  comparisons. A bounded scene run is not a full-session leak or boss test.
+- A render-latency HUD with a precisely defined, nonblocking measured interval.
+- A separate interoperable port of Lantern room/co-op contracts and peer tests.
+
+No placeholder settings are exposed for these items. See
+[architecture](../RESEARCH_AND_ARCHITECTURE.md), [GPU pipeline](parallel_gpu.md),
+[upscaling](upscaler.md) and [validation](VALIDATION_0.8.3.md).

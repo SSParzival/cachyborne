@@ -338,7 +338,7 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_VULKANINFO` | path of vulkaninfo for the launcher |
 | `BB_WORK_RETIRED` | =0: the recording thread and fences do not wait for retired work |
 
-## Diagnostics (275)
+## Diagnostics (277)
 
 Logs, dumps, traces, probes and experiments, for finding bugs. Most cost frame time; none is meant for playing.
 
@@ -371,6 +371,7 @@ Logs, dumps, traces, probes and experiments, for finding bugs. Most cost frame t
 | `BB_CONSTRAM_WAIT_LOG` | set: constant RAM dumps that waited for the GPU, sampled |
 | `BB_COPY_SHADER_TRACE` | set: the copy shader's buffers every 2 s |
 | `BB_COPY_WHERE` | =1: the copy shader's sources and destinations per frame, VRAM or in place (log lines) |
+| `BB_CRASH_GUARDS` | =0: disable the null-data online-event crash guard |
 | `BB_DCB_STATS` | =1: structure of the graphics command buffers |
 | `BB_DEBUG_MOTION` | =1: motion vectors blended over the picture |
 | `BB_DISPATCH_LOG` | =1: the shape of each kind of compute dispatch, once |
@@ -396,6 +397,7 @@ Logs, dumps, traces, probes and experiments, for finding bugs. Most cost frame t
 | `BB_DYNAMIC_STATE_ALWAYS` | =1: all dynamic state set again at every draw |
 | `BB_DYNSTATE_CHECK` | =1: the scissor each command buffer really has, and who set it |
 | `BB_EFFECT_DUMP` | set: the game's effect options objects every 10 s |
+| `BB_EFFECT_TIME` | =0: disable whole 60 Hz particle steps at unlocked frame rates |
 | `BB_EXPERIMENT_CYCLE` | =bits,bits,...:seconds: the experiment bits step through the list, over and over (test builds) |
 | `BB_EXP_BARRIER_ALL` | set (experiment): a full memory barrier before every draw and dispatch |
 | `BB_EXP_BARRIER_TARGET` | =hex address (experiment): a full barrier before each draw into that target |

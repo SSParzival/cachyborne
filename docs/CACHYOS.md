@@ -148,7 +148,7 @@ session. See RESEARCH_AND_ARCHITECTURE.md for findings and validation results.
 
 ## Current validation and desktop identity
 
-[Release validation](VALIDATION_0.8.2.md) records the current runtime, GPU and
+[Release validation](VALIDATION_0.8.3.md) records the current runtime, GPU and
 Python checks and their limits. Text, voice and port-owned menu selections stay
 independent. Prepare again after updating to publish the current launch plan.
 Original Sweet Purple icons distinguish game and settings shortcuts; the native
