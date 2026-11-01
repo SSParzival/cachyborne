@@ -417,7 +417,11 @@ add_executable(effect-time-test EXCLUDE_FROM_ALL ../tests/test_effect_time.cpp)
 target_include_directories(effect-time-test PRIVATE shim)
 target_compile_options(effect-time-test PRIVATE -UNDEBUG)
 
-set(CACHYBORNE_TEST_TARGETS effect-time-test image-download-test image-write-baseline-test guest-image-hash-test shader-cache-invariants-test trophy-test camera-matrices-test image-spares-test spanish-game-menu-test motion-history-test motion-shader-test ui-composition-test
+add_executable(guest-guards-test EXCLUDE_FROM_ALL ../tests/test_guest_guards.cpp)
+target_include_directories(guest-guards-test PRIVATE shim)
+target_compile_options(guest-guards-test PRIVATE -UNDEBUG)
+
+set(CACHYBORNE_TEST_TARGETS guest-guards-test effect-time-test image-download-test image-write-baseline-test guest-image-hash-test shader-cache-invariants-test trophy-test camera-matrices-test image-spares-test spanish-game-menu-test motion-history-test motion-shader-test ui-composition-test
     cp-decoder-test fx-init-clear-test effect-flags-test settings-test scene-resolution-test
     taa-shader-test camera-motion-test translation-memory-test upscaler-support-test
     shader-corpus-test srt-walker-fault-test)

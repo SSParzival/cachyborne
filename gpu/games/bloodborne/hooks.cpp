@@ -438,6 +438,10 @@ void Install(RangeCallback on_gpu_range_allocated, RangeCallback on_range_freed,
             }
         }
         const int aspect_sites = InstallCameraAspectHooks();
+        if (!bb_env_off("BB_CRASH_GUARDS")) {
+            std::printf("Guest hooks: online event null-data guard %s\n",
+                        InstallOnlineEventGuard() ? "on" : "not installed (signature mismatch)");
+        }
         std::printf("Guest hooks: render job slot leak fix %s\n",
                     InstallJobSlotFix() ? "on" : "not installed");
         std::printf("Guest hooks: job allocation failure probe %s\n",

@@ -172,6 +172,7 @@ bool InstallFxInitClear();
 bool InstallJobAllocationProbe();
 bool InstallResourceCacheSize();
 bool InstallJobSlotFix();
+bool InstallOnlineEventGuard();
 bool InstallHeapGrow();
 bool InstallHeapTrace();
 bool InstallFreeCameraProbe();
