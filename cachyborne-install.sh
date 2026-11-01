@@ -20,7 +20,7 @@ if (( ! user_only )); then
     sudo pacman -Syu --needed clang llvm mold ninja cmake pkgconf vulkan-radeon vulkan-headers \
         vulkan-icd-loader sdl3 libadwaita gtk4 python python-gobject gamemode gamescope rsync \
         fmt boost robin-map xxhash libx11 miniz zydis \
-        glslang ffmpeg git protobuf nlohmann-json openssl zlib miniupnpc
+        glslang ffmpeg git protobuf nlohmann-json openssl zlib libdeflate miniupnpc
 else
     echo 'Installing for this user with existing system/private-prefix dependencies.'
 fi

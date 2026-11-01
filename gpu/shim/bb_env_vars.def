@@ -661,3 +661,5 @@ BB_ENV(BB_VOICE_LANGUAGE, SETTING, "Independent retail voice-bank language (eng,
 BB_ENV(BB_FAULT_WAIT, DEBUG, "=1: keep a fatal signal or GPU assertion alive for GDB; normal exit behavior otherwise")
 BB_ENV(BB_DEBUG_OUT, INTERNAL, "private debugger report path, set by tools/debug_attach.sh")
 BB_ENV(BB_DEBUG_KEEP, INTERNAL, "debug helper: detach by default; 0 terminates only when explicitly requested")
+
+BB_ENV(BB_NATIVE_DEFLATE, TUNING, "=0: disable native libdeflate for verified initial complete zlib 1.2.3 streams; unsupported streams use original guest inflate")

@@ -438,6 +438,10 @@ void Install(RangeCallback on_gpu_range_allocated, RangeCallback on_range_freed,
             }
         }
         const int aspect_sites = InstallCameraAspectHooks();
+        if (!bb_env_off("BB_NATIVE_DEFLATE")) {
+            std::printf("Guest hooks: native deflate %s\n",
+                        InstallDecompression() ? "on (zlib 1.2.3 complete streams)" : "not installed (signature mismatch)");
+        }
         if (!bb_env_off("BB_CRASH_GUARDS")) {
             std::printf("Guest hooks: online event null-data guard %s\n",
                         InstallOnlineEventGuard() ? "on" : "not installed (signature mismatch)");

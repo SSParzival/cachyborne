@@ -59,6 +59,7 @@ if (NOT TARGET GPUOpen::VulkanMemoryAllocator)
 endif()
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(XXHASH REQUIRED IMPORTED_TARGET libxxhash)
+pkg_check_modules(LIBDEFLATE REQUIRED IMPORTED_TARGET libdeflate)
 pkg_check_modules(SDL3 REQUIRED IMPORTED_TARGET sdl3)
 pkg_check_modules(X11 REQUIRED IMPORTED_TARGET x11)
 find_package(miniz QUIET)
@@ -248,7 +249,7 @@ target_compile_options(bbgpu PRIVATE -Wno-deprecated-declarations -Wno-missing-f
     target_compile_options(bbgpu PRIVATE -ftls-model=initial-exec)
     # Runtime symbols (runtime_memory_*, runtime_process_*) resolve against bb-probe.
     target_link_options(bbgpu PRIVATE -Wl,--allow-shlib-undefined)
-target_link_libraries(bbgpu PRIVATE ffx-vulkan::portable ffx-vulkan::fsr4-v07-vulkan)
+target_link_libraries(bbgpu PRIVATE ffx-vulkan::portable ffx-vulkan::fsr4-v07-vulkan PkgConfig::LIBDEFLATE)
 # Trophy names: trophy00.trp decrypted with the user's trophy key (shim/bbport_trophies.cpp).
 # Without OpenSSL the unlocks are kept and shown by number.
 find_package(OpenSSL QUIET COMPONENTS Crypto)
@@ -436,7 +437,13 @@ target_include_directories(staging-pool-test PRIVATE . shim ${SHADER_INCLUDE} th
 target_compile_options(staging-pool-test PRIVATE -UNDEBUG -fPIC)
 target_link_libraries(staging-pool-test PRIVATE bbgpu)
 
-list(APPEND CACHYBORNE_TEST_TARGETS hybrid-affinity-test staging-pool-test)
+find_package(ZLIB REQUIRED)
+add_executable(guest-deflate-test EXCLUDE_FROM_ALL ../tests/test_guest_deflate.cpp games/bloodborne/guest_deflate.cpp)
+target_include_directories(guest-deflate-test PRIVATE .)
+target_compile_options(guest-deflate-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_link_libraries(guest-deflate-test PRIVATE PkgConfig::LIBDEFLATE ZLIB::ZLIB)
+
+list(APPEND CACHYBORNE_TEST_TARGETS hybrid-affinity-test staging-pool-test guest-deflate-test)
 add_custom_target(cachyborne-tests DEPENDS ${CACHYBORNE_TEST_TARGETS})
 foreach(test_target IN LISTS CACHYBORNE_TEST_TARGETS)
     target_compile_options(${test_target} PRIVATE -UNDEBUG)

@@ -24,6 +24,6 @@ pkgs.mkShell {
     # GPU library (gpu/): shadPS4 video core dependencies
     ffmpeg-headless boost fmt magic-enum robin-map xxhash vulkan-memory-allocator glslang spirv-cross xbyak zydis spirv-headers miniz libx11 libxcb libxau xorgproto wayland alsa-lib
     # Online module (gpu/bbnet): shadNet client, HTTPS, UPnP
-    protobuf nlohmann_json openssl zlib miniupnpc
+    protobuf nlohmann_json openssl zlib libdeflate miniupnpc
   ];
 }

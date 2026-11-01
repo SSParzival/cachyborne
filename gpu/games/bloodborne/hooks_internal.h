@@ -173,6 +173,7 @@ bool InstallJobAllocationProbe();
 bool InstallResourceCacheSize();
 bool InstallJobSlotFix();
 bool InstallOnlineEventGuard();
+bool InstallDecompression();
 bool InstallHeapGrow();
 bool InstallHeapTrace();
 bool InstallFreeCameraProbe();
