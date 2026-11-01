@@ -343,6 +343,7 @@ BB_ENV(BB_CAPTURE_TRIGGER, DEBUG, "=file: creating that file records the next fr
 BB_ENV(BB_CE_STATS, DEBUG, "=1: what the constant engine's dumps feed")
 BB_ENV(BB_CE_WAIT_LOG, DEBUG, "set: constant engine waits that were not satisfied")
 BB_ENV(BB_CE_WATCH, DEBUG, "=hex address: constant RAM dumps and WRITE_DATA packets over that address")
+BB_ENV(BB_EFFECT_TIME, DEBUG, "=0: disable whole 60 Hz particle steps at unlocked frame rates")
 BB_ENV(BB_CLOTH_STIFFNESS, DEBUG, "=value: cloth stiffness bound at any frame rate")
 BB_ENV(BB_COMPILE_TRACE, DEBUG, "=1: every shader and pipeline compiled during the session")
 BB_ENV(BB_CONSTRAM_WAIT_LOG, DEBUG, "set: constant RAM dumps that waited for the GPU, sampled")
