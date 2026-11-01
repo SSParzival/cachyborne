@@ -28,10 +28,19 @@ Los menús del port funcionan en español e inglés; las voces son independiente
 | RAM | 16 GB; assets/cachés en disco, sin precarga completa en tmpfs |
 | Imagen | FSR 4.1 Quality; escena 1706×960, salida 2560×1440 |
 | Modelo | Automático por capacidades Vulkan; FP8 nativo en este equipo |
-| Presentación | Mailbox, objetivo 144 FPS, generación de cuadros desactivada |
+| Calidad | Texturas full, GT-VBAO (SSAO activado), sombras dinámicas, bloom y RCAS 0.35 |
+| Presentación | Mailbox, objetivo 60 FPS, generación de cuadros desactivada |
 | Compilación | Clang, instrucciones nativas, ThinLTO y mold |
 
-144 FPS es un límite objetivo, no una garantía por escena. La numeración de CPU
+El límite predeterminado es 60 FPS (16,667 ms); la estabilidad se mide en juego.
+SMAA queda seleccionado y se ejecuta sin escalador; FSR utiliza antialiasing temporal.
+Aberración cromática, motion blur y DoF quedan desactivados. `preset=1` significa
+**Quality (1,5×)**; el modo nativo es `preset=0`. El perfil de 16 GB rechaza
+1440p internos porque exige un pool de 9152 MiB; el predeterminado conserva 5056 MiB.
+El audio usa reloj monotónico, cola SDL precargada y P-Cores. Activa
+`BB_AUDIO_STATS=1` para medir vaciados de cola en hardware.
+
+60 FPS es un límite objetivo, no una garantía por escena. La numeración de CPU
 no es universal: revisa las máscaras al cambiar de máquina. Los hilos principales,
 físicas, audio y render usan P-Cores; compilación/descompresión nombradas usan
 E-Cores, respetando el cpuset permitido.
@@ -41,7 +50,7 @@ E-Cores, respetando el cpuset permitido.
 ```sh
 git submodule update --init --recursive
 ./cachyborne-install.sh
-cachyborne-setup /ruta/al/app0 --performance-profile 144
+cachyborne-setup /ruta/al/app0 --performance-profile 60
 cachyborne-launch --dry-run
 cachyborne-launch
 ```
@@ -63,7 +72,7 @@ Repite la preparación después de cambiar ajustes, mods, parches o contenido.
 ```sh
 # Extracción opcional: requiere herramientas MinGW/SPIR-V y un Proton utilizable.
 bash tools/fetch_fsr412_assets.sh
-cachyborne-setup /ruta/al/app0 --performance-profile 144
+cachyborne-setup /ruta/al/app0 --performance-profile 60
 ```
 
 El helper descarga la DLL oficial **4.1.2.4555 del SDK 2.4.0**, verifica SHA-256 y

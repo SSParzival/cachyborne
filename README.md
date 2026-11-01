@@ -29,9 +29,18 @@ and null online-event guards. [Source review](docs/COMMUNITY_AUDIT_0.8.3.md).
 | CPU | i5-14600KF; P CPUs 0–11, E CPUs 12–19, verified on this PC |
 | Memory | 16 GB system RAM; disk assets/caches; no full game in tmpfs |
 | Image | FSR 4.1 Quality, 1706×960 scene → 2560×1440 output |
+| Quality | Full textures, GT-VBAO (SSAO enabled), dynamic shadows and bloom; RCAS 0.35 |
 | Model | Capability-based automatic selection; native FP8 on this GPU |
-| Presentation | Mailbox, 144 FPS target cap; frame generation off |
+| Presentation | Mailbox, 60 FPS target cap; frame generation off |
 | Build | Clang, native CPU instructions, ThinLTO and mold |
+
+The default cap is 60 FPS (16.667 ms); frame-time consistency must be measured in game.
+SMAA is selected in settings and runs when the upscaler is off; with FSR, temporal AA applies.
+Chromatic aberration, motion blur and DoF are off. `preset=1` means **Quality (1.5×)**,
+not native rendering (`preset=0`). Native 1440p needs a 9152 MiB guest pool and is
+rejected by the 16 GB RAM profile; the safe default keeps a 5056 MiB pool.
+Audio uses a monotonic clock, a prefilled SDL queue and P-core placement;
+`BB_AUDIO_STATS=1` exposes underruns for hardware verification.
 
 The FPS target does not guarantee that rate in every scene. CPU numbering is
 machine-specific. Foreground simulation/audio/render threads use P CPUs; named
@@ -42,7 +51,7 @@ shader/decompression workers use E CPUs, intersected with the allowed cpuset.
 ```sh
 git submodule update --init --recursive
 ./cachyborne-install.sh
-cachyborne-setup /path/to/app0 --performance-profile 144
+cachyborne-setup /path/to/app0 --performance-profile 60
 cachyborne-launch --dry-run
 cachyborne-launch
 ```
@@ -63,7 +72,7 @@ settings, mods, patches or game content. The source dump remains untouched.
 ```sh
 # Optional extraction needs MinGW/SPIR-V tools and a usable Proton installation.
 bash tools/fetch_fsr412_assets.sh
-cachyborne-setup /path/to/app0 --performance-profile 144
+cachyborne-setup /path/to/app0 --performance-profile 60
 ```
 
 The helper downloads official **AMD SDK 2.4.0 / upscaler 4.1.2.4555**, verifies a

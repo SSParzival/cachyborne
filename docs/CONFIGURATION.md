@@ -196,3 +196,67 @@ Game and configuration shortcuts install separate original SVG/PNG icons using
 Sweet Purple colors, plus the SDL BMP. Reinstall with
 `./cachyborne-install.sh --user --skip-build` after building. User-selected game
 assets, saves, mods and server credentials are preserved by the updater.
+
+
+## Default 60 FPS profile and audio verification
+
+New profiles and the recommended button use `fps=60`, `fps_limit=60`, with
+`BB_FRAME_HOOKS=1`. Delta time, fixed steps, sprint and cloth stiffness are
+hooked dynamically; `fps_patches('60')` returns no invasive FPS patch by default.
+The Intel tonemap fix remains CPU-vendor detected and enabled on GenuineIntel.
+Already prepared generations and explicit user preferences retain their settings;
+apply `--performance-profile 60` and prepare again to migrate them.
+
+`BB_VBLANK_HZ=1000` is the virtual guest clock, independent of the monitor.
+It enables asynchronous flips while the dynamic pacer caps simulation at 60;
+setting it to 60/120 introduces a second clock that can quantize finished frames.
+Mailbox remains the default; use a 60/120 Hz display mode or VRR when available.
+This does not guarantee exact frame times on an arbitrary compositor or scene.
+
+Image defaults: `texture_quality=full`, `vbao=1`, `anti_aliasing=smaa`, SSAO,
+dynamic shadows, bloom and light-grid optimization on, RCAS on at `0.35`;
+chromatic aberration, motion blur, DoF and frame generation off.
+`RADV_TEX_ANISO=16` is retained. The optional per-draw `BB_EARLY_SUBMIT` path
+is absent from this repository; required fence submissions must remain intact.
+
+**Memory constraint:** output is 2560×1440, internal render is 1706×960 with
+FSR Quality. `preset=1` is Quality (1.5×), whereas `preset=0` is native (1.0×).
+SMAA only executes with the upscaler off; FSR supplies temporal antialiasing.
+Native 1440p requests 9152 MiB of direct memory and remains blocked for 16 GB
+system RAM. 16 GB VRAM does not remove this guest/system-memory requirement.
+Full textures refer to retail textures, not enlarged texture packs.
+
+AudioOut runs at 48000 Hz independently of game FPS. SDL playback starts after
+1024 frames plus two guest buffers of silence have been queued (32 ms for
+256-frame guest buffers). Steady state controls the minimum queue over 32 calls,
+with two buffers of reserve and corrections of ±1/32 period. Refills account for
+actual bytes, and failed queue operations are reported. PS4 7.1 remapping is
+`{0,1,2,3,6,7,4,5}`; standard-layout formats bypass remapping. Gains are restricted
+to [0,32768], so valid PCM is never amplified by the per-channel volume stage.
+This is not a limiter for already clipped input or multiple summed streams.
+
+AudioOut pins its caller before SDL initialization/device creation, so new backend
+threads inherit the P mask. Named audio/FMOD threads take precedence over background
+worker classification. The core-reservation monitor yields to `BB_CPU_PINNING=1`.
+Masks are intersected with the allowed cpuset; CPU numbers must match the host.
+No privileged realtime scheduling is forced.
+
+FSB redirects only replace an existing, nonempty language bank; unmatched voices
+retain the original. AvPlayer decodes AAC with FFmpeg and uses audio PTS plus a
+steady clock for video scheduling; it must not rescale media timestamps to 60 FPS.
+AJM decodes ATRAC9; MP3/AAC AJM instances remain explicitly unsupported. Movie AAC
+uses AvPlayer, not AJM. Neither source review nor dummy-device tests prove zero
+underruns on PipeWire: measure `BB_AUDIO_STATS=1` during gameplay and cutscenes,
+including loading, pauses and device changes. `starved=0` and frame-time logs
+are acceptance measurements on the target PC, not promises from unit tests.
+
+```sh
+cachyborne-setup /path/to/app0 --performance-profile 60
+cachyborne-launch --dry-run
+BB_AUDIO_STATS=1 BB_SAVE_LOG=1 cachyborne-launch
+PYTHONPATH=launcher:tests:. python3 -m unittest discover tests/
+```
+
+The dry-run JSON must contain `BB_FPS=60`, `BB_FPS_LIMIT=60`,
+`BB_FRAME_HOOKS=1`, `BB_VBLANK_HZ=1000`, `BB_DMEM_MB=5056`,
+`BB_P_CPUS=0-11`, `BB_E_CPUS=12-19`, and `RADV_TEX_ANISO=16`.
