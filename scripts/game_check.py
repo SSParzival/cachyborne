@@ -16,6 +16,8 @@ Run as a script, it checks every .dcx file of a game folder: game_check.py GAME_
 (game_check.py --texture-pack GAME_DIR [CACHE]: whether the folder holds a texture pack, for run.sh)
 """
 import hashlib
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import struct
@@ -51,20 +53,96 @@ def image_sha256(game):
 def dcx_broken(path):
     """True when a DFLT .dcx file does not unpack to its stated size or fails zlib's checksum.
     Other compressions are not checked."""
-    data = Path(path).read_bytes()
-    if data[:4] != b'DCX\0' or data[0x18:0x1C] != b'DCS\0' or data[0x28:0x2C] != b'DFLT':
-        return False
-    size, packed = struct.unpack_from('>II', data, 0x1C)
+    # Do not retain either the archive or its expanded contents. A mod's size
+    # field is untrusted; max_length also bounds a forged decompression bomb.
+    with Path(path).open('rb') as source:
+        header = source.read(0x4C)
+        if header[:4] != b'DCX\0':
+            return False
+        if len(header) != 0x4C:
+            return True
+        if header[0x18:0x1C] != b'DCS\0' or header[0x28:0x2C] != b'DFLT':
+            return False
+        size, packed = struct.unpack_from('>II', header, 0x1C)
+        decoder = zlib.decompressobj()
+        expanded = 0
+        try:
+            while packed:
+                block = source.read(min(packed, 64 << 10))
+                if not block:
+                    return True
+                packed -= len(block)
+                while block:
+                    output = decoder.decompress(block, min(256 << 10, size - expanded + 1))
+                    expanded += len(output)
+                    if expanded > size or decoder.unused_data:
+                        return True
+                    block = decoder.unconsumed_tail
+                if decoder.eof:
+                    return packed != 0 or expanded != size
+            return True  # Includes truncated streams and absent zlib checksums.
+        except zlib.error:
+            return True
+
+
+def _asset_cpus():
+    """E CPUs within the caller's allowed set; never widen a taskset/cgroup."""
+    if os.environ.get('BB_CPU_PINNING') != '1' or not hasattr(os, 'sched_getaffinity'):
+        return set()
     try:
-        return len(zlib.decompress(data[0x4C:0x4C + packed])) != size
-    except zlib.error:
-        return True
+        requested = set()
+        for part in os.environ.get('BB_E_CPUS', '12-19').split(','):
+            ends = part.split('-')
+            if len(ends) not in (1, 2) or any(not end.isascii() or not end.isdecimal() for end in ends):
+                return set()
+            first, last = int(ends[0]), int(ends[-1])
+            if not 0 <= first <= last < 1024:
+                return set()
+            requested.update(range(first, last + 1))
+        return requested & os.sched_getaffinity(0)
+    except OSError:
+        return set()
+
+
+def _pin_asset_worker(cpus):
+    if cpus:
+        try:
+            os.sched_setaffinity(0, cpus)
+        except OSError:
+            pass  # A cpuset may have changed since the pool was created.
+
+
+def checked_dcx(files):
+    """Ordered (path, damaged) results, at most eight workers and 2N jobs queued.
+
+    zlib releases the GIL. Every worker uses bounded streaming buffers; unlike
+    Executor.map on Python <3.14, this never queues the whole asset inventory.
+    """
+    cpus = _asset_cpus()
+    allowed = len(os.sched_getaffinity(0)) if hasattr(os, 'sched_getaffinity') else (os.cpu_count() or 1)
+    workers = min(8, len(cpus) or allowed)
+    iterator = iter(files)
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix='AssetWorker',
+                            initializer=_pin_asset_worker, initargs=(cpus,)) as pool:
+        pending = deque()
+        for _ in range(workers * 2):
+            path = next(iterator, None)
+            if path is None:
+                break
+            pending.append((path, pool.submit(dcx_broken, path)))
+        while pending:
+            path, result = pending.popleft()
+            yield path, result.result()
+            following = next(iterator, None)
+            if following is not None:
+                pending.append((following, pool.submit(dcx_broken, following)))
 
 
 def broken_files(game, folder=CHECKED_FOLDER):
     """The .dcx files under the game's folder that do not unpack (paths relative to the game)."""
     root = Path(game)
-    return [str(f.relative_to(root)) for f in sorted((root / folder).rglob('*.dcx')) if dcx_broken(f)]
+    return [str(f.relative_to(root)) for f, damaged in
+            checked_dcx(sorted((root / folder).rglob('*.dcx'))) if damaged]
 
 
 # Texture packs (#240): upscaled map textures, baked into the game folder or merged from the mods
@@ -246,8 +324,8 @@ def main(argv):
     game = Path(argv[1])
     files = sorted((game / 'dvdroot_ps4').rglob('*.dcx'))
     broken = []
-    for number, path in enumerate(files, 1):
-        if dcx_broken(path):
+    for number, (path, damaged) in enumerate(checked_dcx(files), 1):
+        if damaged:
             broken.append(path)
             print(f'damaged: {path.relative_to(game)}')
         if number % 1000 == 0:

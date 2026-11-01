@@ -105,6 +105,73 @@ class GameCheckTests(unittest.TestCase):
         self.shaders(game, bytes(data[:0x50]))
         self.assertEqual(game_check.broken_files(game), [])
 
+    def test_streaming_dcx_checks_lengths_checksum_and_complete_stream(self):
+        path = Path(self.tmp.name) / 'asset.dcx'
+        payload = bytes(range(256)) * 8192
+        valid = dcx(payload)
+        cases = [valid[:4], valid[:0x1C], valid[:0x2B], valid[:0x30], valid[:0x4B], valid[:-1],
+                 valid[:-1] + bytes([valid[-1] ^ 255]),
+                 dcx(payload, zlib.compress(payload) + b'junk')]
+        for offset, value in ((0x1C, len(payload) - 1), (0x1C, len(payload) + 1),
+                              (0x20, len(valid) - 0x4C + 1), (0x20, 0)):
+            changed = bytearray(valid)
+            struct.pack_into('>I', changed, offset, value)
+            cases.append(changed)
+        for blob in cases:
+            with self.subTest(length=len(blob)):
+                path.write_bytes(blob)
+                self.assertTrue(game_check.dcx_broken(path))
+        for blob in (valid, valid + b'archive alignment padding', dcx(b''), dcx(os.urandom(300000))):
+            path.write_bytes(blob)
+            self.assertFalse(game_check.dcx_broken(path))
+
+    def test_dcx_decompression_output_is_bounded(self):
+        path = Path(self.tmp.name) / 'large.dcx'
+        blob = bytearray(dcx(b'0' * (8 << 20)))
+        path.write_bytes(blob)
+        real_decoder = zlib.decompressobj
+        bounds = []
+
+        class Decoder:
+            def __init__(self):
+                self.impl = real_decoder()
+
+            def __getattr__(self, name):
+                return getattr(self.impl, name)
+
+            def decompress(self, data, max_length):
+                bounds.append(max_length)
+                return self.impl.decompress(data, max_length)
+
+        with mock.patch.object(game_check.zlib, 'decompressobj', Decoder):
+            self.assertFalse(game_check.dcx_broken(path))
+            self.assertGreater(len(bounds), 1)
+            self.assertTrue(all(0 < bound <= 256 << 10 for bound in bounds))
+            struct.pack_into('>I', blob, 0x1C, 1)
+            path.write_bytes(blob)
+            self.assertTrue(game_check.dcx_broken(path))
+            self.assertEqual(bounds[-1], 2)
+
+    def test_parallel_scan_is_ordered_and_pins_only_workers(self):
+        if not hasattr(os, 'sched_getaffinity'):
+            self.skipTest('Linux affinity required')
+        paths = []
+        for index in range(19):
+            path = Path(self.tmp.name) / f'{index}.dcx'
+            path.write_bytes(dcx(b'contents')[:-1] if index % 3 == 0 else dcx(b'contents'))
+            paths.append(path)
+        with mock.patch.dict(os.environ, {'BB_CPU_PINNING': '1', 'BB_E_CPUS': '12-19'}), \
+                mock.patch.object(os, 'sched_getaffinity', return_value={0, 12, 13}), \
+                mock.patch.object(os, 'sched_setaffinity') as pin:
+            self.assertEqual(list(game_check.checked_dcx(paths)),
+                             [(path, index % 3 == 0) for index, path in enumerate(paths)])
+            self.assertGreater(pin.call_count, 0)
+            for call in pin.call_args_list:
+                self.assertEqual(call.args, (0, {12, 13}))
+            for invalid in ('19-12', '12,', '-1', '1024', '12-999999999', '+12'):
+                with mock.patch.dict(os.environ, {'BB_E_CPUS': invalid}):
+                    self.assertEqual(game_check._asset_cpus(), set())
+
     def test_every_retail_base_game_without_the_update(self):
         for title in game_check.SUPPORTED_TITLES:
             with self.subTest(title=title):
