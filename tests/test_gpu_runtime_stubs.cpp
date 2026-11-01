@@ -24,6 +24,7 @@ void runtime_restart() { std::abort(); }
 uint64_t runtime_process_time_counter() { return runtime_process_time_us() * 1000; }
 int32_t* runtime_errno() { std::abort(); }
 int runtime_memory_write_backing(uintptr_t, const void*, uint64_t) { std::abort(); }
+int runtime_memory_write_backing_rows(uintptr_t, const void*, uint64_t, uint64_t, uint64_t) { std::abort(); }
 static void (*backing_reader)(uintptr_t, void*, uint64_t) = nullptr;
 void runtime_test_set_backing_reader(void (*reader)(uintptr_t, void*, uint64_t)) { backing_reader = reader; }
 void runtime_memory_read_backing(uintptr_t address, void* data, uint64_t size) {

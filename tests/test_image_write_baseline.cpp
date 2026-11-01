@@ -11,9 +11,9 @@
 
 extern "C" void runtime_test_set_backing_reader(void (*)(uintptr_t, void*, uint64_t));
 namespace {
-std::vector<u8> source, target;
+std::vector<u8> source, target, stencil;
 void Read(uintptr_t address, void* out, uint64_t size) {
-    for (const auto* bytes : {&source, &target}) {
+    for (const auto* bytes : {&source, &target, &stencil}) {
         const auto begin = reinterpret_cast<uintptr_t>(bytes->data());
         if (address >= begin && address - begin <= bytes->size() &&
             size <= bytes->size() - (address - begin)) {
@@ -58,5 +58,27 @@ int main() {
     dst.gpu_base_valid = false; // A subsequent upload starts a fresh ownership interval.
     runtime.ClearImage(&dst, {}, clear);
     assert(dst.gpu_base_hash == XXH3_64bits(target.data(), target.size()));
+    // Depth/stencil uses distinct guest allocations: either allocation changing vetoes GC.
+    info.pixel_format = vk::Format::eD32SfloatS8Uint;
+    info.props.is_depth = true;
+    info.props.has_stencil = true;
+    stencil.resize(info.pitch * info.size.height, 0x42);
+    info.stencil_addr = reinterpret_cast<uintptr_t>(stencil.data());
+    info.stencil_size = stencil.size();
+    VideoCore::Image depth(instance, runtime, views, info);
+    clear.depthStencil = vk::ClearDepthStencilValue{0.25f, 7};
+    runtime.ClearImage(&depth, {}, clear);
+    assert(depth.gpu_base_valid);
+    const auto depth_base = depth.gpu_base_hash;
+    stencil.back() ^= 0x80;
+    assert(depth.GuestMemoryHash() != depth_base);
+    depth.UpdateStencilMemory(info.stencil_addr, info.stencil_size);
+    assert(depth.gpu_base_hash == depth_base && depth.gpu_base_valid);
+    depth.UpdateStencilMemory(0, 0);
+    assert(!depth.gpu_base_valid && depth.info.stencil_addr == 0);
+    depth.UpdateStencilMemory(info.stencil_addr, info.stencil_size);
+    assert(!depth.gpu_base_valid);
+    runtime.ClearImage(&depth, {}, clear);
+    assert(depth.gpu_base_valid && depth.gpu_base_hash == depth.GuestMemoryHash());
     scheduler.Finish();
 }

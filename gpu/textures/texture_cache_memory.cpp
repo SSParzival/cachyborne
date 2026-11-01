@@ -5,10 +5,12 @@
 #include "textures/texture_cache.h"
 #include "shim/bb_env.h"
 #include "textures/image_spares.h"
+#include "textures/image_download.h"
 
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <numeric>
 
 #include "bbport_free_check.h"
 #include "bbport_guest_memory.h"
@@ -106,57 +108,63 @@ void TextureCache::DownloadImageMemory(ImageId image_id, bool sync) {
     if (False(image.flags & ImageFlagBits::GpuModified)) {
         return;
     }
-    const ImageInfo& info = image.info;
-    const u32 bytes =
-        info.pitch * info.size.height * info.size.depth * info.resources.layers * (info.num_bits / 8);
-    ASSERT(bytes <= info.guest_size);
-    const auto copy_to = [&](vk::DeviceSize offset) {
-        return vk::BufferImageCopy{
-            .bufferOffset = offset,
-            .bufferRowLength = info.pitch,
-            .bufferImageHeight = info.size.height,
-            .imageSubresource{
-                .aspectMask = info.props.is_depth ? vk::ImageAspectFlagBits::eDepth
-                                                  : vk::ImageAspectFlagBits::eColor,
-                .mipLevel = 0,
-                .baseArrayLayer = 0,
-                .layerCount = info.resources.layers,
-            },
-            .imageOffset = {0, 0, 0},
-            .imageExtent = {info.size.width, info.size.height, info.size.depth},
-        };
-    };
-
-    // The game's memory in place: the GPU copies the image there itself, in stream order (before
-    // the fences that follow). Where the memory has a VRAM copy it copies into that too, so
-    // buffers bound over it read the image's data in order (issue #122: motion blur read a render
-    // target as a buffer from a copy refreshed only once the CPU write-back landed, frames later).
-    if (info.guest_address != 0) {
-        const auto [arena, offset] = buffer_cache.ObtainBuffer(info.guest_address, bytes, true);
-        auto copy = copy_to(offset);
-        runtime.DownloadImage(&image, arena, std::span{&copy, 1});
-        if (buffer_cache.IsInPlace(info.guest_address, bytes)) {
-            return;
+    const auto download_plane = [&](vk::ImageAspectFlagBits aspect) {
+        auto planned = PlanImageDownload(image.info, aspect);
+        if (!planned || !planned->guest_address) {
+            return; // Never interpret tiled/MSAA bytes as a linear guest surface.
         }
-    }
-    const auto staging = runtime.GetStagingPool().Request(bytes, MemoryType::HostCached, 16, !sync);
-    auto copy = copy_to(staging.offset);
-    runtime.DownloadImage(&image, staging.buffer, std::span{&copy, 1});
-    const auto write_back = [this, address = info.guest_address, bytes](const auto& download) {
-        download.Invalidate();
-        BbFreeCheck::Check(address, bytes, download.mapped, BbFreeCheck::ImageDownload);
-        Core::Memory::Instance()->TryWriteBacking(std::bit_cast<u8*>(address), download.mapped,
-                                                  bytes);
-        buffer_cache.InvalidateMemory(address, bytes);
-    };
-    if (sync) {
-        scheduler.Finish();
-        write_back(staging);
-    } else {
-        scheduler.DeferPriorityOperation([this, staging, write_back] {
+        auto plan = std::move(*planned);
+        // Keep the in-place fast path and VRAM mirror in command-stream order. Only use it
+        // when every guest slice meets Vulkan buffer-offset alignment requirements.
+        const u64 alignment = std::lcm<u64>(4, ImageCopyBlockBytes(image.info.pixel_format, aspect));
+        if (plan.guest_address && std::ranges::all_of(plan.slices, [&](const auto& slice) {
+                return (plan.guest_address + slice.guest_offset) % alignment == 0;
+            })) {
+            const auto [arena, offset] =
+                buffer_cache.ObtainBuffer(plan.guest_address, plan.guest_size, true);
+            if (offset % alignment == plan.guest_address % alignment) {
+                const auto copies = plan.Copies(offset, true);
+                runtime.DownloadImage(&image, arena, copies);
+                if (buffer_cache.IsInPlace(plan.guest_address, plan.guest_size)) {
+                    return;
+                }
+            }
+        }
+        // Tight staging excludes guest row/slice padding, including small BC mip tails.
+        const auto staging = runtime.GetStagingPool().Request(
+            plan.staging_size, MemoryType::HostCached, std::lcm<u64>(256, alignment), !sync);
+        const auto copies = plan.Copies(staging.offset, false);
+        runtime.DownloadImage(&image, staging.buffer, copies);
+        const auto write_back = [this, plan = std::move(plan)](const auto& download) {
+            download.Invalidate();
+            plan.WriteRows(download.mapped, [this](u64 address, const u8* data, u64 row_bytes,
+                                                   u64 row_pitch, u64 rows) {
+                if (BbFreeCheck::WatchEnabled()) {
+                    for (u64 row = 0; row < rows; ++row) {
+                        BbFreeCheck::Check(address + row * row_pitch, row_bytes,
+                                           data + row * row_bytes, BbFreeCheck::ImageDownload);
+                    }
+                }
+                if (Core::Memory::Instance()->TryWriteBackingRows(
+                        address, data, row_bytes, row_pitch, rows)) {
+                    buffer_cache.InvalidateMemory(address, (rows - 1) * row_pitch + row_bytes);
+                }
+            });
+        };
+        if (sync) {
+            scheduler.Finish();
             write_back(staging);
-            runtime.GetStagingPool().FreeDeferred(staging);
-        });
+        } else {
+            scheduler.DeferPriorityOperation([this, staging, write_back] {
+                write_back(staging);
+                runtime.GetStagingPool().FreeDeferred(staging);
+            });
+        }
+    };
+    download_plane(image.info.props.is_depth ? vk::ImageAspectFlagBits::eDepth
+                                             : vk::ImageAspectFlagBits::eColor);
+    if (image.info.props.has_stencil && image.info.stencil_addr) {
+        download_plane(vk::ImageAspectFlagBits::eStencil);
     }
 }
 
@@ -305,10 +313,16 @@ void TextureCache::GarbageCollectImages() {
             image.flags &= ~ImageFlagBits::MaybeCpuDirty;
         }
         const bool write_back = image.SafeToDownload();
-        // Images that cannot go now (tiled GPU-written ones cannot be written back; GPU-written
-        // ones only under pressure) neither use up the deletions nor stay first in line: the
-        // oldest ten being such targets stopped the collector for good.
-        if ((write_back && image.info.IsTiled()) || (write_back && !pressured)) {
+        // Images with layouts we cannot restore, or writable images below pressure, neither
+        // use up the deletions nor stay first in line. Previously the oldest ten being
+        // such targets stopped the collector for good.
+        const bool keep = write_back && (!pressured ||
+            !PlanImageDownload(image.info, image.info.props.is_depth
+                                               ? vk::ImageAspectFlagBits::eDepth
+                                               : vk::ImageAspectFlagBits::eColor).has_value() ||
+             (image.info.props.has_stencil && image.info.stencil_addr &&
+              !PlanImageDownload(image.info, vk::ImageAspectFlagBits::eStencil).has_value()));
+        if (keep) {
             lru_cache.Touch(image.lru_id, gc_tick);
             BbStats::gc_kept_images.fetch_add(1, std::memory_order_relaxed);
             return false;

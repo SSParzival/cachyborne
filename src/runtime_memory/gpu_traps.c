@@ -253,8 +253,7 @@ static void private_store(unsigned char *dst, const unsigned char *src, uint64_t
         store_once(dst,src,n);
     }
 }
-int runtime_memory_write_backing(uintptr_t address, const void *data, uint64_t size) {
-    read_lock();
+static int write_backing_locked(uintptr_t address, const void *data, uint64_t size) {
     int ok=1;
     for (uintptr_t at=address, end=address+size; at<end && ok;) {
         size_t i=vma_index(at);
@@ -264,6 +263,38 @@ int runtime_memory_write_backing(uintptr_t address, const void *data, uint64_t s
         if (private_import && dst==(unsigned char *)at) private_store(dst,(const unsigned char *)data+(at-address),n);
         else store_once(dst,(const unsigned char *)data+(at-address),n);
         at+=n;
+    }
+    return ok;
+}
+int runtime_memory_write_backing(uintptr_t address, const void *data, uint64_t size) {
+    if (size > UINTPTR_MAX-address) return 0;
+    read_lock();
+    int ok=write_backing_locked(address,data,size);
+    read_unlock();
+    return ok;
+}
+/* Packed GPU rows into a padded guest slice: one VMA lock, no writes to padding.
+ * Validate the complete destination first, so a missing mapping cannot leave half a slice.
+ * This excludes mapping changes during the copy; it does not exclude raw guest CPU stores. */
+int runtime_memory_write_backing_rows(uintptr_t address, const void *data,
+                                      uint64_t row_bytes, uint64_t row_pitch, uint64_t rows) {
+    if (!rows || !row_bytes || row_pitch < row_bytes ||
+        rows > SIZE_MAX/row_bytes || row_bytes > UINTPTR_MAX-address ||
+        rows-1 > (UINTPTR_MAX-address-row_bytes)/row_pitch) return 0;
+    const uintptr_t end=address+(rows-1)*row_pitch+row_bytes;
+    read_lock();
+    int ok=1;
+    for (uintptr_t at=address; at<end;) {
+        const size_t i=vma_index(at);
+        if (i==vma_count || vmas[i].start>at || vmas[i].kind==KIND_RESERVED) { ok=0; break; }
+        at=vmas[i].end<end ? vmas[i].end : end;
+    }
+    if (ok) {
+        if (row_bytes==row_pitch) ok=write_backing_locked(address,data,row_bytes*rows);
+        else for (uint64_t row=0; row<rows && ok; ++row) {
+            ok=write_backing_locked(address+row*row_pitch,
+                                     (const unsigned char *)data+row*row_bytes,row_bytes);
+        }
     }
     read_unlock();
     return ok;

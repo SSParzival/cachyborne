@@ -13,6 +13,7 @@
 #include "render/gcn_to_vk.h"
 #include "render/vk_gpu_profiler.h"
 #include "textures/blitter.h"
+#include "textures/image_download.h"
 #include "upscale/vk_scene_resolution.h"
 #include "vulkan/instance.h"
 #include "render/scheduler.h"
@@ -67,20 +68,6 @@ std::pair<u32, u32> CopyLayers(const VideoCore::ImageInfo& src, const VideoCore:
         dst_layers = depth;
     }
     return {src_layers, dst_layers};
-}
-
-/// The bytes of the buffer a buffer <-> image copy reaches (from its offset).
-u32 BufferImageCopySize(const vk::BufferImageCopy& copy, vk::Format format) {
-    const u32 row_length = copy.bufferRowLength ? copy.bufferRowLength : copy.imageExtent.width;
-    const u32 height = copy.bufferImageHeight ? copy.bufferImageHeight : copy.imageExtent.height;
-    const auto block = vk::blockExtent(format);
-    const u32 block_size = vk::blockSize(format);
-    const u32 row_pitch = (row_length / block[0]) * block_size;
-    const u32 slice_pitch = (height / block[1]) * row_pitch;
-    const u32 width_blocks = (copy.imageExtent.width + block[0] - 1) / block[0];
-    const u32 height_blocks = (copy.imageExtent.height + block[1] - 1) / block[1];
-    const u32 slices = copy.imageExtent.depth * copy.imageSubresource.layerCount;
-    return (slices - 1) * slice_pitch + (height_blocks - 1) * row_pitch + width_blocks * block_size;
 }
 
 /// The written image now holds what the source holds (or new GPU data) and no stale upload.
@@ -342,7 +329,7 @@ void Runtime::UploadImage(VideoCore::Image* dst, const VideoCore::Buffer* src,
     for (const auto& copy : copies) {
         needs_flush = needs_flush ||
                       IsBufferAccessed(src, copy.bufferOffset,
-                                       BufferImageCopySize(copy, dst->info.pixel_format));
+                                       VideoCore::ImageCopyByteSize(copy, dst->info.pixel_format));
     }
     if (needs_flush) {
         FlushBarriers();
@@ -353,7 +340,7 @@ void Runtime::UploadImage(VideoCore::Image* dst, const VideoCore::Buffer* src,
                                  regions.data());
     });
     for (const auto& copy : copies) {
-        AccessBuffer(src, copy.bufferOffset, BufferImageCopySize(copy, dst->info.pixel_format),
+        AccessBuffer(src, copy.bufferOffset, VideoCore::ImageCopyByteSize(copy, dst->info.pixel_format),
                      Stage::eCopy, AccessBit::eTransferRead);
     }
     dst->flags &= ~VideoCore::ImageFlagBits::Dirty;
@@ -369,7 +356,7 @@ void Runtime::DownloadImage(VideoCore::Image* src, const VideoCore::Buffer* dst,
     for (const auto& copy : copies) {
         needs_flush = needs_flush ||
                       IsBufferAccessed(dst, copy.bufferOffset,
-                                       BufferImageCopySize(copy, src->info.pixel_format), true);
+                                       VideoCore::ImageCopyByteSize(copy, src->info.pixel_format), true);
     }
     if (needs_flush) {
         FlushBarriers();
@@ -380,7 +367,7 @@ void Runtime::DownloadImage(VideoCore::Image* src, const VideoCore::Buffer* dst,
                                  regions.data());
     });
     for (const auto& copy : copies) {
-        AccessBuffer(dst, copy.bufferOffset, BufferImageCopySize(copy, src->info.pixel_format),
+        AccessBuffer(dst, copy.bufferOffset, VideoCore::ImageCopyByteSize(copy, src->info.pixel_format),
                      Stage::eCopy, AccessBit::eTransferWrite);
     }
 }
@@ -459,7 +446,7 @@ void Runtime::CopyImageThroughBuffer(VideoCore::Image* src, VideoCore::Image* ds
                              src->info.resources.layers},
         .imageExtent = {src->info.size.width, src->info.size.height, src->info.size.depth},
     };
-    const u32 size = BufferImageCopySize(download, src->info.pixel_format);
+    const u64 size = VideoCore::ImageCopyByteSize(download, src->info.pixel_format);
     PrepareTransfer(src, dst, Stage::eCopy, IsBufferAccessed(buffer, offset, size, true));
     vk::BufferImageCopy upload = download;
     upload.imageSubresource.aspectMask = dst->aspect_mask & ~vk::ImageAspectFlagBits::eStencil;

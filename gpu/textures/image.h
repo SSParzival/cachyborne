@@ -88,6 +88,7 @@ struct Image {
     u64 GuestMemoryHash() const;
     /// Establish ownership for every GPU write, including copies, resolves and clears.
     void NoteGpuBase();
+    void UpdateStencilMemory(VAddr address, u32 size);
 
     bool Overlaps(VAddr address, size_t size) const noexcept {
         return info.guest_address < address + size && address < info.guest_address + info.guest_size;

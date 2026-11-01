@@ -21,6 +21,9 @@ public:
     u64 ClampRangeSize(VAddr virtual_addr, u64 size);
     void CopySparseMemory(VAddr source, u8* dest, u64 size);
     bool TryWriteBacking(void* address, const void* data, u64 size);
+    /// Packed GPU rows into a padded slice under one runtime VMA lock.
+    bool TryWriteBackingRows(VAddr address, const void* data, u64 row_bytes, u64 row_pitch,
+                             u64 rows);
     /// bbport: guest bytes through the backing view, past the GPU's read protection
     /// (BB_READBACKS=2): a read fault on the GPU thread asks it for a readback it cannot do.
     void ReadBacking(VAddr address, void* data, u64 size);

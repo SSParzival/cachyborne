@@ -179,6 +179,7 @@ static void wall_time(void) {
     assert(get(NULL,NULL)==0 && get(NULL,z.value)==0);
     assert(runtime_resolve("n88vx3C5nW8#q#q",0)); /* any library letters (runtime_nid_is) */
 }
+extern int runtime_memory_write_backing_rows(uintptr_t, const void *, uint64_t, uint64_t, uint64_t);
 static void direct_memory(void) {
     Allocate alloc=GET(Allocate,"rTXw65xmLIA#p#J");
     Map map=GET(Map,"L-Q3LEjIbgA#p#J");
@@ -198,13 +199,29 @@ static void direct_memory(void) {
     assert(*(uint64_t *)x==0);
     *(uint64_t *)x=UINT64_C(0xabcdef0123456789);
     assert(*(uint64_t *)y==UINT64_C(0xabcdef0123456789)); /* real shared backing */
+    unsigned char packed[30];
+    for (unsigned i=0; i<sizeof(packed); ++i) packed[i]=(unsigned char)(i+1);
+    memset(x,0xCD,length);
+    assert(runtime_memory_write_backing_rows((uintptr_t)x,packed,10,17,3));
+    for (unsigned at=0; at<length; ++at) {
+        unsigned row=at/17, col=at%17;
+        assert(((unsigned char *)y)[at]==(row<3 && col<10 ? packed[row*10+col] : 0xCD));
+    }
+    memset(x,0xCD,length);
+    assert(!runtime_memory_write_backing_rows((uintptr_t)x,packed,10,9,3));
+    assert(!runtime_memory_write_backing_rows(UINTPTR_MAX-2,packed,10,17,3));
+    assert(!runtime_memory_write_backing_rows((uintptr_t)x,packed,10,17,UINT64_MAX));
     assert((uint32_t)unmap((char *)x+4096,length)==0x80020016); /* unaligned */
     assert(unmap(x,length)==0 && unmap(y,length)==0);
     assert(release(a,length)==0 && release(b,length)==0 && release(c,length)==0);
-    assert(alloc(0,pool,length,0,0,&a)==0 && a==0);
-    x=NULL; assert(map(&x,length,3,0,a,0)==0);
+    assert(alloc(0,pool,length*2,0,0,&a)==0 && a==0);
+    x=NULL; assert(map(&x,length*2,3,0,a,0)==0);
     assert(*(uint64_t *)x==0); /* released allocation does not leak previous data */
-    assert(release(a,length)==0); /* release also unmaps owned mapping */
+    assert(unmap((char *)x+length,length)==0); /* explicit hole, not an assumed free neighbour */
+    memset(x,0xCD,length);
+    assert(!runtime_memory_write_backing_rows((uintptr_t)x+length-17,packed,10,17,3));
+    assert(((unsigned char *)x)[length-17]==0xCD); /* no partial first row before the hole */
+    assert(release(a,length*2)==0); /* release also unmaps owned mapping */
 }
 /* Write traps (runtime_memory_trap): a page stays read-only while any reason holds it, the game's
  * own mprotect keeps them, and a new mapping starts without them. */

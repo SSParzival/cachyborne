@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <bit>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -28,10 +29,28 @@
 namespace VideoCore {
 
 u64 Image::GuestMemoryHash() const {
-    return HashGuestImage(info.guest_address, info.guest_size,
-                          [](std::uint64_t address, void* data, std::uint64_t size) {
-                              Core::Memory::Instance()->ReadBacking(address, data, size);
-                          });
+    const auto read = [](std::uint64_t address, void* data, std::uint64_t size) {
+        Core::Memory::Instance()->ReadBacking(address, data, size);
+    };
+    const u64 depth_or_color = HashGuestImage(info.guest_address, info.guest_size, read);
+    if (!info.props.has_stencil || !info.stencil_addr || !info.stencil_size) {
+        return depth_or_color;
+    }
+    // Separate guest allocations: stencil reuse must also veto collection writeback.
+    const u64 stencil = HashGuestImage(info.stencil_addr,
+                                       u64(info.stencil_size) * info.resources.layers, read);
+    return depth_or_color ^ std::rotl(stencil, 1);
+}
+
+void Image::UpdateStencilMemory(VAddr address, u32 size) {
+    if (info.stencil_addr == address && info.stencil_size == size) {
+        return;
+    }
+    // A depth address can be rebound with a different separate stencil allocation.
+    // Downloads must use the current descriptor, and its ownership starts a new interval.
+    info.stencil_addr = guest_info.stencil_addr = address;
+    info.stencil_size = guest_info.stencil_size = size;
+    gpu_base_valid = false;
 }
 
 void Image::NoteGpuBase() {

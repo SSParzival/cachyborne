@@ -587,6 +587,7 @@ ImageView& TextureCache::FindRenderTarget(ImageId image_id, const ImageDesc& des
 
 ImageView& TextureCache::FindDepthTarget(ImageId image_id, const ImageDesc& desc) {
     Image& image = slot_images[image_id];
+    image.UpdateStencilMemory(desc.info.stencil_addr, desc.info.stencil_size);
     WatchImage(image, "depth target");
     image.flags |= ImageFlagBits::GpuModified;
     image.gpu_write_tick = CurrentTick();

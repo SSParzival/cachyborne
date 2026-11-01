@@ -46,6 +46,8 @@ void bbgpu_read_sample_start(); // memory/read_sample.cpp (Linux; BB_READ_SAMPLE
 // runtime_memory.c
 int runtime_memory_is_mapped(uintptr_t address, uint64_t size);
 int runtime_memory_write_backing(uintptr_t address, const void* data, uint64_t size);
+int runtime_memory_write_backing_rows(uintptr_t address, const void* data, uint64_t row_bytes,
+                                      uint64_t row_pitch, uint64_t rows);
 void runtime_memory_read_backing(uintptr_t address, void* data, uint64_t size);
 uint64_t runtime_memory_clamp(uintptr_t address, uint64_t size);
 int runtime_memory_region(uintptr_t address, uintptr_t* start, uintptr_t* end, int* mapped);
@@ -188,6 +190,17 @@ void MemoryManager::ReadBacking(VAddr address, void* data, u64 size) {
 bool MemoryManager::TryWriteBacking(void* address, const void* data, u64 size) {
     BbWriteLog::Note(reinterpret_cast<uintptr_t>(address), data, size, BbWriteLog::Backing);
     return runtime_memory_write_backing(reinterpret_cast<uintptr_t>(address), data, size) != 0;
+}
+bool MemoryManager::TryWriteBackingRows(VAddr address, const void* data, u64 row_bytes,
+                                         u64 row_pitch, u64 rows) {
+    if (BbWriteLog::Enabled()) {
+        for (u64 row = 0; row < rows; ++row) {
+            BbWriteLog::Note(address + row * row_pitch,
+                             static_cast<const u8*>(data) + row * row_bytes, row_bytes,
+                             BbWriteLog::Backing);
+        }
+    }
+    return runtime_memory_write_backing_rows(address, data, row_bytes, row_pitch, rows) != 0;
 }
 void AddressSpace::Protect(VAddr virtual_addr, u64 size, MemoryPermission perms) {
     BbStats::Timer timer{BbStats::t_protect};
