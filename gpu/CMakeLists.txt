@@ -443,7 +443,12 @@ target_include_directories(guest-deflate-test PRIVATE .)
 target_compile_options(guest-deflate-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_link_libraries(guest-deflate-test PRIVATE PkgConfig::LIBDEFLATE ZLIB::ZLIB)
 
-list(APPEND CACHYBORNE_TEST_TARGETS hybrid-affinity-test staging-pool-test guest-deflate-test)
+add_executable(latency-test EXCLUDE_FROM_ALL ../tests/test_latency.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(latency-test PRIVATE . shim ${SHADER_INCLUDE} third_party/gcn/include)
+target_compile_options(latency-test PRIVATE -UNDEBUG -fPIC)
+target_link_libraries(latency-test PRIVATE bbgpu)
+
+list(APPEND CACHYBORNE_TEST_TARGETS hybrid-affinity-test staging-pool-test guest-deflate-test latency-test)
 add_custom_target(cachyborne-tests DEPENDS ${CACHYBORNE_TEST_TARGETS})
 foreach(test_target IN LISTS CACHYBORNE_TEST_TARGETS)
     target_compile_options(${test_target} PRIVATE -UNDEBUG)

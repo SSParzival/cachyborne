@@ -20,6 +20,9 @@ typedef struct {
 void bbgpu_register_kernel(void);
 /* Creates window, Vulkan device, presenter and GPU command processor. */
 int bbgpu_init(const BbGpuConfig *config);
+/* Optional software latency sampling: the disabled path only reads this flag. */
+extern int bbgpu_latency_enabled;
+void bbgpu_latency_input_sample(void);
 /* Function for an imported NID ("NID#lib#mod"), or 0 when the GPU library does not provide it. */
 uintptr_t bbgpu_resolve(const char *scoped_nid);
 /* Called first by the loader's SIGSEGV handler: 1 when a GPU page-tracking fault was handled. */

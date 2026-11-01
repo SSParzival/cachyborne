@@ -12,6 +12,7 @@
 //     translated while the GPU finishes the previous frame (Yahar'gul 1080p: 101 -> 154 FPS).
 //   gpu: submissions after sceGnmSubmitDone wait until the GPU is idle (the console's lock).
 //   ahead: sceGnmSubmitDone(F) waits for frame F-1 only (an experiment).
+#include "render/latency.h"
 
 #include <algorithm>
 #include "shim/bb_env.h"
@@ -233,6 +234,7 @@ s32 CheckBuffers(u32 count, const void* dcbs, const u32* dcb_sizes, const void* 
 
 void Submit(u32 count, const u32* const* dcbs, const u32* dcb_sizes, const u32* const* ccbs,
             const u32* ccb_sizes) {
+    if (BbLatency::Enabled()) BbLatency::GuestSubmit();
     if (send_init_state) {
         liverpool->SubmitGfx(FrameInitState(), {});
         send_init_state = false;

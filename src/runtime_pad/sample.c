@@ -295,6 +295,7 @@ static void touch_ids(PadData *d) {
 }
 static void sample(PadData *d) {
     sample_host(d);
+    if (bbgpu_latency_enabled) bbgpu_latency_input_sample();
     if (bbgpu_overlay_captures_input()) return;
     record_sample(d);
     read_inject();

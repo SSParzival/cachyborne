@@ -344,5 +344,6 @@ inline constexpr std::pair<std::string_view, const char*> SpanishTranslations[] 
     {"— not built (launcher)", "— sin generar (centro de control)"},
     {"— not on this GPU", "— no disponible en esta GPU"},
     {"— on with DLSS frame generation", "— activada con generación DLSS"},
+    {"GPU <= {:.2f} ms | poll -> present CPU {:.2f} ms | jitter {:.2f} ms | drops {}", "GPU <= {:.2f} ms | sondeo -> presentación CPU {:.2f} ms | fluctuación {:.2f} ms | pérdidas {}"},
 };
 } // namespace BbSettings

@@ -49,6 +49,7 @@ struct Frame {
     vk::Fence present_done{};
     vk::Semaphore ready_semaphore{};
     u64 ready_tick = 0;
+    u64 latency_token = 0;
     bool is_hdr = false;
     u8 id = 0;
     /// Frame generation: the frames generated before this one (oldest first), encoded like it
@@ -119,6 +120,10 @@ private:
     /// frame's image `index`; given back to the frame generation once submitted.
     bool PresentImage(Frame* frame, vk::Image source, bool last,
                       const FrameGeneration::Output* generated = nullptr, u32 index = 0);
+
+    struct PendingLatency { u64 token; vk::Semaphore semaphore; u64 tick; };
+    std::array<PendingLatency, 64> pending_latency{};
+    size_t pending_latency_count = 0;
 
     Frontend::WindowSDL& window;
     Instance instance;

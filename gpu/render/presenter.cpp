@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
+#include "render/latency.h"
 #include "render/presenter.h"
 #include "shim/bb_env.h"
 
@@ -399,9 +400,11 @@ Frame* Presenter::PrepareFrame(const BbVideoOut::BufferAttributeGroup& attribute
     BbStats::frame_number.fetch_add(1, std::memory_order_relaxed);
     frame->ready_semaphore = draw_scheduler.GetWorkSemaphore()->Handle();
     frame->ready_tick = draw_scheduler.CurrentTick();
+    frame->latency_token = BbLatency::Enabled() ? BbLatency::RenderFrame() : 0;
     SubmitInfo info{};
     draw_scheduler.NoteFrameEndSubmission();
     draw_scheduler.Flush(info);
+    if (BbLatency::Enabled()) BbLatency::EndRenderFrame();
     frame->present_id = LowLatency::Get().RenderSubmitEnd(); // the frame's last submission
     BbTimeline::Note(BbTimeline::PipeTask, 5, frame->ready_tick);
 
@@ -850,6 +853,26 @@ bool Presenter::PresentImage(Frame* frame, vk::Image source, bool last,
         if (!swapchain.Present(present_id)) {
             swapchain.Recreate(width, height);
             return false;
+        }
+    }
+    if (BbLatency::Enabled() && !blank && last && !source && frame->latency_token) {
+        BbLatency::Mark(frame->latency_token, BbLatency::Stage::PresentReturned);
+        // Never wait for profiling. Completion observed here is an upper bound
+        // on GPU completion, and queuePresent returning is not physical scanout.
+        if (pending_latency_count < pending_latency.size())
+            pending_latency[pending_latency_count++] = {frame->latency_token,
+                                                       frame->ready_semaphore, frame->ready_tick};
+        for (size_t i = 0; i < pending_latency_count;) {
+            u64 completed = 0;
+            const auto& pending = pending_latency[i];
+            const auto result = instance.GetDevice().getSemaphoreCounterValue(pending.semaphore, &completed);
+            if (result == vk::Result::eSuccess && completed >= pending.tick) {
+                BbLatency::Mark(pending.token, BbLatency::Stage::GpuObserved);
+                BbLatency::Complete(pending.token);
+                pending_latency[i] = pending_latency[--pending_latency_count];
+            } else {
+                ++i;
+            }
         }
     }
     return true;

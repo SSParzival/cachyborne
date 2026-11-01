@@ -6,6 +6,8 @@
 #include "../src/runtime_pad.c"
 
 static int capture;
+int bbgpu_latency_enabled;
+void bbgpu_latency_input_sample(void) {}
 int bbgpu_overlay_captures_input(void) { return capture; }
 void bbgpu_mouse_take(double *dx, double *dy, int *up, int *down) { *dx=*dy=0; *up=*down=0; }
 int bbgpu_mouse_captured(void) { return 0; }

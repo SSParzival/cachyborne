@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
+#include "render/latency.h"
 #include "bbport_overlay.h"
 #include "bbport_overlay_internal.h"
 #include "shim/bb_env.h"
@@ -865,7 +866,7 @@ bool Visible() {
     }
     const bool shader_progress = ShaderProgressShown();
     return initialized && (menu_open || open_requested || prompt_active || banner_active ||
-                           trophy_active || BbSettings::Get().show_fps || shader_progress);
+                           trophy_active || BbSettings::Get().show_fps || shader_progress || BbLatency::Hud());
 }
 
 bool MenuOpen() {
@@ -927,6 +928,14 @@ void Render(vk::CommandBuffer cmdbuf, vk::ImageView view, vk::Extent2D extent) {
 
     ImGui_ImplVulkan_NewFrame();
     ImGui::NewFrame();
+    if (BbLatency::Hud()) {
+        BbLatency::Summary latency;
+        if (BbLatency::ReadSummary(latency)) {
+            const auto label = fmt::format(fmt::runtime(BbSettings::MenuText("GPU <= {:.2f} ms | poll -> present CPU {:.2f} ms | jitter {:.2f} ms | drops {}")),
+                latency.render_upper_ms, latency.input_age_ms, latency.jitter_ms, latency.dropped);
+            ImGui::GetForegroundDrawList()->AddText(ImVec2(16, 80), IM_COL32(220, 200, 255, 255), label.c_str());
+        }
+    }
     if (OverlayTrace() && menu_open && (io.MouseClicked[0] || io.MouseReleased[0])) {
         const ImGuiContext& g = *ImGui::GetCurrentContext();
         std::printf("Overlay trace: ImGui left %s at %.0f,%.0f, display %.0fx%.0f, hovered id %#x, active id %#x\n",

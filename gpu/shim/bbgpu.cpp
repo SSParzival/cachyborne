@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
+#include "render/latency.h"
 #include "bbport_affinity.h"
 #include "shim/bb_env.h"
 #include "bbport_write_log.h"
@@ -283,6 +284,7 @@ static void StartProfileWriter() {
 
 extern "C" int bbgpu_init(const BbGpuConfig* config) {
     BbSettings::Load();
+    BbLatency::Initialize();
     BbAffinity::Start();
     // What the translator knows about this game (games/), before anything asks for it.
     Game::Select(config->serial);

@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
+#include "render/latency.h"
 #include "bbport_timeline.h"
 #include "shim/bb_env.h"
 #include "render/scheduler.h"
@@ -944,6 +945,8 @@ void Scheduler::SubmitExecution(SubmitInfo& info) {
         Check(cmdbufs[i].end());
     }
     info.AddSignal(work_semaphore.Handle(), tick);
+    if (renders_frames && BbLatency::Enabled())
+        BbLatency::Mark(BbLatency::RenderFrame(), BbLatency::Stage::QueueSubmit);
     QueueSubmit({cmdbufs.data(), count}, info);
     submitted_tick.store(tick, std::memory_order_release);
     submitted_tick.notify_all();
@@ -996,7 +999,8 @@ void Scheduler::SubmitAsync(SubmitInfo& info) {
     info.AddSignal(work_semaphore.Handle(), tick);
     // Goes out once the commands handed over before it are recorded (an ordered task: in order
     // with the other submissions and after the copies and signals queued before it).
-    RecordOrdered([this, submitted = batch, info = std::move(info), tick]() mutable {
+    const u64 latency = renders_frames && BbLatency::Enabled() ? BbLatency::RenderFrame() : 0;
+    RecordOrdered([this, submitted = batch, info = std::move(info), tick, latency]() mutable {
         BbCopy::WaitAsync();
         std::array<vk::CommandBuffer, MaxSegments> cmdbufs;
         u32 count = 0;
@@ -1007,6 +1011,7 @@ void Scheduler::SubmitAsync(SubmitInfo& info) {
         }
         {
             std::scoped_lock lk{submit_mutex};
+            if (latency) BbLatency::Mark(latency, BbLatency::Stage::QueueSubmit);
             QueueSubmit({cmdbufs.data(), count}, info);
         }
         BbTimeline::Note(BbTimeline::VulkanSubmit, tick, 2); // the actual vkQueueSubmit

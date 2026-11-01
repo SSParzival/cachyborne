@@ -667,3 +667,6 @@ BB_ENV(BB_NATIVE_DEFLATE, TUNING, "=0: disable native libdeflate for verified in
 BB_ENV(BB_ACCEPTANCE_POSES, DEBUG, "=new CSV path: offline guest update pose samples through a bounded background writer")
 BB_ENV(BB_ACCEPTANCE_COMMAND, DEBUG, "=path: offline acceptance commands (sequence list / sequence warp lamp); verified guest functions only")
 BB_ENV(BB_STAGING_STATS, DEBUG, "=1: report per-pool host/device staging capacity and Vulkan usage/budget once a second")
+
+BB_ENV(BB_LATENCY_HUD, DEBUG, "=1: software latency HUD; GPU completion upper bound and input poll age, not physical scanout")
+BB_ENV(BB_LATENCY_TRACE, DEBUG, "=new CSV path: bounded asynchronous software latency timestamps")
