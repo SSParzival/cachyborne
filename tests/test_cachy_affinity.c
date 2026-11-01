@@ -11,6 +11,14 @@ int main(void) {
     assert(!cachy_parse_cpus("1024", &parsed));
     assert(!cachy_parse_cpus("-1", &parsed));
     assert(!cachy_parse_cpus("0-x", &parsed));
+    assert(cachy_mesa_worker("bb-probe:disk$0"));
+    assert(cachy_mesa_worker("bb-probe:sh12"));
+    assert(cachy_mesa_worker("disk$3"));
+    assert(!cachy_mesa_worker("bb:shadow"));
+    assert(!cachy_mesa_worker("bb:sh"));
+    assert(!cachy_mesa_worker("bb:sh1extra"));
+    assert(!cachy_mesa_worker("disk$"));
+    assert(!cachy_mesa_worker(NULL));
     assert(sched_getaffinity(0, sizeof(original), &original) == 0);
     int first = 0, last = 0;
     for (int cpu = 0; cpu < CPU_SETSIZE; ++cpu) {
@@ -31,6 +39,12 @@ int main(void) {
     assert(sched_getaffinity(0, sizeof(actual), &actual) == 0 && CPU_ISSET(last, &actual));
     cachy_pin_thread(pthread_self(), "bb:FsrBuild");
     assert(sched_getaffinity(0, sizeof(actual), &actual) == 0 && CPU_ISSET(last, &actual));
+    cachy_pin_thread(pthread_self(), "bb-probe:disk$0");
+    assert(sched_getaffinity(0, sizeof(actual), &actual) == 0 && CPU_ISSET(last, &actual));
+    cachy_pin_thread(pthread_self(), "bb-probe:sh12");
+    assert(sched_getaffinity(0, sizeof(actual), &actual) == 0 && CPU_ISSET(last, &actual));
+    cachy_pin_thread(pthread_self(), "bb:shadow");
+    assert(sched_getaffinity(0, sizeof(actual), &actual) == 0 && CPU_ISSET(first, &actual));
     cachy_pin_thread(pthread_self(), "FMOD mixer");
     assert(sched_getaffinity(0, sizeof(actual), &actual) == 0 && CPU_ISSET(first, &actual));
     cachy_pin_thread(pthread_self(), "FMOD Decompress");

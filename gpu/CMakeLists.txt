@@ -31,6 +31,7 @@ if (BB_LTO)
 endif()
 
 find_package(Vulkan REQUIRED)
+find_package(Threads REQUIRED)
 find_package(fmt REQUIRED)
 find_package(Boost REQUIRED)
 find_package(magic_enum QUIET)
@@ -421,10 +422,16 @@ add_executable(guest-guards-test EXCLUDE_FROM_ALL ../tests/test_guest_guards.cpp
 target_include_directories(guest-guards-test PRIVATE shim)
 target_compile_options(guest-guards-test PRIVATE -UNDEBUG)
 
+add_executable(hybrid-affinity-test EXCLUDE_FROM_ALL ../tests/test_hybrid_affinity.cpp shim/bbport_affinity.cpp)
+target_include_directories(hybrid-affinity-test PRIVATE .)
+target_compile_options(hybrid-affinity-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_link_libraries(hybrid-affinity-test PRIVATE Threads::Threads)
+
 set(CACHYBORNE_TEST_TARGETS guest-guards-test effect-time-test image-download-test image-write-baseline-test guest-image-hash-test shader-cache-invariants-test trophy-test camera-matrices-test image-spares-test spanish-game-menu-test motion-history-test motion-shader-test ui-composition-test
     cp-decoder-test fx-init-clear-test effect-flags-test settings-test scene-resolution-test
     taa-shader-test camera-motion-test translation-memory-test upscaler-support-test
     shader-corpus-test srt-walker-fault-test)
+list(APPEND CACHYBORNE_TEST_TARGETS hybrid-affinity-test)
 add_custom_target(cachyborne-tests DEPENDS ${CACHYBORNE_TEST_TARGETS})
 foreach(test_target IN LISTS CACHYBORNE_TEST_TARGETS)
     target_compile_options(${test_target} PRIVATE -UNDEBUG)

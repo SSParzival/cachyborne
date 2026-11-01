@@ -20,6 +20,7 @@
 #include <fstream>
 #include <iterator>
 #include <map>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -29,6 +30,7 @@
 
 #include "bbport_threads.h"
 #include "common/thread.h"
+#include "../../src/cachy_affinity.h"
 #endif
 
 namespace BbAffinity {
@@ -37,6 +39,34 @@ namespace BbAffinity {
 namespace {
 
 constexpr const char* StageThreads[] = {"bb:GpuComm", "bb:DrawRec"};
+
+// SDL's audio threads inherit the opening thread's mask, but Mesa queues may
+// explicitly restore the startup mask. Port workers are placed at thread entry;
+// library queues are reconciled here without changing unrelated guest threads.
+void KeepHybrid() {
+    Common::SetCurrentThreadName("bb:Affinity");
+    for (;;) {
+        std::error_code ec;
+        for (const auto& entry : std::filesystem::directory_iterator{"/proc/self/task", ec}) {
+            const pid_t tid = pid_t(std::strtol(entry.path().filename().c_str(), nullptr, 10));
+            if (tid <= 0) continue;
+            std::string name;
+            std::getline(std::ifstream{entry.path() / "comm"}, name);
+            if (!cachy_mesa_worker(name.c_str()) &&
+                !strcasestr(name.c_str(), "audio") && !strcasestr(name.c_str(), "fmod")) {
+                continue;
+            }
+            cpu_set_t wanted, current;
+            if (cachy_select_cpus(name.c_str(), &wanted) &&
+                sched_getaffinity(tid, sizeof(current), &current) == 0 &&
+                !CPU_EQUAL(&current, &wanted)) {
+                // ESRCH is normal when a short-lived worker exits during the scan.
+                sched_setaffinity(tid, sizeof(wanted), &wanted);
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    }
+}
 
 /// The hardware threads of each physical core this process may run on (core -> CPUs).
 std::map<std::string, std::vector<int>> PhysicalCores(const cpu_set_t& allowed) {
@@ -91,8 +121,17 @@ void Keep(std::vector<int> stage_cpus, cpu_set_t rest) {
 void Start() {
     // Cachyborne's explicit P/E policy owns placement; the upstream monitor must
     // not reset those masks once per second, including audio onto E cores.
-    if (bb_env_on("BB_CPU_PINNING")) return;
 #ifndef _WIN32
+    if (bb_env_on("BB_CPU_PINNING")) {
+        // Vulkan/SDL initialization happens after Start: their initial critical
+        // threads inherit the foreground mask rather than the unrestricted one.
+        static std::once_flag started;
+        std::call_once(started, [] {
+            cachy_pin_thread(pthread_self(), "main");
+            std::thread{KeepHybrid}.detach();
+        });
+        return;
+    }
     const char* env = bb_env("BB_CORE_RESERVE");
     if (env && env[0] == '0') {
         return;
