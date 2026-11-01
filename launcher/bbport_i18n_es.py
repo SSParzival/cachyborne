@@ -393,5 +393,8 @@ BLOODBORNE_ES = {
     "Downloaded icon has no image data.": "El icono descargado no contiene datos de imagen.",
     "Could not encode the desktop icon.": "No se pudo codificar el icono del escritorio.",
     "Invalid downloaded image: {}": "Imagen descargada inválida: {}",
-    "Invalid XDG desktop directory": "Directorio de escritorio XDG inválido"
+    "Invalid XDG desktop directory": "Directorio de escritorio XDG inválido",
+    "Contact shadows": "Sombras de contacto",
+    "Soft directional shadows (PCSS)": "Sombras direccionales suaves (PCSS)",
+    "Additional GPU work; compare frame times before enabling.": "Añade trabajo GPU; compara los tiempos de fotograma antes de activarlo."
 }

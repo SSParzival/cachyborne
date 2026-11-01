@@ -286,6 +286,12 @@ BB_ENV(BB_STAGE_PRIORITY, TUNING, "=0 (default) / 1 / 2: draw stage thread prior
 BB_ENV(BB_STAGING_KEEP_MB, TUNING, "=N (default 512): upload staging kept when idle")
 BB_ENV(BB_STAGING_VRAM_IDLE_MS, TUNING, "=N (default 3000): VRAM staging given back after this long unused")
 BB_ENV(BB_STAGING_HOST_IDLE_MS, TUNING, "=N (default 30000; 0: frames only): host staging idle timeout in milliseconds; in-flight and held buffers remain protected")
+BB_ENV(BB_NATIVE_DEFLATE, TUNING, "=0: disable native libdeflate for verified initial complete zlib 1.2.3 streams; unsupported streams use original guest inflate")
+BB_ENV(BB_ACCEPTANCE_POSES, DEBUG, "=new CSV path: offline guest update pose samples through a bounded background writer")
+BB_ENV(BB_ACCEPTANCE_COMMAND, DEBUG, "=path: offline acceptance commands (sequence list / sequence warp lamp); verified guest functions only")
+BB_ENV(BB_STAGING_STATS, DEBUG, "=1: report per-pool host/device staging capacity and Vulkan usage/budget once a second")
+BB_ENV(BB_CONTACT_SHADOWS, TUNING, "=1/0: override contact_shadows; optional compute pass on the game's final directional shadow target")
+BB_ENV(BB_PCSS, TUNING, "=1/0: override pcss; atlas-bounded blocker search and soft directional shadow filtering")
 BB_ENV(BB_STREAM_BUFFER_MB, TUNING, "=N: stream buffer size")
 BB_ENV(BB_SUBMIT_AHEAD, TUNING, "=N (default 2): a frame's first submissions go straight to the GPU")
 BB_ENV(BB_SUBMIT_LOCK, TUNING, "=frame: a frame's last submission decoded under the lock")
@@ -661,12 +667,6 @@ BB_ENV(BB_VOICE_LANGUAGE, SETTING, "Independent retail voice-bank language (eng,
 BB_ENV(BB_FAULT_WAIT, DEBUG, "=1: keep a fatal signal or GPU assertion alive for GDB; normal exit behavior otherwise")
 BB_ENV(BB_DEBUG_OUT, INTERNAL, "private debugger report path, set by tools/debug_attach.sh")
 BB_ENV(BB_DEBUG_KEEP, INTERNAL, "debug helper: detach by default; 0 terminates only when explicitly requested")
-
-BB_ENV(BB_NATIVE_DEFLATE, TUNING, "=0: disable native libdeflate for verified initial complete zlib 1.2.3 streams; unsupported streams use original guest inflate")
-
-BB_ENV(BB_ACCEPTANCE_POSES, DEBUG, "=new CSV path: offline guest update pose samples through a bounded background writer")
-BB_ENV(BB_ACCEPTANCE_COMMAND, DEBUG, "=path: offline acceptance commands (sequence list / sequence warp lamp); verified guest functions only")
-BB_ENV(BB_STAGING_STATS, DEBUG, "=1: report per-pool host/device staging capacity and Vulkan usage/budget once a second")
 
 BB_ENV(BB_LATENCY_HUD, DEBUG, "=1: software latency HUD; GPU completion upper bound and input poll age, not physical scanout")
 BB_ENV(BB_LATENCY_TRACE, DEBUG, "=new CSV path: bounded asynchronous software latency timestamps")

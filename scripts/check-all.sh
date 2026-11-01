@@ -23,5 +23,15 @@ if command -v spirv-val >/dev/null; then
     for shader in out/gpu/test-output/motion-shader-test/*.spv; do
         spirv-val --target-env vulkan1.3 "$shader"
     done
+    # Validate the exact production words, including the contact/PCSS shader.
+    python3 - <<'SPIRV'
+import pathlib, re, struct
+header = pathlib.Path('out/gpu/include/bbgpu/shaders/contact_shadow_comp.h').read_text()
+words = [int(word, 16) for word in re.findall(r'0x[0-9a-fA-F]+', header)]
+assert words and words[0] == 0x07230203, 'Invalid production SPIR-V header'
+pathlib.Path('out/gpu/test-output/contact-shadows-test/contact_shadow.spv').write_bytes(
+    struct.pack('<' + 'I' * len(words), *words))
+SPIRV
+    spirv-val --target-env vulkan1.3 out/gpu/test-output/contact-shadows-test/contact_shadow.spv
 fi
 out/bb-probe --vulkan-only

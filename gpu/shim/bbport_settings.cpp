@@ -71,6 +71,10 @@ void Set(Values& v, const std::string& key, const std::string& value) {
         v.show_fps = i != 0;
     } else if (key == "vbao") {
         v.vbao = i != 0;
+    } else if (key == "contact_shadows") {
+        v.contact_shadows = i != 0;
+    } else if (key == "pcss") {
+        v.pcss = i != 0;
     } else if (key == "camera_speed_x") {
         v.camera_speed[1] = Clamp(f, 0.25f, 2.0f);
     } else if (key == "camera_speed_y") {
@@ -482,6 +486,8 @@ void Save() {
     put("debug_view", std::to_string(v.debug_view.load()));
     put("show_fps", flag(v.show_fps));
     put("vbao", flag(v.vbao));
+    put("contact_shadows", flag(v.contact_shadows));
+    put("pcss", flag(v.pcss));
     put("camera_speed_x", fixed(v.camera_speed[1], 2));
     put("camera_speed_y", fixed(v.camera_speed[0], 2));
     put("fsr4_auto_exposure", flag(v.fsr4_auto_exposure));

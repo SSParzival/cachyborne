@@ -47,6 +47,9 @@ Rasterizer::Rasterizer(const Instance& instance_, Scheduler& scheduler_, Runtime
     upscaler = std::make_unique<TemporalUpscaler>(instance, scheduler, texture_cache, runtime,
                                                   *camera_motion, *scene_targets);
     vbao = std::make_unique<Vbao>(instance, scheduler, texture_cache, runtime, *camera_motion);
+    if (ContactShadow::Wanted())
+        contact_shadow = std::make_unique<ContactShadow>(instance, scheduler, runtime,
+                                                       texture_cache, *scene_targets, *camera_motion);
     upscaler->on_upscaled = [this](vk::Image output, u32 width, u32 height) {
         vbao->OnUpscaled(output, width, height);
     };
@@ -340,6 +343,10 @@ void Rasterizer::NoteInPlaceVertexReads(const GraphicsPipeline* pipeline, bool i
 void Rasterizer::DrawRecord(const GraphicsPipeline* pipeline, const PreparedDraw* used_prepared,
                             bool is_indexed, u32 index_offset) {
     BB_SECTION(DrawRecord);
+    if (contact_shadow) {
+        const auto* ps = pipeline->GetStages()[u32(Shader::SwStage::Fragment)];
+        contact_shadow->Flush(ps && ps->pgm_hash == ContactShadow::BlurShader);
+    }
     buffer_cache.NewPacket();
     if (DrawPipe::OnStageB()) {
         FrameCapture::Poll();
@@ -788,6 +795,18 @@ void Rasterizer::DrawRecord(const GraphicsPipeline* pipeline, const PreparedDraw
             profiler->Mark(vs_info.pgm_hash ^ 0xAF7E'0000ull, [&] {
                 return fmt::format("after the draw of vs {:016x}", vs_info.pgm_hash);
             });
+        }
+    }
+    if (contact_shadow && ps_info && cb_descs[0].first) {
+        if (ps_info->pgm_hash == ContactShadow::ResolveShader && !buffer_infos.empty()) {
+            ContactShadow::Inputs in{.constants=buffer_infos[0]};
+            if (buffer_infos.size() > 1) in.uniforms=buffer_infos[1];
+            if (image_infos.size() > 1) in.shadow_map=image_infos[1];
+            std::memcpy(&in.offsets, push_data.buf_offsets.data(), sizeof(in.offsets));
+            contact_shadow->OnResolve(cb_descs[0].first, in);
+        } else if (ps_info->pgm_hash == ContactShadow::BlurShader) {
+            contact_shadow->OnBlur(cb_descs[0].first, ps_info->images.empty() ? 0 :
+                                  ps_info->images[0].GetSharp(*ps_info).Address());
         }
     }
     // bbport: the game's AO is drawn (either path); VBAO overwrites its target (docs/vbao.md).

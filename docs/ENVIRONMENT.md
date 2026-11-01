@@ -100,7 +100,7 @@ What players and the launchers set. The menu, bbport.ini and the launcher write 
 | `BB_USER_NAME` | the PS4 user name (default Hunter) |
 | `BB_VOICE_LANGUAGE` | Independent retail voice-bank language (eng, esa, ese, ded, frf, iti, jaj, ptb). |
 
-## Tuning (232)
+## Tuning (235)
 
 Defaults to change on a machine where they misbehave, workarounds, and switches that turn a fix off for comparison.
 
@@ -124,6 +124,7 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_CONSTANT_RING_MB` | =N: size of the constant ring in MiB |
 | `BB_CONSTRAM_GPU_WAIT` | =0: a constant RAM dump does not wait for queued draws reading it (DoF artifacts #44) |
 | `BB_CONSTRAM_PIPE` | =0: a constant RAM dump waits for all queued draws |
+| `BB_CONTACT_SHADOWS` | =1/0: override contact_shadows; optional compute pass on the game's final directional shadow target |
 | `BB_COPY_DEST_GAP` | =bytes: merge gap of copy shader destinations (default 256) |
 | `BB_COPY_DEST_PRECISE` | =0: the whole bound destination of a copy shader counts as written |
 | `BB_COPY_FILTER_GATE` | =1 with BB_COPY_SKIP_SAME: the copy filter off while the draw recording thread is over 92% busy |
@@ -250,6 +251,7 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_MIRROR_UNBOUND_SECONDS` | =N (0 never): blocks no binding named for N seconds leave VRAM |
 | `BB_MIRROR_VRAM_ONLY` | =1: mirrors in VRAM or not at all |
 | `BB_MOTION_VERTICES_MI` | =N (1-8): object motion vertex buffer in Mi vertices |
+| `BB_NATIVE_DEFLATE` | =0: disable native libdeflate for verified initial complete zlib 1.2.3 streams; unsupported streams use original guest inflate |
 | `BB_NET_MODULE` | =path: the online module to load (default gpu/libbbnet20.so beside bb-probe) |
 | `BB_NP_COUNTRY` | =code: the online user's country (default us) |
 | `BB_NP_LANGUAGE` | =code: the online user's language (default en) |
@@ -269,6 +271,7 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_PAGED_FORMATTED` | =0: formatted buffers never paged |
 | `BB_PAGED_HOLES` | =1 (experiment): paged reads skip memory the game never wrote |
 | `BB_PAGED_MIN_MB` | =N (default 64): bindings from this size are paged |
+| `BB_PCSS` | =1/0: override pcss; atlas-bounded blocker search and soft directional shadow filtering |
 | `BB_PENDING_SUMMARY` | =0: pending checks without the summary level |
 | `BB_PIPELINE_CACHE` | =0: no pipeline cache on disk |
 | `BB_PIPE_SIGNALS` | =0: the frame's cache work on the GPU thread instead of the recording thread |
@@ -339,12 +342,14 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_VULKANINFO` | path of vulkaninfo for the launcher |
 | `BB_WORK_RETIRED` | =0: the recording thread and fences do not wait for retired work |
 
-## Diagnostics (277)
+## Diagnostics (282)
 
 Logs, dumps, traces, probes and experiments, for finding bugs. Most cost frame time; none is meant for playing.
 
 | Variable | What it does |
 |---|---|
+| `BB_ACCEPTANCE_COMMAND` | =path: offline acceptance commands (sequence list / sequence warp lamp); verified guest functions only |
+| `BB_ACCEPTANCE_POSES` | =new CSV path: offline guest update pose samples through a bounded background writer |
 | `BB_ARENA_VRAM_ONLY` | =1 (tests): the arena in VRAM only, as NVIDIA's sparse buffers |
 | `BB_AUDIO_DUMP` | =dir: raw converted PCM per audio port |
 | `BB_AUDIO_STATS` | set: audio port statistics |
@@ -477,6 +482,8 @@ Logs, dumps, traces, probes and experiments, for finding bugs. Most cost frame t
 | `BB_INPLACE_READ_CHECK` | =1: checks of the GPU's in-place reads of game memory |
 | `BB_LABEL_TRAP` | =1 / 2: with BB_FREE_CHECK, read-only label pages first |
 | `BB_LANG_TABLES` | set: the sell regions' language tables (#269) |
+| `BB_LATENCY_HUD` | =1: software latency HUD; GPU completion upper bound and input poll age, not physical scanout |
+| `BB_LATENCY_TRACE` | =new CSV path: bounded asynchronous software latency timestamps |
 | `BB_LAYER_CHECK` | =1: stop on a stale page table entry of the layer |
 | `BB_LAYER_MARK_LOG` | =lo-hi (hex): who marks layer blocks there as the CPU's |
 | `BB_LAYER_PAGED` | =0 (tests): huge bindings cut in place instead of the page table |
@@ -578,6 +585,7 @@ Logs, dumps, traces, probes and experiments, for finding bugs. Most cost frame t
 | `BB_SKIP_PS` | =hash,...: draws with these pixel shaders left out |
 | `BB_SLOW_BIND_LOG` | =microseconds: image memory binds slower than this |
 | `BB_SPEC_MATCH_CHECK` | set: the built specialization must find the same one |
+| `BB_STAGING_STATS` | =1: report per-pool host/device staging capacity and Vulkan usage/budget once a second |
 | `BB_STALL_REPORT` | =0: no report when the queues stop making progress |
 | `BB_STALL_THREADS` | =0: a stall report covers the command thread only |
 | `BB_STREAM_STATS` | =1: what a frame streams |

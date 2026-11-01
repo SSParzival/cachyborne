@@ -177,6 +177,8 @@ TEXT_LANGUAGES = [("auto", "Seguir idioma del sistema PS4")] + [(code, dict(LANG
 INI_OPTIONS = {
     "game_text_language": ("auto", "graphics", "Idioma de textos (cualquier región)", tuple(code for code, _ in TEXT_LANGUAGES)),
     "vbao": ("1", "graphics", "Oclusión ambiental GT-VBAO (requiere SSAO)", ("0", "1")),
+    "contact_shadows": ("0", "graphics", "Sombras de contacto (pasada GPU adicional)", ("0", "1")),
+    "pcss": ("0", "graphics", "Sombras direccionales suaves PCSS (pasada GPU adicional)", ("0", "1")),
     "anti_aliasing": ("smaa", "graphics", "Antialiasing", ("auto", "game", "fxaa", "smaa", "off")),
     "texture_quality": ("full", "graphics", "Calidad de texturas en VRAM", ("auto", "full", "half", "quarter")),
     "frame_generation": ("off", "graphics", "Generación de cuadros", ("off", "fsr3", "dlss")),

@@ -148,6 +148,7 @@ struct Values {
     std::atomic<bool> show_fps{false};
     // GT-VBAO ambient occlusion in place of the game's SSAO (needs effect_ssao on)
     std::atomic<bool> vbao{true};
+    std::atomic<bool> contact_shadows{false}, pcss{false};
     /// The right stick's camera turn (#208): [0] vertical (the pitch), [1] horizontal (the yaw), as
     /// multiples of the game's own speed (the same for both axes, in radians a second). The
     /// native look detour (games/bloodborne/hooks_camera.cpp) multiplies the turn by the four floats as

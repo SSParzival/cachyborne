@@ -34,6 +34,7 @@ class CommandProcessor;
 #include "render/vk_draw_prep.h"
 #include "upscale/vk_temporal_upscaler.h"
 #include "upscale/vk_vbao.h"
+#include "render/vk_contact_shadow.h"
 #include "render/pipeline_cache.h"
 #include "render/scheduler.h"
 #include "textures/texture_cache.h"
@@ -579,6 +580,7 @@ private:
     bool gbuffer_draw = false;
     std::unique_ptr<TemporalUpscaler> upscaler; // bbport: FSR (docs/upscaler.md)
     std::unique_ptr<Vbao> vbao; // bbport: GT-VBAO in place of the game's SSAO (docs/vbao.md)
+    std::unique_ptr<ContactShadow> contact_shadow;
     std::array<float, 2> draw_jitter{};         ///< viewport offset of the current draw, pixels
     std::array<float, 2> target_scale{1.0f, 1.0f}; ///< pass drawn into the upscaler's output-size images
     UiPlacement ui_placement;

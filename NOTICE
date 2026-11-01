@@ -28,3 +28,9 @@ Code bbport is built on, with its own notices kept in its files:
   tools/fsr4cap/ffx, with AMD's notices.
 - The libraries in gpu/third_party (sirit, imgui, half, httplib, fsr-vulkan and others), each under
   its own license in its folder.
+
+Cachyborne's optional contact-shadow/PCSS compute shader is adapted from the
+GPL-2.0-or-later source file contact_shadow.comp in Lantern Engine by Awaken
+(https://github.com/Awakenchan/LanternEngine), revision e6b943dd. The host integration
+and validation are changed for Cachyborne's renderer. This is not an official
+Lantern Engine release; Lantern's name, logos and branding are not used for this port.

@@ -929,6 +929,42 @@
      }
     },
     {
+     "key": "contact_shadows",
+     "type": "bool",
+     "store": "ini",
+     "default": false,
+     "title": {
+      "en": "Contact shadows",
+      "es": "Sombras de contacto"
+     },
+     "description": {
+      "en": "Additional GPU work; compare frame times before enabling.",
+      "es": "Añade trabajo GPU; compara los tiempos de fotograma antes de activarlo."
+     },
+     "group": {
+      "en": "Image quality",
+      "es": "Calidad de imagen"
+     }
+    },
+    {
+     "key": "pcss",
+     "type": "bool",
+     "store": "ini",
+     "default": false,
+     "title": {
+      "en": "Soft directional shadows (PCSS)",
+      "es": "Sombras direccionales suaves (PCSS)"
+     },
+     "description": {
+      "en": "Additional GPU work; compare frame times before enabling.",
+      "es": "Añade trabajo GPU; compara los tiempos de fotograma antes de activarlo."
+     },
+     "group": {
+      "en": "Image quality",
+      "es": "Calidad de imagen"
+     }
+    },
+    {
      "key": "show_fps",
      "type": "bool",
      "store": "ini",
