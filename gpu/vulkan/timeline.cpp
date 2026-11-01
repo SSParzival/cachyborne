@@ -91,7 +91,15 @@ void Semaphore::Wait(u64 tick) {
             ASSERT_MSG(false, "Device lost while waiting for a submission");
         }
     }
-    Refresh();
+    // A successful driver wait proves this value has been reached. Refresh is
+    // throttled and may deliberately retain a pre-wait value for 50 us; callers
+    // reclaiming staging immediately after Finish must see the completed tick.
+    // Preserve a newer observation published concurrently by another thread.
+    u64 known = gpu_tick.load(std::memory_order_acquire);
+    while (known < tick &&
+           !gpu_tick.compare_exchange_weak(known, tick, std::memory_order_release,
+                                           std::memory_order_acquire)) {
+    }
 }
 
 } // namespace Vulkan

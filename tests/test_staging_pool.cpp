@@ -9,6 +9,9 @@
 
 int main() {
     setenv("BB_STAGING_HOST_IDLE_MS", "1", 1);
+    // Force Refresh to retain its pre-wait observation. A successful wait must
+    // publish completion independently, even inside a throttled poll interval.
+    setenv("BB_TIMELINE_POLL_US", "1000000", 1);
     Vulkan::Instance instance(0, false);
     Vulkan::Scheduler scheduler(instance);
     Vulkan::StagingBufferPool pool(instance, scheduler);
@@ -18,7 +21,9 @@ int main() {
     const auto allocation = pool.Request(size, MemoryType::HostCached, 256, true);
     assert(allocation.mapped && pool.BytesAllocated(MemoryType::HostCached) == size);
     // Wall time alone cannot release a deferred readback's storage.
+    const u64 submitted = scheduler.CurrentTick();
     scheduler.Finish();
+    assert(scheduler.IsFree(submitted));
     pause();
     pool.TickFrame();
     assert(pool.BytesAllocated(MemoryType::HostCached) == size);
