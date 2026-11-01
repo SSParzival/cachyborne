@@ -21,6 +21,15 @@ and complete Spanish coverage of the current launcher catalog and setup errors.
 Validation includes 26 C++ tests, 239 Python tests and native FP8 replay on the
 target RX 9070 XT. The report records remaining physics/travel acceptance work.
 
+The [consolidated follow-up audit](docs/CONVERGENCE_AUDIT_FINAL.md) documents a
+native libdeflate hook with original-guest parity tests, optional contact shadows
+and PCSS, a software latency HUD (`BB_LATENCY_HUD=1`), and copied-save trajectory
+and repeated-lamp-travel tools. Midnight exposes Contact shadows and Soft
+directional shadows (PCSS).
+`BB_CONTACT_SHADOWS=1` and `BB_PCSS=1` override those settings; both default off.
+Software present latency does not measure physical scanout. Full Havok equivalence, POM and Lantern
+room interoperability remain uncertified; the report records the outstanding work.
+
 Version 0.8.3 restores all resident linear mips without overwriting guest padding,
 uses compact staging and per-slice memory transactions, and adds particle-time
 and null online-event guards. [Source review](docs/COMMUNITY_AUDIT_0.8.3.md).

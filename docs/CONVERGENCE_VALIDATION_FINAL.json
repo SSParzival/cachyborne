@@ -1,0 +1,1435 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-01",
+  "base_commit": "c34e6b2d",
+  "implementation_head": "5c338a57581b06cb00770a391fa61b784a3a23a8",
+  "all_original_work_packages_accepted": false,
+  "platform": {
+    "cpu": "Intel Core i5-14600KF",
+    "p_cpus": "0-11",
+    "e_cpus": "12-19",
+    "system_ram_gib": 16,
+    "gpu": "AMD Radeon RX 9070 XT / RADV GFX1201",
+    "mesa": "26.2.5-arch3.1",
+    "vulkan": "1.4.354",
+    "kernel": "6.18.55-2-cachyos-lts",
+    "compiler": "Clang 23.1.4",
+    "linker": "mold",
+    "lto": "ThinLTO",
+    "guest_direct_pool_mib": 5056,
+    "port_extra_pool_mib": 256
+  },
+  "validation": {
+    "build_command": "bash build.sh --test",
+    "build_passed": true,
+    "suite_command": "bash scripts/check-all.sh",
+    "suite_passed": true,
+    "ctest_passed": 29,
+    "python_passed": 249,
+    "vulkan_command_submission_readback_passed": true,
+    "contact_spirv_validation_passed": true,
+    "audio_unit_passed": true,
+    "pipewire_2000_buffers_passed": true,
+    "artifacts": [
+      {
+        "path": "out/final-audit/build-final.log",
+        "sha256": "bf01a2c73ab80e087e2ec60141605b65b0f428d28995322d52f5f0d934f14772",
+        "bytes": 3902
+      },
+      {
+        "path": "out/final-audit/check-all-final.log",
+        "sha256": "6cf5ffb71ada78f5b78f12a0d21798736d736f5f688e26ee31fdbb0bd28e4ad4",
+        "bytes": 13629
+      },
+      {
+        "path": "out/final-audit/contact-guards-direct.log",
+        "sha256": "8745be7e020c0489c2c20ba6ce3501bff3dd23ee7792c78b406705b95b84b0a3",
+        "bytes": 1483
+      },
+      {
+        "path": "out/final-audit/contact-shadow.spv",
+        "sha256": "1eeb8a2f7d0df31156d618b7563878a3badbc83a7ed4ed3b4eda703051264e00",
+        "bytes": 37036
+      }
+    ]
+  },
+  "native_deflate": {
+    "accepted": true,
+    "streams": 257,
+    "bytes": 925240908,
+    "guest_ms": 2471.548,
+    "guest_mb_s": 374.4,
+    "native_ms": 1270.17,
+    "native_mb_s": 728.4,
+    "speedup": 1.9458403205870078,
+    "actual_guest_machine_code_compared": true,
+    "parallel_runtime_decompression": false,
+    "limitation": "Initial complete zlib streams up to 8 MiB; incremental and unsupported calls fall back to guest.",
+    "artifact": {
+      "path": "out/final-audit/guest-deflate-retail.log",
+      "sha256": "30e93d6f78a4d99e3a7fbf7b76cc9f9c0904337bde6bbe8930cba33262e4d9e0",
+      "bytes": 267
+    }
+  },
+  "warp_soak": {
+    "accepted": true,
+    "round_trips": 15,
+    "map_transitions": 31,
+    "elapsed_s": 1231.991,
+    "samples": 2467,
+    "settle_seconds": 35,
+    "peak_rss_mib": 1290.16796875,
+    "peak_vram_mib": 4596.015625,
+    "first_floor_mib": {
+      "rss": 1262.45703125,
+      "vram": 3640.1015625,
+      "staging": 144.0,
+      "memfd_allocated": 770.71484375
+    },
+    "final_floor_mib": {
+      "rss": 751.6171875,
+      "vram": 3804.24609375,
+      "staging": 144.0,
+      "memfd_allocated": 830.26171875
+    },
+    "growth_limits_mib": {
+      "rss": 256,
+      "vram": 512,
+      "staging": 32
+    },
+    "checks": {
+      "rss": true,
+      "vram": true,
+      "staging": true,
+      "staging_observed": true,
+      "vram_observed": true,
+      "fifteen_cycles": true
+    },
+    "original_saves_unchanged": true,
+    "artifact": {
+      "path": "out/final-audit/warp-soak-main/result.json",
+      "sha256": "73397a004726d90fbb971337393560d2f2c67045824eb4f1b52c222e8398c232",
+      "bytes": 9975
+    }
+  },
+  "lighting": {
+    "accepted_contact_pcss_scene": true,
+    "pom_implemented": false,
+    "lantern_pom_implementation_present": true,
+    "pom_status": "Not ported or validated in Cachyborne; Lantern has EffectPomCavity and Pom::PatchPom.",
+    "output_target": [
+      2560,
+      1440
+    ],
+    "scene_proxy": [
+      1708,
+      960
+    ],
+    "configured_render_size": [
+      1706,
+      960
+    ],
+    "capture_window_size": [
+      1920,
+      1080
+    ],
+    "fsr_assets": {
+      "sdk": "2.4.0",
+      "upscaler": "4.1.2.4555",
+      "backend": "native Vulkan replay",
+      "source": "GPUOpen-LibrariesAndSDKs/FidelityFX-SDK v2.4.0",
+      "sha256": "aad4fccccb29084a655f9a4f9f613bd22c8c03fb4a0f8840148cc6543b4ccace"
+    },
+    "settings": "60 FPS, Mailbox, native FP8, VBAO, no frame generation, software latency HUD and GPU profiler enabled in all modes",
+    "timing_scope": "Labelled compute segment includes barriers; whole-frame times are capped and do not establish zero overhead.",
+    "original_saves_unchanged": true,
+    "runs": [
+      {
+        "mode": "baseline",
+        "exit_code": 0,
+        "fps_limit": 60,
+        "gameplay_frames": 1197,
+        "median_frame_ms": 16.72,
+        "p99_frame_ms": 16.73,
+        "shadow_dispatch": [],
+        "compute_pass_ms_per_frame_windows": [],
+        "compute_pass_last_window_ms": null,
+        "compute_pass_median_full_rate_window_ms": null,
+        "compute_pass_full_rate_window_range_ms": null,
+        "peak_rss_mib": 1198.461,
+        "thread_affinity": {
+          "CSChrBackInitia": [
+            "0-11"
+          ],
+          "CSChrThread0": [
+            "0-11"
+          ],
+          "CSChrThread1": [
+            "0-11"
+          ],
+          "CSChrThread2": [
+            "0-11"
+          ],
+          "CSChrThread3": [
+            "0-11"
+          ],
+          "CSChrThread4": [
+            "0-11"
+          ],
+          "CSChrThread5": [
+            "0-11"
+          ],
+          "CSClothThread0": [
+            "0-11"
+          ],
+          "CSClothThread1": [
+            "0-11"
+          ],
+          "CSClothThread2": [
+            "0-11"
+          ],
+          "CSClothThread3": [
+            "0-11"
+          ],
+          "CSClothThread4": [
+            "0-11"
+          ],
+          "CSClothThread5": [
+            "0-11"
+          ],
+          "CSTrophy::Async": [
+            "0-11"
+          ],
+          "Core.Logging.Ba": [
+            "0-11"
+          ],
+          "Core.Res.Cachea": [
+            "0-11"
+          ],
+          "Core.Res.FileLo": [
+            "0-11"
+          ],
+          "Core.Res.PostPr": [
+            "0-11"
+          ],
+          "Core.Res.TaskMa": [
+            "0-11"
+          ],
+          "DLUserPreferenc": [
+            "0-11"
+          ],
+          "EzWorkPool_Type": [
+            "0-11"
+          ],
+          "FD4JobWorker:0": [
+            "0-11"
+          ],
+          "FMOD AudioOut t": [
+            "0-11"
+          ],
+          "FMOD file threa": [
+            "0-11"
+          ],
+          "FMOD mixer thre": [
+            "0-11"
+          ],
+          "FMOD nonblockin": [
+            "0-11"
+          ],
+          "FMOD stream thr": [
+            "0-11"
+          ],
+          "FaceGenMan": [
+            "0-11"
+          ],
+          "GXRenderThread": [
+            "0-11"
+          ],
+          "GXWorker:1": [
+            "0-11"
+          ],
+          "GXWorker:2": [
+            "0-11"
+          ],
+          "GXWorker:3": [
+            "0-11"
+          ],
+          "GXWorker:4": [
+            "0-11"
+          ],
+          "GXWorker:5": [
+            "0-11"
+          ],
+          "HavokWorkerThre": [
+            "0-11"
+          ],
+          "MOMainThread": [
+            "0-11"
+          ],
+          "NexusRevolution": [
+            "0-11"
+          ],
+          "SDLAudioP15": [
+            "0-11"
+          ],
+          "SDLPwAudioPlug": [
+            "0-11"
+          ],
+          "SLSession": [
+            "0-11"
+          ],
+          "SpClothVertexUp": [
+            "0-11"
+          ],
+          "bb-prob:disk$0": [
+            "12-19"
+          ],
+          "bb-probe": [
+            "0-11"
+          ],
+          "bb:Affinity": [
+            "0-11"
+          ],
+          "bb:Copy0": [
+            "0-11"
+          ],
+          "bb:Copy1": [
+            "0-11"
+          ],
+          "bb:Copy2": [
+            "0-11"
+          ],
+          "bb:CopyFilter": [
+            "0-11"
+          ],
+          "bb:DrawPrep0": [
+            "0-11"
+          ],
+          "bb:DrawPrep1": [
+            "0-11"
+          ],
+          "bb:DrawPrep2": [
+            "0-11"
+          ],
+          "bb:DrawRec": [
+            "0-11"
+          ],
+          "bb:DrawScan": [
+            "0-11"
+          ],
+          "bb:GpuComm": [
+            "0-11"
+          ],
+          "bb:GpuSignals": [
+            "0-11"
+          ],
+          "bb:PipeCacheIO": [
+            "12-19"
+          ],
+          "bb:Present": [
+            "0-11"
+          ],
+          "bb:SchedOps": [
+            "0-11"
+          ],
+          "bb:ShaderCompil": [
+            "12-19"
+          ],
+          "bb:StallWatch": [
+            "0-11"
+          ],
+          "bb:Vblank": [
+            "0-11"
+          ],
+          "bb:VkRecorder": [
+            "0-11"
+          ],
+          "bb:VkRecorder1": [
+            "0-11"
+          ],
+          "bb:VkRecorder2": [
+            "0-11"
+          ],
+          "bb:window": [
+            "0-11"
+          ],
+          "libusb": [
+            "0-11"
+          ],
+          "libusb_event": [
+            "0-11"
+          ],
+          "wl_cursor_surfa": [
+            "0-11"
+          ]
+        },
+        "artifacts": [
+          {
+            "path": "out/final-audit/lighting/baseline/game.log",
+            "sha256": "8bd38eb965130e6f0be7538cf5d559ed27b175841a221123b83254de9e36bc12",
+            "bytes": 242982
+          },
+          {
+            "path": "out/final-audit/lighting/baseline/frames.csv",
+            "sha256": "1805185a2d699fc87e4ed155e76d57dbf7683b0d9bd769629f6700ac8c0706dc",
+            "bytes": 397811
+          },
+          {
+            "path": "out/final-audit/lighting/baseline/latency.csv",
+            "sha256": "591c6f2c321dcf5d8ff5a696b90a5cd9356709ff8aa3fdaab2a2ec87b1078303",
+            "bytes": 258065
+          }
+        ]
+      },
+      {
+        "mode": "contact",
+        "exit_code": 0,
+        "fps_limit": 60,
+        "gameplay_frames": 617,
+        "median_frame_ms": 16.72,
+        "p99_frame_ms": 559.99,
+        "shadow_dispatch": [
+          "1708x960, contacts 1, PCSS 0"
+        ],
+        "compute_pass_ms_per_frame_windows": [
+          0.13,
+          0.276,
+          0.276,
+          0.277,
+          0.266,
+          0.274,
+          0.259
+        ],
+        "compute_pass_last_window_ms": 0.259,
+        "compute_pass_median_full_rate_window_ms": 0.275,
+        "compute_pass_full_rate_window_range_ms": [
+          0.259,
+          0.277
+        ],
+        "peak_rss_mib": 1077.25,
+        "thread_affinity": {
+          "CSChrBackInitia": [
+            "0-11"
+          ],
+          "CSChrThread0": [
+            "0-11"
+          ],
+          "CSChrThread1": [
+            "0-11"
+          ],
+          "CSChrThread2": [
+            "0-11"
+          ],
+          "CSChrThread3": [
+            "0-11"
+          ],
+          "CSChrThread4": [
+            "0-11"
+          ],
+          "CSChrThread5": [
+            "0-11"
+          ],
+          "CSClothThread0": [
+            "0-11"
+          ],
+          "CSClothThread1": [
+            "0-11"
+          ],
+          "CSClothThread2": [
+            "0-11"
+          ],
+          "CSClothThread3": [
+            "0-11"
+          ],
+          "CSClothThread4": [
+            "0-11"
+          ],
+          "CSClothThread5": [
+            "0-11"
+          ],
+          "CSTrophy::Async": [
+            "0-11"
+          ],
+          "Core.Logging.Ba": [
+            "0-11"
+          ],
+          "Core.Res.Cachea": [
+            "0-11"
+          ],
+          "Core.Res.FileLo": [
+            "0-11"
+          ],
+          "Core.Res.PostPr": [
+            "0-11"
+          ],
+          "Core.Res.TaskMa": [
+            "0-11"
+          ],
+          "DLUserPreferenc": [
+            "0-11"
+          ],
+          "EzWorkPool_Type": [
+            "0-11"
+          ],
+          "FD4JobWorker:0": [
+            "0-11"
+          ],
+          "FMOD AudioOut t": [
+            "0-11"
+          ],
+          "FMOD file threa": [
+            "0-11"
+          ],
+          "FMOD mixer thre": [
+            "0-11"
+          ],
+          "FMOD nonblockin": [
+            "0-11"
+          ],
+          "FMOD stream thr": [
+            "0-11"
+          ],
+          "FaceGenMan": [
+            "0-11"
+          ],
+          "GXRenderThread": [
+            "0-11"
+          ],
+          "GXWorker:1": [
+            "0-11"
+          ],
+          "GXWorker:2": [
+            "0-11"
+          ],
+          "GXWorker:3": [
+            "0-11"
+          ],
+          "GXWorker:4": [
+            "0-11"
+          ],
+          "GXWorker:5": [
+            "0-11"
+          ],
+          "HavokWorkerThre": [
+            "0-11"
+          ],
+          "MOMainThread": [
+            "0-11"
+          ],
+          "NexusRevolution": [
+            "0-11"
+          ],
+          "SDLAudioP15": [
+            "0-11"
+          ],
+          "SDLPwAudioPlug": [
+            "0-11"
+          ],
+          "SLSession": [
+            "0-11"
+          ],
+          "SpClothVertexUp": [
+            "0-11"
+          ],
+          "bb-prob:disk$0": [
+            "12-19"
+          ],
+          "bb-probe": [
+            "0-11"
+          ],
+          "bb:Affinity": [
+            "0-11"
+          ],
+          "bb:Copy0": [
+            "0-11"
+          ],
+          "bb:Copy1": [
+            "0-11"
+          ],
+          "bb:Copy2": [
+            "0-11"
+          ],
+          "bb:CopyFilter": [
+            "0-11"
+          ],
+          "bb:DrawPrep0": [
+            "0-11"
+          ],
+          "bb:DrawPrep1": [
+            "0-11"
+          ],
+          "bb:DrawPrep2": [
+            "0-11"
+          ],
+          "bb:DrawRec": [
+            "0-11"
+          ],
+          "bb:DrawScan": [
+            "0-11"
+          ],
+          "bb:GpuComm": [
+            "0-11"
+          ],
+          "bb:GpuSignals": [
+            "0-11"
+          ],
+          "bb:PipeCacheIO": [
+            "12-19"
+          ],
+          "bb:Present": [
+            "0-11"
+          ],
+          "bb:SchedOps": [
+            "0-11"
+          ],
+          "bb:ShaderCompil": [
+            "12-19"
+          ],
+          "bb:StallWatch": [
+            "0-11"
+          ],
+          "bb:Vblank": [
+            "0-11"
+          ],
+          "bb:VkRecorder": [
+            "0-11"
+          ],
+          "bb:VkRecorder1": [
+            "0-11"
+          ],
+          "bb:VkRecorder2": [
+            "0-11"
+          ],
+          "bb:window": [
+            "0-11"
+          ],
+          "libusb": [
+            "0-11"
+          ],
+          "libusb_event": [
+            "0-11"
+          ],
+          "wl_cursor_surfa": [
+            "0-11"
+          ]
+        },
+        "artifacts": [
+          {
+            "path": "out/final-audit/lighting/contact/game.log",
+            "sha256": "da1dd4881b3a6d69246301460b5678b4d2caa4da9174bcf4fecfd266c07fb36a",
+            "bytes": 225459
+          },
+          {
+            "path": "out/final-audit/lighting/contact/frames.csv",
+            "sha256": "18e3b36eb98f08962cabdf7c1d59093185f7b264d27ae7bfa35358a3a31e6918",
+            "bytes": 301994
+          },
+          {
+            "path": "out/final-audit/lighting/contact/latency.csv",
+            "sha256": "52af0df8961908891cb7cac8ec0b7da74427e6012b76205d96e35f6b5334101d",
+            "bytes": 196078
+          }
+        ]
+      },
+      {
+        "mode": "pcss",
+        "exit_code": 0,
+        "fps_limit": 60,
+        "gameplay_frames": 1197,
+        "median_frame_ms": 16.72,
+        "p99_frame_ms": 16.73,
+        "shadow_dispatch": [
+          "1708x960, contacts 0, PCSS 1"
+        ],
+        "compute_pass_ms_per_frame_windows": [
+          0.053,
+          0.535,
+          0.541,
+          0.542,
+          1.009,
+          0.848,
+          0.423,
+          0.664,
+          0.704
+        ],
+        "compute_pass_last_window_ms": 0.704,
+        "compute_pass_median_full_rate_window_ms": 0.603,
+        "compute_pass_full_rate_window_range_ms": [
+          0.423,
+          1.009
+        ],
+        "peak_rss_mib": 1133.988,
+        "thread_affinity": {
+          "CSChrBackInitia": [
+            "0-11"
+          ],
+          "CSChrThread0": [
+            "0-11"
+          ],
+          "CSChrThread1": [
+            "0-11"
+          ],
+          "CSChrThread2": [
+            "0-11"
+          ],
+          "CSChrThread3": [
+            "0-11"
+          ],
+          "CSChrThread4": [
+            "0-11"
+          ],
+          "CSChrThread5": [
+            "0-11"
+          ],
+          "CSClothThread0": [
+            "0-11"
+          ],
+          "CSClothThread1": [
+            "0-11"
+          ],
+          "CSClothThread2": [
+            "0-11"
+          ],
+          "CSClothThread3": [
+            "0-11"
+          ],
+          "CSClothThread4": [
+            "0-11"
+          ],
+          "CSClothThread5": [
+            "0-11"
+          ],
+          "CSTrophy::Async": [
+            "0-11"
+          ],
+          "Core.Logging.Ba": [
+            "0-11"
+          ],
+          "Core.Res.Cachea": [
+            "0-11"
+          ],
+          "Core.Res.FileLo": [
+            "0-11"
+          ],
+          "Core.Res.PostPr": [
+            "0-11"
+          ],
+          "Core.Res.TaskMa": [
+            "0-11"
+          ],
+          "DLUserPreferenc": [
+            "0-11"
+          ],
+          "EzWorkPool_Type": [
+            "0-11"
+          ],
+          "FD4JobWorker:0": [
+            "0-11"
+          ],
+          "FMOD AudioOut t": [
+            "0-11"
+          ],
+          "FMOD file threa": [
+            "0-11"
+          ],
+          "FMOD mixer thre": [
+            "0-11"
+          ],
+          "FMOD nonblockin": [
+            "0-11"
+          ],
+          "FMOD stream thr": [
+            "0-11"
+          ],
+          "FaceGenMan": [
+            "0-11"
+          ],
+          "GXRenderThread": [
+            "0-11"
+          ],
+          "GXWorker:1": [
+            "0-11"
+          ],
+          "GXWorker:2": [
+            "0-11"
+          ],
+          "GXWorker:3": [
+            "0-11"
+          ],
+          "GXWorker:4": [
+            "0-11"
+          ],
+          "GXWorker:5": [
+            "0-11"
+          ],
+          "HavokWorkerThre": [
+            "0-11"
+          ],
+          "MOMainThread": [
+            "0-11"
+          ],
+          "NexusRevolution": [
+            "0-11"
+          ],
+          "SDLAudioP15": [
+            "0-11"
+          ],
+          "SDLPwAudioPlug": [
+            "0-11"
+          ],
+          "SLSession": [
+            "0-11"
+          ],
+          "SpClothVertexUp": [
+            "0-11"
+          ],
+          "bb-prob:disk$0": [
+            "12-19"
+          ],
+          "bb-probe": [
+            "0-11"
+          ],
+          "bb:Affinity": [
+            "0-11"
+          ],
+          "bb:Copy0": [
+            "0-11"
+          ],
+          "bb:Copy1": [
+            "0-11"
+          ],
+          "bb:Copy2": [
+            "0-11"
+          ],
+          "bb:CopyFilter": [
+            "0-11"
+          ],
+          "bb:DrawPrep0": [
+            "0-11"
+          ],
+          "bb:DrawPrep1": [
+            "0-11"
+          ],
+          "bb:DrawPrep2": [
+            "0-11"
+          ],
+          "bb:DrawRec": [
+            "0-11"
+          ],
+          "bb:DrawScan": [
+            "0-11"
+          ],
+          "bb:GpuComm": [
+            "0-11"
+          ],
+          "bb:GpuSignals": [
+            "0-11"
+          ],
+          "bb:PipeCacheIO": [
+            "12-19"
+          ],
+          "bb:Present": [
+            "0-11"
+          ],
+          "bb:SchedOps": [
+            "0-11"
+          ],
+          "bb:ShaderCompil": [
+            "12-19"
+          ],
+          "bb:StallWatch": [
+            "0-11"
+          ],
+          "bb:Vblank": [
+            "0-11"
+          ],
+          "bb:VkRecorder": [
+            "0-11"
+          ],
+          "bb:VkRecorder1": [
+            "0-11"
+          ],
+          "bb:VkRecorder2": [
+            "0-11"
+          ],
+          "bb:window": [
+            "0-11"
+          ],
+          "libusb": [
+            "0-11"
+          ],
+          "libusb_event": [
+            "0-11"
+          ],
+          "wl_cursor_surfa": [
+            "0-11"
+          ]
+        },
+        "artifacts": [
+          {
+            "path": "out/final-audit/lighting/pcss/game.log",
+            "sha256": "588091cd209f9c5ecb9e919774876d125ffafb15d8b425bce043f9ff145dc6af",
+            "bytes": 242644
+          },
+          {
+            "path": "out/final-audit/lighting/pcss/frames.csv",
+            "sha256": "18ca6cbf4e27dd358ac95c63df01c5385336a72b24ed9304e277b073bfc09220",
+            "bytes": 469306
+          },
+          {
+            "path": "out/final-audit/lighting/pcss/latency.csv",
+            "sha256": "d1e805a9e5a6fabf1febdbefeae297d2068abcb2f3138fe50b58a0712606c0d2",
+            "bytes": 307012
+          }
+        ]
+      },
+      {
+        "mode": "both",
+        "exit_code": 0,
+        "fps_limit": 60,
+        "gameplay_frames": 1197,
+        "median_frame_ms": 16.72,
+        "p99_frame_ms": 16.73,
+        "shadow_dispatch": [
+          "1708x960, contacts 1, PCSS 1"
+        ],
+        "compute_pass_ms_per_frame_windows": [
+          0.252,
+          0.63,
+          0.635,
+          0.639,
+          0.639,
+          0.637,
+          0.636,
+          0.636
+        ],
+        "compute_pass_last_window_ms": 0.636,
+        "compute_pass_median_full_rate_window_ms": 0.636,
+        "compute_pass_full_rate_window_range_ms": [
+          0.63,
+          0.639
+        ],
+        "peak_rss_mib": 1225.391,
+        "thread_affinity": {
+          "CSChrBackInitia": [
+            "0-11"
+          ],
+          "CSChrThread0": [
+            "0-11"
+          ],
+          "CSChrThread1": [
+            "0-11"
+          ],
+          "CSChrThread2": [
+            "0-11"
+          ],
+          "CSChrThread3": [
+            "0-11"
+          ],
+          "CSChrThread4": [
+            "0-11"
+          ],
+          "CSChrThread5": [
+            "0-11"
+          ],
+          "CSClothThread0": [
+            "0-11"
+          ],
+          "CSClothThread1": [
+            "0-11"
+          ],
+          "CSClothThread2": [
+            "0-11"
+          ],
+          "CSClothThread3": [
+            "0-11"
+          ],
+          "CSClothThread4": [
+            "0-11"
+          ],
+          "CSClothThread5": [
+            "0-11"
+          ],
+          "CSTrophy::Async": [
+            "0-11"
+          ],
+          "Core.Logging.Ba": [
+            "0-11"
+          ],
+          "Core.Res.Cachea": [
+            "0-11"
+          ],
+          "Core.Res.FileLo": [
+            "0-11"
+          ],
+          "Core.Res.PostPr": [
+            "0-11"
+          ],
+          "Core.Res.TaskMa": [
+            "0-11"
+          ],
+          "DLUserPreferenc": [
+            "0-11"
+          ],
+          "EzWorkPool_Type": [
+            "0-11"
+          ],
+          "FD4JobWorker:0": [
+            "0-11"
+          ],
+          "FMOD AudioOut t": [
+            "0-11"
+          ],
+          "FMOD file threa": [
+            "0-11"
+          ],
+          "FMOD mixer thre": [
+            "0-11"
+          ],
+          "FMOD nonblockin": [
+            "0-11"
+          ],
+          "FMOD stream thr": [
+            "0-11"
+          ],
+          "FaceGenMan": [
+            "0-11"
+          ],
+          "GXRenderThread": [
+            "0-11"
+          ],
+          "GXWorker:1": [
+            "0-11"
+          ],
+          "GXWorker:2": [
+            "0-11"
+          ],
+          "GXWorker:3": [
+            "0-11"
+          ],
+          "GXWorker:4": [
+            "0-11"
+          ],
+          "GXWorker:5": [
+            "0-11"
+          ],
+          "HavokWorkerThre": [
+            "0-11"
+          ],
+          "MOMainThread": [
+            "0-11"
+          ],
+          "NexusRevolution": [
+            "0-11"
+          ],
+          "SDLAudioP15": [
+            "0-11"
+          ],
+          "SDLPwAudioPlug": [
+            "0-11"
+          ],
+          "SLSession": [
+            "0-11"
+          ],
+          "SpClothVertexUp": [
+            "0-11"
+          ],
+          "bb-prob:disk$0": [
+            "12-19"
+          ],
+          "bb-probe": [
+            "0-11"
+          ],
+          "bb:Affinity": [
+            "0-11"
+          ],
+          "bb:Copy0": [
+            "0-11"
+          ],
+          "bb:Copy1": [
+            "0-11"
+          ],
+          "bb:Copy2": [
+            "0-11"
+          ],
+          "bb:CopyFilter": [
+            "0-11"
+          ],
+          "bb:DrawPrep0": [
+            "0-11"
+          ],
+          "bb:DrawPrep1": [
+            "0-11"
+          ],
+          "bb:DrawPrep2": [
+            "0-11"
+          ],
+          "bb:DrawRec": [
+            "0-11"
+          ],
+          "bb:DrawScan": [
+            "0-11"
+          ],
+          "bb:GpuComm": [
+            "0-11"
+          ],
+          "bb:GpuSignals": [
+            "0-11"
+          ],
+          "bb:PipeCacheIO": [
+            "12-19"
+          ],
+          "bb:Present": [
+            "0-11"
+          ],
+          "bb:SchedOps": [
+            "0-11"
+          ],
+          "bb:ShaderCompil": [
+            "12-19"
+          ],
+          "bb:StallWatch": [
+            "0-11"
+          ],
+          "bb:Vblank": [
+            "0-11"
+          ],
+          "bb:VkRecorder": [
+            "0-11"
+          ],
+          "bb:VkRecorder1": [
+            "0-11"
+          ],
+          "bb:VkRecorder2": [
+            "0-11"
+          ],
+          "bb:window": [
+            "0-11"
+          ],
+          "libusb": [
+            "0-11"
+          ],
+          "libusb_event": [
+            "0-11"
+          ],
+          "wl_cursor_surfa": [
+            "0-11"
+          ]
+        },
+        "artifacts": [
+          {
+            "path": "out/final-audit/lighting/both/game.log",
+            "sha256": "793bbbb52342e1e10287073f1322b6be2125b675ad279ef83e53b97dd80af65e",
+            "bytes": 240878
+          },
+          {
+            "path": "out/final-audit/lighting/both/frames.csv",
+            "sha256": "0580d70c21c009735fd50ea2116083ea33f59227b9ec89df6407269e3a7ff298",
+            "bytes": 467776
+          },
+          {
+            "path": "out/final-audit/lighting/both/latency.csv",
+            "sha256": "6e754b380c754453ca0c04efec46cc4a5ebeb8d922b6b92baa742602291cee37",
+            "bytes": 303838
+          }
+        ]
+      }
+    ],
+    "contact_followup": {
+      "mode": "contact",
+      "exit_code": 0,
+      "gameplay_frames": 1159,
+      "median_frame_ms": 16.72,
+      "p99_frame_ms": 16.73,
+      "gpu_labels": [
+        [
+          "0.128",
+          "0.5"
+        ],
+        [
+          "0.278",
+          "1.0"
+        ],
+        [
+          "0.278",
+          "1.0"
+        ],
+        [
+          "0.276",
+          "1.0"
+        ],
+        [
+          "0.277",
+          "1.0"
+        ],
+        [
+          "0.274",
+          "1.0"
+        ],
+        [
+          "0.277",
+          "1.0"
+        ],
+        [
+          "0.277",
+          "1.0"
+        ]
+      ],
+      "original_saves_unchanged": true,
+      "artifact": {
+        "path": "out/final-audit/lighting-contact-repeat/contact/game.log",
+        "sha256": "36f0dd0ae906550a5f4d5be5e2da00bbd3b0503f83a60a7e909b6b01a49be26d",
+        "bytes": 244259
+      }
+    },
+    "frame_pacing_first_comparison_all_modes_accepted": false,
+    "host_io_pressure_snapshot": {
+      "path": "out/final-audit/host-pressure/snapshot.txt",
+      "sha256": "6a23eec84ad5c9d80bad98a7aa64d8caf2d02520de54bcaa03d5fc205f19ab00",
+      "bytes": 425
+    },
+    "host_io_limitation": "Concurrent root btrfs balance; contact first-comparison pauses and missing physics coverage are retained, not filtered away."
+  },
+  "latency": {
+    "accepted_software_instrumentation": true,
+    "physical_input_to_display_accepted": false,
+    "runs": [
+      {
+        "mode": "baseline",
+        "window": "last 20 seconds",
+        "invalid_samples": 0,
+        "intervals": {
+          "poll_to_present_return": {
+            "samples": 1197,
+            "median_ms": 63.524,
+            "p99_ms": 67.1089,
+            "max_ms": 67.1785
+          },
+          "submit_to_gpu_observed_upper_bound": {
+            "samples": 1197,
+            "median_ms": 50.0806,
+            "p99_ms": 50.2994,
+            "max_ms": 51.7391
+          },
+          "guest_to_queue_submit": {
+            "samples": 1197,
+            "median_ms": 0.1426,
+            "p99_ms": 0.5565,
+            "max_ms": 2.0462
+          },
+          "queue_submit_to_present_return": {
+            "samples": 1197,
+            "median_ms": 50.0797,
+            "p99_ms": 50.2985,
+            "max_ms": 51.7373
+          }
+        },
+        "input_age_successive_absolute_delta": {
+          "samples": 1196,
+          "median_ms": 0.0926,
+          "p99_ms": 16.8746,
+          "max_ms": 23.0998
+        },
+        "physical_scanout_measured": false
+      },
+      {
+        "mode": "contact",
+        "window": "last 20 seconds",
+        "invalid_samples": 0,
+        "intervals": {
+          "poll_to_present_return": {
+            "samples": 632,
+            "median_ms": 56.3394,
+            "p99_ms": 1835.0972,
+            "max_ms": 4279.0213
+          },
+          "submit_to_gpu_observed_upper_bound": {
+            "samples": 632,
+            "median_ms": 50.0934,
+            "p99_ms": 1113.9047,
+            "max_ms": 4073.0886
+          },
+          "guest_to_queue_submit": {
+            "samples": 632,
+            "median_ms": 0.2068,
+            "p99_ms": 101.86,
+            "max_ms": 1632.3886
+          },
+          "queue_submit_to_present_return": {
+            "samples": 632,
+            "median_ms": 50.0919,
+            "p99_ms": 1113.904,
+            "max_ms": 3115.6007
+          }
+        },
+        "input_age_successive_absolute_delta": {
+          "samples": 631,
+          "median_ms": 0.0582,
+          "p99_ms": 839.3277,
+          "max_ms": 2688.288
+        },
+        "physical_scanout_measured": false
+      },
+      {
+        "mode": "pcss",
+        "window": "last 20 seconds",
+        "invalid_samples": 0,
+        "intervals": {
+          "poll_to_present_return": {
+            "samples": 1197,
+            "median_ms": 65.3239,
+            "p99_ms": 67.1253,
+            "max_ms": 71.2092
+          },
+          "submit_to_gpu_observed_upper_bound": {
+            "samples": 1197,
+            "median_ms": 50.0832,
+            "p99_ms": 50.5147,
+            "max_ms": 54.7176
+          },
+          "guest_to_queue_submit": {
+            "samples": 1197,
+            "median_ms": 0.1627,
+            "p99_ms": 0.7372,
+            "max_ms": 4.6905
+          },
+          "queue_submit_to_present_return": {
+            "samples": 1197,
+            "median_ms": 50.0825,
+            "p99_ms": 50.5133,
+            "max_ms": 54.7169
+          }
+        },
+        "input_age_successive_absolute_delta": {
+          "samples": 1196,
+          "median_ms": 0.1036,
+          "p99_ms": 16.8786,
+          "max_ms": 21.0591
+        },
+        "physical_scanout_measured": false
+      },
+      {
+        "mode": "both",
+        "window": "last 20 seconds",
+        "invalid_samples": 0,
+        "intervals": {
+          "poll_to_present_return": {
+            "samples": 1197,
+            "median_ms": 66.8083,
+            "p99_ms": 67.0329,
+            "max_ms": 71.4862
+          },
+          "submit_to_gpu_observed_upper_bound": {
+            "samples": 1197,
+            "median_ms": 50.0718,
+            "p99_ms": 50.2469,
+            "max_ms": 54.6565
+          },
+          "guest_to_queue_submit": {
+            "samples": 1197,
+            "median_ms": 0.1497,
+            "p99_ms": 0.6351,
+            "max_ms": 4.6033
+          },
+          "queue_submit_to_present_return": {
+            "samples": 1197,
+            "median_ms": 50.0709,
+            "p99_ms": 50.2312,
+            "max_ms": 54.6558
+          }
+        },
+        "input_age_successive_absolute_delta": {
+          "samples": 1196,
+          "median_ms": 0.0523,
+          "p99_ms": 16.7672,
+          "max_ms": 16.8713
+        },
+        "physical_scanout_measured": false
+      }
+    ],
+    "semantics": "T4 is CPU-observed GPU completion, T5 is queuePresent return. Input age is not stimulus-to-photon latency."
+  },
+  "physics": {
+    "physics_accepted": false,
+    "error": "Trace does not cover the replay interval",
+    "scope": "Player positions only; no cloth vertices, mesh contacts, durability or damage windows observed.",
+    "original_saves_unchanged": true,
+    "captures": [
+      {
+        "fps": 30,
+        "pose_samples": 1596,
+        "observed_fps_windows": [
+          29.3,
+          30.0,
+          30.0,
+          30.0,
+          28.5,
+          30.0,
+          30.0,
+          29.8,
+          24.3
+        ],
+        "maximum_replay_pose_gap_ms": 954.495524,
+        "artifact": {
+          "path": "out/final-audit/physics/30/poses.csv",
+          "sha256": "8b486204d70b69991262a6eb5ac0303c19817f6f9e6fc5985957a193086187eb",
+          "bytes": 107159
+        }
+      },
+      {
+        "fps": 60,
+        "pose_samples": 2853,
+        "observed_fps_windows": [
+          59.4,
+          33.5,
+          59.8,
+          59.8,
+          59.8,
+          55.9,
+          59.8,
+          57.1,
+          59.8
+        ],
+        "maximum_replay_pose_gap_ms": 293.701731,
+        "artifact": {
+          "path": "out/final-audit/physics/60/poses.csv",
+          "sha256": "1cd970986d49a26c7c01c33db81c44b9a68923f7256bcf88726bc4b1f9adccab",
+          "bytes": 198079
+        }
+      },
+      {
+        "fps": 144,
+        "pose_samples": 5540,
+        "observed_fps_windows": [
+          111.2,
+          142.4,
+          136.1,
+          142.5,
+          123.9,
+          142.9,
+          139.2,
+          138.0
+        ],
+        "maximum_replay_pose_gap_ms": 173.424428,
+        "artifact": {
+          "path": "out/final-audit/physics/144/poses.csv",
+          "sha256": "c0e0fdfb1aeb5fbddf47f252a664443ad732b04df7239a5c137ac82aeea0377a",
+          "bytes": 357570
+        }
+      }
+    ]
+  },
+  "previous_144_fps_validation": [
+    {
+      "fps_limit": 144,
+      "median_frame_ms": 7.0,
+      "p99_frame_ms": 7.01
+    }
+  ],
+  "lantern_rooms": {
+    "protocol_reviewed": 16,
+    "bridge_implemented": false,
+    "cross_client_handshake_tested": false,
+    "reference": "docs/LANTERN_ROOM_CONTRACT.md"
+  }
+}

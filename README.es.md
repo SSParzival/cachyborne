@@ -23,6 +23,16 @@ de preparación de Midnight. Se validaron 26 pruebas C++, 239 pruebas Python y
 FSR FP8 nativo en la RX 9070 XT; el informe detalla las pruebas de físicas y
 viajes entre lámparas que siguen pendientes.
 
+La [auditoría consolidada de seguimiento](docs/CONVERGENCE_AUDIT_FINAL.md)
+documenta el hook nativo libdeflate comparado con el guest original, sombras de
+contacto y PCSS opcionales, HUD de latencia de software (`BB_LATENCY_HUD=1`) y
+herramientas de trayectorias y viajes repetidos sobre copias del guardado. Las
+opciones «Sombras de contacto» y «Sombras direccionales suaves (PCSS)» están en
+Midnight; `BB_CONTACT_SHADOWS=1` y `BB_PCSS=1` permiten activarlas por entorno.
+Ambas empiezan desactivadas. El HUD no mide la presentación física en
+pantalla. La equivalencia Havok completa, POM y las salas Lantern siguen sin
+certificación; el informe detalla el trabajo pendiente.
+
 [Notas de versión](docs/RELEASE_0.8.3.md) ·
 [Validación y límites](docs/VALIDATION_0.8.3.md) ·
 [Auditoría de forks](docs/COMMUNITY_AUDIT_0.8.3.md)
