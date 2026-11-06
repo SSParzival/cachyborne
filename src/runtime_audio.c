@@ -71,6 +71,23 @@ static int sdl_audio(void) {
     }
     return sdl_ready;
 }
+static SDL_AudioDeviceID playback_device(void) {
+    const char *wanted=bb_env("BB_AUDIO_DEVICE");
+    if (!wanted || !*wanted) return SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK;
+    int count=0,matches=0;
+    SDL_AudioDeviceID chosen=0,*devices=SDL_GetAudioPlaybackDevices(&count);
+    for (int i=0;devices && i<count;++i) {
+        const char *name=SDL_GetAudioDeviceName(devices[i]);
+        if (name && !strcmp(name,wanted)) { chosen=devices[i];++matches; }
+    }
+    SDL_free(devices);
+    if (matches!=1) {
+        fprintf(stderr,"Runtime: requested audio device '%s' has %d matches; port stays silent\n",wanted,matches);
+        return 0;
+    }
+    printf("Runtime: selected physical audio device %s\n",wanted);
+    return chosen;
+}
 static int port_range(int type, int *first, int *last) {
     switch (type) {
     case 0: *first=0; *last=7; return 1;      /* main */
@@ -123,7 +140,8 @@ static ABI int32_t audio_open(int32_t user, int32_t type, int32_t index, uint32_
 #endif
     if (sdl_audio()) {
         SDL_AudioSpec spec={p->is_float ? SDL_AUDIO_F32 : SDL_AUDIO_S16, p->channels, 48000};
-        p->stream=SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,&spec,NULL,NULL);
+        const SDL_AudioDeviceID device=playback_device();
+        p->stream=device ? SDL_OpenAudioDeviceStream(device,&spec,NULL,NULL) : NULL;
         if (p->stream) {
             /* Two periods of reserve plus a 1024-frame device quantum (21.33 ms).
              * Queue before resuming: the first device pull must not start empty. */

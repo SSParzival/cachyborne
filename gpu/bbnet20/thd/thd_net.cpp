@@ -18,17 +18,20 @@
 #include <unistd.h>
 #endif
 
+#include <algorithm>
 #include <atomic>
 #include <cerrno>
 #include <chrono>
 #include <condition_variable>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <random>
+#include <span>
 #include <string>
 #include <thread>
 #include <unordered_map>
@@ -322,6 +325,31 @@ static_assert(sizeof(SceSockaddrIn) == 16);
 constexpr std::uint8_t kP2pMagic = 0xff;
 constexpr std::uint8_t kP2pFlagP2p = 0x80, kP2pFlagByteVports = 0x40, kP2pFlagComid = 0x20, kP2pType = 0x03;
 
+// BBHOST bdc5cdf: preserve whole game chunks while avoiding IP fragmentation.
+// The reader must also accept whole datagrams from peers without splitting.
+constexpr std::size_t kMaxUdpPayload=65507, kReadBuffer=65536, kSmallDatagram=2048;
+constexpr std::size_t kSplitPayload=1200;
+const bool g_net_large_datagrams=[] {
+    const char* e=std::getenv("BB_NET_LARGE_DATAGRAMS"); return !(e && e[0]=='0');
+}();
+const bool g_net_split_datagrams=[] {
+    const char* e=std::getenv("BB_NET_SPLIT_DATAGRAMS");
+    return g_net_large_datagrams && !(e && e[0]=='0');
+}();
+std::vector<std::size_t> chunk_split(const std::uint8_t* data,std::size_t size) {
+    std::vector<std::size_t> ends;
+    std::size_t at=0,start=0;
+    while (at<size) {
+        if (size-at<3 || data[at]>3) return {};
+        const std::size_t chunk=3+(std::size_t(data[at+1])<<8 | data[at+2]);
+        if (chunk>size-at) return {};
+        if (at>start && at+chunk-start>kSplitPayload) { ends.push_back(at);start=at; }
+        at+=chunk;
+    }
+    ends.push_back(size);
+    return ends;
+}
+
 struct Datagram {
     std::vector<std::uint8_t> data;
     std::uint32_t addr = 0;  // nbo
@@ -431,13 +459,14 @@ std::size_t p2p_header(const std::uint8_t* d, std::size_t n, std::uint16_t* src,
 }
 
 void p2p_reader(std::shared_ptr<UdpPort> port) {
-    std::uint8_t buf[2048];
+    std::vector<std::uint8_t> storage(g_net_large_datagrams ? kReadBuffer : kSmallDatagram);
+    auto* buf=storage.data();
     int logs = 0;
     while (!port->stop.load(std::memory_order_relaxed)) {
         if (sock_poll(port->fd, POLLIN, 200) <= 0) continue;
         sockaddr_in sa{};
         socklen_type sl = sizeof(sa);
-        ssize_type n = sock_recvfrom(port->fd, buf, sizeof(buf), true, &sa, &sl);
+        ssize_type n = sock_recvfrom(port->fd, buf, storage.size(), true, &sa, &sl);
         if (n < 0) continue;
         if (n >= 4 && buf[0] == kRelayMagic && buf[1] == kRelayToClient && from_relay_server(sa)) {
             // A relay delivery: the owner of that relay port's datagram, known as server:port.
@@ -622,55 +651,75 @@ int dgram_send(int s, const void* buf, std::uint64_t len, int flags, const SceSo
     const sockfd_t fd = sock.port ? sock.port->fd : sock.fd;
     if (!sock_ok(fd)) return static_cast<int>(len);
     if (!to) return net_err(EINVAL);
-    std::uint8_t pkt[2048];
-    std::size_t hdr = 0;
-    const std::uint16_t dst_vport = bswap16(to->vport);
+    std::uint8_t ph[6]{};
+    std::size_t hdr=0;
+    const std::uint16_t dst_vport=bswap16(to->vport);
     if (sock.p2p) {
-        pkt[0] = kP2pMagic;
-        if (sock.vport < 256 && dst_vport < 256) {
-            pkt[1] = kP2pFlagP2p | kP2pFlagByteVports | kP2pType;
-            pkt[2] = static_cast<std::uint8_t>(sock.vport);
-            pkt[3] = static_cast<std::uint8_t>(dst_vport);
-            hdr = 4;
+        ph[0]=kP2pMagic;
+        if (sock.vport<256 && dst_vport<256) {
+            ph[1]=kP2pFlagP2p | kP2pFlagByteVports | kP2pType;
+            ph[2]=std::uint8_t(sock.vport);ph[3]=std::uint8_t(dst_vport);hdr=4;
         } else {
-            pkt[1] = kP2pFlagP2p | kP2pType;
-            pkt[2] = static_cast<std::uint8_t>(sock.vport >> 8);
-            pkt[3] = static_cast<std::uint8_t>(sock.vport);
-            pkt[4] = static_cast<std::uint8_t>(dst_vport >> 8);
-            pkt[5] = static_cast<std::uint8_t>(dst_vport);
-            hdr = 6;
+            ph[1]=kP2pFlagP2p | kP2pType;
+            ph[2]=std::uint8_t(sock.vport>>8);ph[3]=std::uint8_t(sock.vport);
+            ph[4]=std::uint8_t(dst_vport>>8);ph[5]=std::uint8_t(dst_vport);hdr=6;
         }
     }
-    if (hdr + len > sizeof(pkt)) return net_err(EMSGSIZE);
-    if (buf && len) std::memcpy(pkt + hdr, buf, static_cast<std::size_t>(len));
-    sockaddr_in sa{};
-    sa.sin_family = AF_INET;
-    sa.sin_port = to->port;
-    sa.sin_addr.s_addr = to->addr;
-    const bool dontwait = sock.nonblock || (flags & 0x80);
-    ssize_type n;
+    if (!buf && len) { g_net_errno=to_freebsd(EFAULT);return net_err(EFAULT); }
     std::uint8_t token[kStunTokenLen];
     sockaddr_in stun_sa{};
-    if (sock.p2p && relay_target(to->addr, to->port, token, &stun_sa)) {
-        std::uint8_t frame[sizeof(pkt) + kRelayHeader];
-        frame[0] = kRelayMagic;
-        frame[1] = kRelayToServer;
-        std::memcpy(frame + 2, token, kStunTokenLen);
-        std::memcpy(frame + 10, &to->port, 2); // network order is the frame's big-endian
-        std::memcpy(frame + kRelayHeader, pkt, hdr + static_cast<std::size_t>(len));
-        n = sock_sendto(fd, frame, kRelayHeader + hdr + static_cast<std::size_t>(len), dontwait, &stun_sa);
-        if (n >= 0) n -= static_cast<ssize_type>(kRelayHeader);
-    } else {
-        n = sock_sendto(fd, pkt, hdr + static_cast<std::size_t>(len), dontwait, &sa);
+    const bool relayed=sock.p2p && relay_target(to->addr,to->port,token,&stun_sa);
+    const std::size_t lead=relayed ? kRelayHeader : 0;
+    const auto* bytes=static_cast<const std::uint8_t*>(buf);
+    // Bound the guest length before narrowing or inspecting any payload byte.
+    if (len>kMaxUdpPayload) { g_net_errno=to_freebsd(EMSGSIZE);return net_err(EMSGSIZE); }
+    std::vector<std::size_t> split_ends;
+    if (sock.p2p && g_net_split_datagrams && len>kSplitPayload)
+        split_ends=chunk_split(bytes,std::size_t(len));
+    const std::size_t whole=std::size_t(len);
+    // The common small datagram needs neither payload nor piece-list allocation.
+    const std::span<const std::size_t> ends=split_ends.empty()
+        ? std::span<const std::size_t>{&whole,1} : std::span<const std::size_t>{split_ends};
+    std::size_t largest=0;
+    for (std::size_t i=0,begin=0;i<ends.size();begin=ends[i++])
+        largest=std::max(largest,ends[i]-begin);
+    if (lead+hdr+largest>kMaxUdpPayload || (!g_net_large_datagrams && hdr+len>kSmallDatagram)) {
+        g_net_errno=to_freebsd(EMSGSIZE);return net_err(EMSGSIZE);
     }
+    sockaddr_in sa{};
+    sa.sin_family=AF_INET;sa.sin_port=to->port;sa.sin_addr.s_addr=to->addr;
+    const bool dontwait=sock.nonblock || (flags & 0x80);
+    std::uint8_t small[kSmallDatagram+kRelayHeader];
+    std::vector<std::uint8_t> large;
+    ssize_type n=-1;
+    std::size_t sent=0;
+    for (std::size_t i=0,begin=0;i<ends.size();begin=ends[i++]) {
+        const std::size_t piece=ends[i]-begin,total=lead+hdr+piece;
+        auto* out=small;
+        if (total>sizeof(small)) { large.resize(total);out=large.data(); }
+        if (relayed) {
+            out[0]=kRelayMagic;out[1]=kRelayToServer;
+            std::memcpy(out+2,token,kStunTokenLen);
+            std::memcpy(out+10,&to->port,2);
+        }
+        std::memcpy(out+lead,ph,hdr);
+        if (piece) std::memcpy(out+lead+hdr,bytes+begin,piece);
+        n=sock_sendto(fd,out,total,dontwait,relayed ? &stun_sa : &sa);
+        // Once one piece went out, a later failure is a loss for the game's
+        // recovery protocol; returning failure would resend the earlier pieces.
+        if (n<0) break;
+        ++sent;
+    }
+
     static int logs = 0;
     if (trace_now(logs)) {
         char ip[32];
         write_ipv4(ip, sizeof(ip), to->addr);
-        Log("net: send %d -> %s:%u vport %u->%u: %llu bytes -> %lld", s, ip, bswap16(to->port), sock.vport,
-            dst_vport, static_cast<unsigned long long>(len), static_cast<long long>(n));
+        Log("net: send %d -> %s:%u vport %u->%u: %llu bytes in %zu/%zu datagrams -> %lld", s, ip,
+            bswap16(to->port),sock.vport,dst_vport,static_cast<unsigned long long>(len),
+            sent,ends.size(),static_cast<long long>(n));
     }
-    if (n < 0) return sock_errno() == EAGAIN ? net_again() : net_fail();
+    if (!sent) return sock_errno() == EAGAIN ? net_again() : net_fail();
     return static_cast<int>(len);
 }
 

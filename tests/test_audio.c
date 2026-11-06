@@ -2,13 +2,20 @@
 #define _GNU_SOURCE
 #include <SDL3/SDL.h>
 bool test_resume_audio(SDL_AudioStream *stream);
+SDL_AudioStream *test_open_audio(SDL_AudioDeviceID,const SDL_AudioSpec*,SDL_AudioStreamCallback,void*);
 static int live_device;
 #define SDL_ResumeAudioStreamDevice test_resume_audio
+#define SDL_OpenAudioDeviceStream test_open_audio
 #include "src/runtime_audio.c"
 #undef SDL_ResumeAudioStreamDevice
+#undef SDL_OpenAudioDeviceStream
 #include <assert.h>
 
 static int starts;
+static SDL_AudioDeviceID last_device;
+SDL_AudioStream *test_open_audio(SDL_AudioDeviceID device,const SDL_AudioSpec *spec,SDL_AudioStreamCallback callback,void* user) {
+    last_device=device;return SDL_OpenAudioDeviceStream(device,spec,callback,user);
+}
 bool test_resume_audio(SDL_AudioStream *stream) {
     if (live_device) return SDL_ResumeAudioStreamDevice(stream);
     /* 256 frames: 1024-frame quantum plus two reserve buffers, before playback. */
@@ -91,10 +98,25 @@ int main(int argc, char **argv) {
     setenv("BB_AUDIO","auto",1);
     assert(audio_init()==0);
     assert(audio_init()==ERR_ALREADY_INIT);
+    unsetenv("BB_AUDIO_DEVICE");assert(sdl_audio());
+    assert(playback_device()==SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK);
+    int count=0;SDL_AudioDeviceID *devices=SDL_GetAudioPlaybackDevices(&count);
+    assert(devices && count>0);
+    assert(!setenv("BB_AUDIO_DEVICE",SDL_GetAudioDeviceName(devices[0]),1));
+    int32_t named=audio_open(0,0,0,256,48000,1);
+    assert(named>=0 && ports[named&255].stream && last_device==devices[0]);
+    assert(audio_close(named)==0);SDL_free(devices);
+    last_device=0;
+    assert(!setenv("BB_AUDIO_DEVICE","cachyborne missing audio fixture",1));
+    int32_t missing=audio_open(0,0,0,256,48000,1);
+    assert(missing>=0 && !ports[missing&255].stream && !last_device);
+    assert(audio_close(missing)==0);
+    unsetenv("BB_AUDIO_DEVICE");assert(starts==1);starts=0;
     for (int repeat=0;repeat<3;++repeat) {
         conversion(2); conversion(5); conversion(6); conversion(7);
     }
     assert(starts==12);
+    assert(last_device==SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK);
     /* Clock pacing is independent of game FPS, and batches wait only once. */
     setenv("BB_AUDIO","none",1); sdl_ready=0;
     int32_t a=audio_open(0,0,0,256,48000,1), b=audio_open(0,1,0,256,48000,1);
