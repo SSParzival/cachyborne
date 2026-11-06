@@ -36,3 +36,4 @@ patches.json
 # Original application artwork; game screenshots remain ignored.
 !/assets/icons/cachyborne.png
 !/assets/icons/cachyborne-settings.png
+gpu/third_party/fsr-vulkan
