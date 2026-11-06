@@ -26,6 +26,7 @@ struct Target {
 
 struct Entry {
     bool compute{};
+    bool transfer{};
     std::vector<Target> colors;
     Target depth;
     u32 draws{};
@@ -97,6 +98,10 @@ void Write(VAddr presented) {
     std::fprintf(f, "presented buffer %#llx\n", static_cast<unsigned long long>(presented));
     u32 index = 0;
     for (const auto& e : entries) {
+        if (e.transfer) {
+            std::fprintf(f, "\n#%u TRANSFER %s\n", index++, e.note.c_str());
+            continue;
+        }
         if (e.compute) {
             std::fprintf(f, "\n#%u COMPUTE dispatches %u, cs", index++, e.draws);
         } else {
@@ -210,13 +215,16 @@ void FrameCapture::BeginPass(const VideoCore::ImageInfo* const* colors, u32 num_
         entries.back().colors == targets && entries.back().depth == d) {
         return;
     }
-    entries.push_back({.compute = false, .colors = std::move(targets), .depth = d});
+    Entry entry{};
+    entry.colors = std::move(targets);
+    entry.depth = d;
+    entries.push_back(std::move(entry));
     pass_open = true;
 }
 
 void FrameCapture::Draw(u64 vs_hash, u64 ps_hash, u32 num_indices, u32 num_instances) {
     if (state.load(std::memory_order_relaxed) != Recording || entries.empty() ||
-        entries.back().compute) {
+        (entries.back().compute || entries.back().transfer)) {
         return;
     }
     auto& e = entries.back();
@@ -238,7 +246,11 @@ void FrameCapture::Dispatch(u64 cs_hash, u32 x, u32 y, u32 z) {
         entries.back().shaders[0] == cs_hash) {
         ++entries.back().draws;
     } else {
-        entries.push_back({.compute = true, .draws = 1, .shaders = {cs_hash}});
+        Entry entry{};
+        entry.compute = true;
+        entry.draws = 1;
+        entry.shaders = {cs_hash};
+        entries.push_back(std::move(entry));
         entries.back().note = std::format("groups {}x{}x{}", x, y, z);
     }
     AddSampled(entries.back());
@@ -270,6 +282,15 @@ void FrameCapture::Pending(std::string text) {
     if (pending_buffers.size() < 64) {
         pending_buffers.push_back(std::move(text));
     }
+}
+
+void FrameCapture::Transfer(std::string text) {
+    if (state.load(std::memory_order_relaxed) != Recording) return;
+    Entry entry{};
+    entry.transfer = true;
+    entry.note = std::move(text);
+    entries.push_back(std::move(entry));
+    pass_open = false;
 }
 
 void FrameCapture::Note(const char* text) {

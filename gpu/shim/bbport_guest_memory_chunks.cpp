@@ -7,6 +7,7 @@ namespace BbGuestMemory::detail {
 
 /// The runtime's chunk allocator: a dma-buf fd of `size` bytes of GPU-visible memory, or -1.
 int AllocChunk(u64 phys, u64 size) {
+    const bool in_vram = ChunkInVram(phys, size);
     {
         std::scoped_lock lk{mutex};
         if (chunk_count == MaxChunks) {
@@ -15,6 +16,11 @@ int AllocChunk(u64 phys, u64 size) {
     }
     static std::atomic<int> failures{0};
     const auto fail = [&](const char* what, vk::Result result) {
+        if (in_vram) {
+            std::fprintf(stderr, "Guest memory: requested VRAM chunk %#llx: %s failed (%s)\n",
+                         (unsigned long long)phys, what, vk::to_string(result).c_str());
+            VideoCore::GuestMemoryUnusable("requested VRAM placement failed; refusing a silent GTT fallback");
+        }
         if (failures.fetch_add(1) < 4) {
             std::fprintf(stderr, "Guest memory: %s failed (%s); chunk %#llx stays in the memfd\n",
                          what, vk::to_string(result).c_str(), (unsigned long long)phys);
@@ -35,11 +41,7 @@ int AllocChunk(u64 phys, u64 size) {
         return fail("buffer creation", buffer_result);
     }
     const auto requirements = device.getBufferMemoryRequirements(buffer);
-    const bool in_vram = ChunkInVram(phys, size);
     std::uint32_t type = FindType(requirements.memoryTypeBits, in_vram);
-    if (type == ~0u && in_vram) {
-        type = FindType(requirements.memoryTypeBits, false); // no host-visible VRAM (no ReBAR)
-    }
     if (type == ~0u) {
         device.destroyBuffer(buffer);
         return fail("finding a cached system memory type", vk::Result::eErrorFeatureNotPresent);
@@ -118,7 +120,7 @@ void FreeChunk(u64 phys, u64 size) {
     }
     BbLayer::GpuMemory::Get().RemoveGuestSource(chunk);
     chunk_bytes.fetch_sub(size);
-    std::printf("Guest memory: direct memory %#llx+%llu MiB given back (its GPU memory freed in 3 s)\n",
+    std::printf("Guest memory: direct memory %#llx+%llu MiB given back (GPU memory retires after 3 s and its submission)\n",
                 (unsigned long long)phys, (unsigned long long)(size >> 20));
 }
 

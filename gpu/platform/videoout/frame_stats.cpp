@@ -351,7 +351,7 @@ void WriteFrameLog(Clock::time_point now, double frame_ms, const FlipCounters& c
                                "images,image_mb,buffer_mb,protect_ms,resident_ms,create_ms,"
                                "refresh_ms,write_fault_ms,read_faults,guest_copy_mb,draws,"
                                "dispatches,submissions,compiles,kernel_ms,alloc_mb,"
-                               "free_mb,stage_a_ms,stage_b_ms,vk_alloc_ms,vk_alloc_n,vk_free_ms,vk_free_n\n");
+                               "free_mb,stage_a_ms,stage_b_ms,vk_alloc_ms,vk_alloc_n,vk_free_ms,vk_free_n,monotonic_ns\n");
         }
         return file;
     }();
@@ -374,7 +374,7 @@ void WriteFrameLog(Clock::time_point now, double frame_ms, const FlipCounters& c
     };
     std::fprintf(frame_log,
                  "%.4f,%.2f,%.2f,%.2f,%.2f,%llu,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%llu,"
-                 "%.2f,%llu,%llu,%llu,%llu,%.2f,%.1f,%.1f,%.2f,%.2f,%.2f,%llu,%.2f,%llu\n",
+                 "%.2f,%llu,%llu,%llu,%llu,%.2f,%.1f,%.1f,%.2f,%.2f,%.2f,%llu,%.2f,%llu,%llu\n",
                  std::chrono::duration<double>(now - log_start).count(), frame_ms,
                  delta(present, log_present) / 1e6, delta(tick, log_tick) / 1e6,
                  last.gpu_ns ? (c.gpu_ns - last.gpu_ns) / 1e6 : 0.0,
@@ -399,7 +399,12 @@ void WriteFrameLog(Clock::time_point now, double frame_ms, const FlipCounters& c
                  delta(BbStats::t_vk_alloc.load(), log_va) / 1e6,
                  static_cast<unsigned long long>(delta(BbStats::n_vk_alloc.load(), log_van)),
                  delta(BbStats::t_vk_free.load(), log_vf) / 1e6,
-                 static_cast<unsigned long long>(delta(BbStats::n_vk_free.load(), log_vfn)));
+                 static_cast<unsigned long long>(delta(BbStats::n_vk_free.load(), log_vfn)),
+                 // Linux steady_clock uses CLOCK_MONOTONIC, as pad replay and
+                 // pose sampling do. Keep the absolute anchor for acceptance
+                 // windows; relative t_s alone cannot separate load from play.
+                 static_cast<unsigned long long>(
+                     std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count()));
     static u32 unflushed = 0;
     if (++unflushed >= 120) {
         std::fflush(frame_log);

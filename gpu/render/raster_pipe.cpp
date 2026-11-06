@@ -71,7 +71,8 @@ bool Rasterizer::UseDrawPipe() const {
 }
 
 bool Rasterizer::OnStageA() const {
-    return std::this_thread::get_id() == liverpool->GetGpuCommandProcessorThread();
+    return !DrawPipe::OnStageB() &&
+           std::this_thread::get_id() == liverpool->GetGpuCommandProcessorThread();
 }
 
 namespace {
@@ -985,6 +986,37 @@ std::array<u64, TaskKinds> task_cycles{}, task_counts{};
 void Rasterizer::RunDrawPacket(void* context, const u8* data, u32 size) {
     BB_SECTION(Packet);
     auto& self = *static_cast<Rasterizer*>(context);
+    // A temporary recorder on the command thread must not leave B's register
+    // selection or shader userdata installed when PM4 decoding resumes. Tasks
+    // can return early, so restoration covers every packet kind.
+    struct CallerState {
+        const Gcn::Regs* regs = stage_regs;
+        const Gcn::ComputeProgram* cs = stage_cs;
+        u32 count = Shader::Info::num_ud_snapshots;
+        std::array<Shader::Info::UdSnapshot, Shader::Info::MaxUdSnapshots> snapshots;
+        decltype(Shader::guest_read_hook) read_hook = Shader::guest_read_hook;
+        decltype(Shader::flat_buf_replay) flat = Shader::flat_buf_replay;
+        CallerState() {
+            std::copy(std::begin(Shader::Info::ud_snapshots), std::end(Shader::Info::ud_snapshots), snapshots.begin());
+        }
+        ~CallerState() {
+            stage_regs = regs;
+            stage_cs = cs;
+            std::copy(snapshots.begin(), snapshots.end(), std::begin(Shader::Info::ud_snapshots));
+            Shader::Info::num_ud_snapshots = count;
+            Shader::guest_read_hook = read_hook;
+            Shader::flat_buf_replay = flat;
+        }
+    };
+    std::optional<CallerState> caller;
+    if (DrawPipe::Assisting()) caller.emplace();
+    // Either physical thread may now own the next packet. A task must see the
+    // register copy of the last recorded draw, including one run by its peer.
+    stage_regs = self.pipe_recorded ? &self.pipe_regs : nullptr;
+    stage_cs = nullptr;
+    Shader::Info::num_ud_snapshots = 0;
+    Shader::guest_read_hook = nullptr;
+    Shader::flat_buf_replay = nullptr;
     // The tick the packet ended in (a constant RAM dump over what it reads in place must wait
     // for that tick: WaitForPendingReads).
     struct TickNote {
@@ -1116,6 +1148,7 @@ void Rasterizer::RunDrawPacket(void* context, const u8* data, u32 size) {
         }
     }
     ASSERT(static_cast<u32>(in - data) == size);
+    self.pipe_recorded = true;
     stage_regs = &regs;
     self.pipe_cb_extent = packet.cb_extent;
     self.pipe_db_extent = packet.db_extent;
@@ -1212,6 +1245,7 @@ void Rasterizer::PrintPipeStats() {
     }
     static auto window = std::chrono::steady_clock::now();
     static u64 last_packets = 0, last_drains = 0, last_drain_cycles = 0, last_busy = 0;
+    static u64 last_assisted = 0;
     static u64 last_tsc = __rdtsc();
     const auto now = std::chrono::steady_clock::now();
     const double seconds = std::chrono::duration<double>(now - window).count();
@@ -1227,6 +1261,9 @@ void Rasterizer::PrintPipeStats() {
                 (draw_pipe->drains - last_drains) / seconds,
                 100.0 * (draw_pipe->drain_cycles - last_drain_cycles) / cycles,
                 100.0 * (busy - last_busy) / cycles);
+    std::printf("  producer assistance: %.0f packets/s\n",
+                (draw_pipe->assisted_packets - last_assisted) / seconds);
+    last_assisted = draw_pipe->assisted_packets;
     std::printf("  drains by reason/s:");
     for (u32 r = 0; r < DrawPipe::NumReasons; ++r) {
         if (const u64 n = draw_pipe->drains_by_reason[r]) {

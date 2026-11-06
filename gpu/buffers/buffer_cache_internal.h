@@ -88,8 +88,12 @@ struct GpuWriteTicks {
     }
 };
 inline GpuWriteTicks& WriteTicks() {
-    static GpuWriteTicks write_ticks;
-    return write_ticks;
+    // Guest/recording threads can still query these process-wide tables when
+    // X11 exits through std::exit. Function-local destructors otherwise free
+    // the tables before the global presenter joins its workers. Like the
+    // sparse leaves, retain the directory until the OS reclaims the process.
+    static auto* const write_ticks = new GpuWriteTicks;
+    return *write_ticks;
 }
 
 // bbport: GPU writes known to the byte (the copy shader's control list, CopyShaderDestinations): a
@@ -137,8 +141,10 @@ struct PreciseWriteTicks {
     }
 };
 inline PreciseWriteTicks& PreciseTicks() {
-    static PreciseWriteTicks ticks;
-    return ticks;
+    // Same lifetime as WriteTicks(), including its embedded page directory and
+    // hash granules. No allocation is repeated per frame, map or BufferCache.
+    static auto* const ticks = new PreciseWriteTicks;
+    return *ticks;
 }
 /// A GPU command write (WRITE_DATA, DMA): small ones to the byte. In 64 KiB pages the 192 bytes the
 /// game writes each frame beside its constant RAM dump ring marked the ring as written by the GPU:

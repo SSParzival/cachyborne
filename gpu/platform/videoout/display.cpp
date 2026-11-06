@@ -17,6 +17,7 @@
 #include "platform/kernel.h"
 #include "platform/kernel/event_queue.h"
 #include "platform/videoout/display.h"
+#include "platform/videoout/flip_pacing.h"
 #include "render/rasterizer.h"
 #include "platform/videoout/frame_stats.h"
 #include "render/vk_frame_capture.h"
@@ -400,14 +401,22 @@ void Display::VblankThread(std::stop_token stop) {
     // followed by an early one: 48 ms then 18 ms at 30 FPS, a saw in the frame time graph).
     const u32 frame_limit = EmulatorSettings.GetFrameLimit();
     static const bool catch_up = bb_env_on("BB_PACE_CATCHUP");
+    static const bool phase_pacing = bb_env_on("BB_PACE_STABLE");
+    static const bool native_pacing = bb_env_on("BB_NATIVE_FLIP_PACING");
     const auto period_now = [&] {
         const int live = BbFrameRate::Limit();
-        const u32 fps = live > 0 ? u32(std::clamp(live, 30, 480)) : frame_limit;
+        u32 fps = live > 0 ? u32(std::clamp(live, 30, 480)) : frame_limit;
+        // The native game already waits for its target. Applying a second
+        // relative sleep here adds the host wake delay on every frame. Keep
+        // the 480 FPS safety ceiling; unpaced loads retain the configured cap.
+        if (native_pacing && BbFrameRate::Unlocked() && BbFrameRate::PacedFrame()) fps=480;
         return fps ? std::chrono::nanoseconds(1'000'000'000 / fps) : std::chrono::nanoseconds(0);
     };
     auto next_flip = std::chrono::steady_clock::now();
     std::printf("VideoOut: vblank %u Hz, frame limit %u FPS\n",
                 EmulatorSettings.GetVblankFrequency(), frame_limit);
+    if (native_pacing) std::puts("VideoOut: native pacer handoff enabled; 480 FPS safety ceiling for paced frames");
+    if (phase_pacing && !catch_up) std::puts("VideoOut: phase pacing enabled; wake delay does not accumulate, stalls reset the deadline");
     // With a frame limit or the uncapped presets a flip is shown as soon as it arrives (and its
     // slot allows), between vblanks, instead of at the next vblank.
     const auto immediate_flips = [&] {
@@ -415,8 +424,8 @@ void Display::VblankThread(std::stop_token stop) {
     };
     const auto flip = [&](const Request& request, std::chrono::steady_clock::time_point now) {
         if (const auto frame_period = period_now(); frame_period.count()) {
-            next_flip = catch_up ? std::max(next_flip + frame_period, now - frame_period)
-                                 : std::max(next_flip, now) + frame_period;
+            next_flip = Pacing::NextDeadline(next_flip,now,frame_period,
+                catch_up ? Pacing::Policy::CatchUp : phase_pacing ? Pacing::Policy::Phase : Pacing::Policy::Relative);
         }
         Flip(request);
     };

@@ -4,6 +4,7 @@
 // bbport_guest_memory_internal.h for the parts).
 #include "bbport_guest_memory_internal.h"
 #include "shim/bb_env.h"
+#include "render/scheduler.h"
 
 namespace BbGuestMemory::detail {
 /// A type the guest memory may use: AMD's device-uncached types exactly when asked for.
@@ -66,12 +67,14 @@ bool ChunkInVram(u64 phys, u64 size) {
 std::uint32_t FindType(std::uint32_t bits, bool in_vram) {
     if (in_vram) {
         const auto want = vk::MemoryPropertyFlagBits::eHostVisible |
+                          vk::MemoryPropertyFlagBits::eHostCoherent |
                           vk::MemoryPropertyFlagBits::eDeviceLocal;
         for (std::uint32_t i = 0; i < memory_properties.memoryTypeCount; ++i) {
             if ((bits & (1u << i)) && (memory_properties.memoryTypes[i].propertyFlags & want) == want) {
                 return i;
             }
         }
+        return ~0u; // An explicit VRAM request must never silently consume the GTT budget.
     }
     const auto want = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCached;
     for (std::uint32_t i = 0; i < memory_properties.memoryTypeCount; ++i) {
@@ -347,19 +350,28 @@ std::vector<std::uint32_t> RetiredChunks() {
     return indices;
 }
 
-void DestroyRetiredChunks() {
+void DestroyRetiredChunks(Vulkan::Scheduler& scheduler,
+                          Common::UniqueFunction<void>&& release_views) {
     std::vector<Chunk*> chunks_now;
     {
         std::scoped_lock lk{mutex};
         chunks_now.swap(dropped_chunks);
     }
-    for (Chunk* chunk : chunks_now) {
-        device.destroyBuffer(chunk->buffer);
-        device.freeMemory(chunk->memory);
-        // Windows: the pages the import held go back to the system now that it let them go.
-        runtime_memory_discard_direct(chunk->phys, chunk->size);
-        delete chunk;
+    if (chunks_now.empty() && !release_views) {
+        return;
     }
+    // Capture the batch before deferring: a later retirement must not be freed
+    // by an older callback, whose submission may finish before that batch's.
+    scheduler.DeferOperation([chunks = std::move(chunks_now),
+                              views = std::move(release_views)]() mutable {
+        if (views) views(); // wrappers/texel views still used by the queued work
+        for (Chunk* chunk : chunks) {
+            device.destroyBuffer(chunk->buffer);
+            device.freeMemory(chunk->memory);
+            runtime_memory_discard_direct(chunk->phys, chunk->size);
+            delete chunk;
+        }
+    });
 }
 
 WrittenBinding::WrittenBinding(bool written) : previous{written_binding} {

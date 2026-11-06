@@ -46,6 +46,7 @@ void BlobStore::Open() {
           Common::ElfInfo::Instance().GameSerial();
     std::error_code ec;
     std::filesystem::create_directories(dir, ec);
+    submitted = completed = first_failed = 0;
     writer = std::jthread([this](std::stop_token stop) { Writer(stop); });
     opened = true;
 }
@@ -59,6 +60,14 @@ void BlobStore::Close() {
     writer.join();
     opened = false;
     LOG_INFO(Render, "Pipeline cache written");
+}
+
+bool BlobStore::Flush() {
+    if (!opened) return false;
+    std::unique_lock lk{mutex};
+    const u64 target = submitted;
+    flushed.wait(lk, [&] { return completed >= target; });
+    return !first_failed || first_failed > target;
 }
 
 std::filesystem::path BlobStore::PathOf(BlobType type, const std::string& name) const {
@@ -82,6 +91,7 @@ bool BlobStore::Queue(std::filesystem::path path, std::span<const u8> bytes,
     {
         std::scoped_lock lk{mutex};
         queue.push_back(std::move(write));
+        ++submitted;
     }
     cv.notify_one();
     return true;
@@ -98,12 +108,15 @@ void BlobStore::Writer(std::stop_token stop) {
         Write write = std::move(queue.front());
         queue.pop_front();
         lk.unlock();
-        WriteFile(write);
+        const bool success = WriteFile(write);
         lk.lock();
+        ++completed;
+        if (!success && !first_failed) first_failed = completed;
+        flushed.notify_all();
     }
 }
 
-void BlobStore::WriteFile(const Write& write) {
+bool BlobStore::WriteFile(const Write& write) {
     using namespace Common::FS;
     auto temp = write.path;
     temp += ".tmp";
@@ -119,7 +132,9 @@ void BlobStore::WriteFile(const Write& write) {
     if (!written || ec) {
         LOG_ERROR(Render, "Failed to write {}", write.path.string());
         std::filesystem::remove(temp, ec);
+        return false;
     }
+    return true;
 }
 
 template <typename T>

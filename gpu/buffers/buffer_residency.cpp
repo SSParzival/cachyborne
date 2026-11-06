@@ -824,12 +824,8 @@ std::optional<std::pair<const Buffer*, u64>> BufferCache::GuestChunkSource(VAddr
         phys + size > chunk->phys + chunk->size) {
         return std::nullopt;
     }
-    auto& buffer = chunk_buffers[chunk->index % chunk_buffers.size()];
-    if (!buffer) {
-        buffer = std::make_unique<Buffer>(instance, chunk->size, chunk->memory,
-                                          fmt::format("bbport guest memory {:#x}", chunk->phys));
-    }
-    return std::pair<const Buffer*, u64>{buffer.get(), phys - chunk->phys};
+    auto& buffer = chunk_buffers.Get(instance, *chunk);
+    return std::pair<const Buffer*, u64>{&buffer, phys - chunk->phys};
 }
 
 std::optional<std::pair<const Buffer*, u64>> BufferCache::LayerInPlace(VAddr address, u64 size,
@@ -889,12 +885,8 @@ std::optional<std::pair<const Buffer*, u64>> BufferCache::LayerInPlaceUncached(V
         }
     }
     const auto* chunk = static_cast<const BbGuestMemory::Chunk*>(span->source->owner);
-    auto& buffer = chunk_buffers[chunk->index % chunk_buffers.size()];
-    if (!buffer) {
-        buffer = std::make_unique<Buffer>(instance, chunk->size, chunk->memory,
-                                          fmt::format("bbport guest memory {:#x}", chunk->phys));
-    }
-    return std::pair<const Buffer*, u64>{buffer.get(), span->offset};
+    auto& buffer = chunk_buffers.Get(instance, *chunk);
+    return std::pair<const Buffer*, u64>{&buffer, span->offset};
 }
 
 std::optional<std::pair<const Buffer*, u64>> BufferCache::LayerStitch(VAddr address, u64 size) {
@@ -917,12 +909,8 @@ std::optional<std::pair<const Buffer*, u64>> BufferCache::LayerStitch(VAddr addr
             return std::nullopt;
         }
         const auto* chunk = static_cast<const BbGuestMemory::Chunk*>(span->source->owner);
-        auto& buffer = chunk_buffers[chunk->index % chunk_buffers.size()];
-        if (!buffer) {
-            buffer = std::make_unique<Buffer>(instance, chunk->size, chunk->memory,
-                                              fmt::format("bbport guest memory {:#x}", chunk->phys));
-        }
-        pieces.push_back({buffer.get(), span->offset, span->size});
+        auto& buffer = chunk_buffers.Get(instance, *chunk);
+        pieces.push_back({&buffer, span->offset, span->size});
         at += span->size;
     }
     const auto offset = stream_buffer.Reserve(size, instance.StorageMinAlignment());

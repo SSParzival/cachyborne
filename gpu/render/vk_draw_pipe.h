@@ -58,10 +58,13 @@ public:
         wake.notify_one();
     }
 
-    /// True on the draw recording thread.
+    /// True while executing as the ordered recorder (including a Stage A assist).
     [[nodiscard]] static bool OnStageB() noexcept {
         return on_stage_b;
     }
+
+    /// True only while the producer temporarily executes a recording callback.
+    [[nodiscard]] static bool Assisting() noexcept { return assisting; }
 
     /// Stage A: space for a packet of `size` bytes (8-byte aligned), valid until Commit().
     u8* Begin(u32 size) {
@@ -164,6 +167,7 @@ public:
         ++drains_by_reason[slot];
         const u64 start = __rdtsc();
         for (u32 spins = 0; consumed.load(std::memory_order_acquire) != head; ++spins) {
+            if (Assist()) continue;
             if (spins < 4096) {
                 __builtin_ia32_pause();
             } else {
@@ -200,6 +204,7 @@ public:
         ++drains_by_reason[slot];
         const u64 start = __rdtsc();
         for (u32 spins = 0; !ReachedPacket(number); ++spins) {
+            if (Assist()) continue;
             if (spins < 4096) {
                 __builtin_ia32_pause();
             } else {
@@ -235,8 +240,10 @@ public:
     /// spent running packets.
     u64 packets = 0, drains = 0, drain_cycles = 0;
     std::atomic<u64> busy_cycles{0};
+    u64 assisted_packets = 0; ///< Stage A: callbacks recorded while waiting
 
 private:
+    friend struct DrawPipeTestAccess;
     struct Header {
         u32 size;    ///< bytes to the next packet (0: wrap to the ring start)
         u32 payload; ///< bytes written by the producer
@@ -249,8 +256,60 @@ private:
 
     void WaitForSpace(u64 at, u64 size) {
         while (at + size - consumed.load(std::memory_order_acquire) > Capacity) {
+            if (Assist()) continue;
             __builtin_ia32_pause();
         }
+    }
+
+    bool Assist() {
+        // A callback must never recursively pump the queue it is running in.
+        return barrier_steal && !on_stage_b && ConsumeOne(true);
+    }
+
+    // Both consumers claim the *recording*, not just the packet: Vulkan's
+    // command buffer, caches and barriers are single-owner and remain ordered.
+    // Never wait for a resolver under this gate. It may still need CPU work
+    // that runs independently of the recording callbacks.
+    bool ConsumeOne(bool assist) {
+        if (recorder_busy.test_and_set(std::memory_order_acquire)) return false;
+        struct Unlock {
+            std::atomic_flag& flag;
+            ~Unlock() { flag.clear(std::memory_order_release); }
+        } unlock{recorder_busy};
+        u64 at = consumed.load(std::memory_order_relaxed);
+        if (published.load(std::memory_order_acquire) == at) return false;
+        const auto* header = reinterpret_cast<const Header*>(ring.get() + at % Capacity);
+        if (header->size == 0) {
+            consumed.store(at + Capacity - at % Capacity, std::memory_order_release);
+            return true;
+        }
+        if (!resolvers.empty() &&
+            slots[(consumed_packets.load(std::memory_order_relaxed) + 1) & SlotMask]
+                .state.load(std::memory_order_acquire) != SlotDone) return false;
+        {
+            struct RecordingRole {
+                bool old_stage_b = on_stage_b;
+                bool old_assisting = assisting;
+                bool old_recording = BbSections::recording_thread;
+                explicit RecordingRole(bool assist) {
+                    on_stage_b = true;
+                    assisting = assist;
+                    BbSections::recording_thread = true;
+                }
+                ~RecordingRole() {
+                    on_stage_b = old_stage_b;
+                    assisting = old_assisting;
+                    BbSections::recording_thread = old_recording;
+                }
+            } role{assist};
+            const u64 start = __rdtsc();
+            handler(context, reinterpret_cast<const u8*>(header + 1), header->payload);
+            busy_cycles.fetch_add(__rdtsc() - start, std::memory_order_relaxed);
+        }
+        if (assist) ++assisted_packets;
+        consumed_packets.fetch_add(1, std::memory_order_release);
+        consumed.store(at + header->size, std::memory_order_release);
+        return true;
     }
 
     void Run(std::stop_token stop) {
@@ -258,8 +317,8 @@ private:
         BbThreads::MakeCritical();
         on_stage_b = true;
         BbSections::recording_thread = true;
-        u64 at = 0;
         while (true) {
+            const u64 at = consumed.load(std::memory_order_acquire);
             // Packets follow each other within microseconds while a frame is decoded: spin,
             // and sleep only after a longer pause (between frames).
             u64 available = published.load(std::memory_order_acquire);
@@ -292,31 +351,9 @@ private:
                 }
                 BbTimeline::Note(BbTimeline::RecorderIdleEnd);
             }
-            const auto* header = reinterpret_cast<const Header*>(ring.get() + at % Capacity);
-            if (header->size == 0) {
-                at += Capacity - at % Capacity;
-                consumed.store(at, std::memory_order_release);
-                continue;
-            }
-            if (!resolvers.empty()) {
-                // Its resolve worker may still be completing it.
-                const auto& slot = slots[(consumed_packets.load(std::memory_order_relaxed) + 1) &
-                                         SlotMask];
-                for (u32 spins = 0; slot.state.load(std::memory_order_acquire) != SlotDone;
-                     ++spins) {
-                    if (spins < 4096) {
-                        __builtin_ia32_pause();
-                    } else {
-                        std::this_thread::yield();
-                    }
-                }
-            }
-            const u64 start = __rdtsc();
-            handler(context, reinterpret_cast<const u8*>(header + 1), header->payload);
-            busy_cycles.fetch_add(__rdtsc() - start, std::memory_order_relaxed);
-            at += header->size;
-            consumed_packets.fetch_add(1, std::memory_order_release);
-            consumed.store(at, std::memory_order_release);
+            // A producer assist may have advanced the shared cursor while
+            // this thread was spinning. Re-read it under the recording gate.
+            if (!ConsumeOne(false)) __builtin_ia32_pause();
         }
     }
 
@@ -382,7 +419,10 @@ private:
     std::atomic<u32> resolvers_sleeping{0};
     std::vector<std::jthread> resolvers;
 
+    const bool barrier_steal = !bb_env_off("BB_GX_BARRIER_STEAL");
+    alignas(64) std::atomic_flag recorder_busy{};
     static inline thread_local bool on_stage_b = false;
+    static inline thread_local bool assisting = false;
     Handler handler;
     void* context;
     std::unique_ptr<u8[]> ring;

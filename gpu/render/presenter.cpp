@@ -26,9 +26,27 @@
 #include "upscale/vk_frame_generation.h"
 #include "upscale/vk_temporal_upscaler.h"
 #include "render/rasterizer.h"
+#include "cp/command_processor.h"
+#include "render/progress_request.h"
 #include "vulkan/platform.h"
 
 namespace Vulkan {
+
+bool Presenter::AdvanceGpuFor(unsigned stage, std::chrono::nanoseconds timeout) {
+    if (!rasterizer || !rasterizer->CanWaitGpuProgress() || stage > 2) return false;
+    if (stage == 0) return rasterizer->StepGpuFor(timeout);
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    if (stage == 2 && !cp->WaitDecodedFor(timeout / 2)) return false;
+    // Own the request independently of the waiting stack: the CP can still
+    // encounter it after a timeout. Cancel before starting; an active flush
+    // finishes safely even if its waiter has already returned.
+    auto request = std::make_shared<GpuProgressRequest>();
+    cp->SendCommand([this, request] {
+        if (request->Begin()) request->Complete(rasterizer->Flush());
+    });
+    const auto tick = request->WaitUntil(deadline);
+    return tick && rasterizer->WaitGpuTickFor(*tick, deadline);
+}
 
 namespace {
 

@@ -20,7 +20,11 @@ struct LineState {
 
 /// One state per line, made up front: no lookups, no allocation on raise.
 LineState& State(Line line) {
-    static std::array<LineState, LineCount> lines;
+    // GPU signal threads can still raise interrupts while exit handlers run.
+    // A function-static destructor would free callable storage under them.
+    // Keep this fixed-size directory until process teardown, as the GPU write
+    // tables do; ordinary Forget/Once operations still release their handlers.
+    static auto& lines = *new std::array<LineState, LineCount>;
     ASSERT_MSG(u32(line) < LineCount, "bad interrupt line {}", u32(line));
     return lines[u32(line)];
 }

@@ -12,6 +12,7 @@
 #include "bbport_toggles.h"
 #include "render/gcn_to_vk.h"
 #include "render/vk_gpu_profiler.h"
+#include "render/vk_frame_capture.h"
 #include "textures/blitter.h"
 #include "textures/image_download.h"
 #include "upscale/vk_scene_resolution.h"
@@ -25,6 +26,33 @@ namespace {
 using Stage = vk::PipelineStageFlagBits2;
 using AccessBit = vk::AccessFlagBits2;
 using Layout = vk::ImageLayout;
+
+void CaptureImageCopy(const VideoCore::Image& src, const VideoCore::Image& dst,
+                      std::span<const vk::ImageCopy> regions, const char* kind) {
+    if (!FrameCapture::Active()) return;
+    std::string text = fmt::format(
+        "{} src uid {} at {:#x}+{:#x} {} {}x{}x{} L{} A{} S{} -> "
+        "dst uid {} at {:#x}+{:#x} {} {}x{}x{} L{} A{} S{}",
+        kind, src.image_uid, src.info.guest_address, src.info.guest_size,
+        vk::to_string(src.info.pixel_format), src.info.size.width, src.info.size.height,
+        src.info.size.depth, src.info.resources.levels, src.info.resources.layers,
+        src.backing->num_samples, dst.image_uid, dst.info.guest_address, dst.info.guest_size,
+        vk::to_string(dst.info.pixel_format), dst.info.size.width, dst.info.size.height,
+        dst.info.size.depth, dst.info.resources.levels, dst.info.resources.layers,
+        dst.backing->num_samples);
+    for (const auto& r : regions) {
+        text += fmt::format("\n  region src aspect {} mip {} layer {}+{} offset {},{},{} -> "
+                            "dst aspect {} mip {} layer {}+{} offset {},{},{} extent {}x{}x{}",
+            vk::to_string(r.srcSubresource.aspectMask), r.srcSubresource.mipLevel,
+            r.srcSubresource.baseArrayLayer, r.srcSubresource.layerCount,
+            r.srcOffset.x, r.srcOffset.y, r.srcOffset.z,
+            vk::to_string(r.dstSubresource.aspectMask), r.dstSubresource.mipLevel,
+            r.dstSubresource.baseArrayLayer, r.dstSubresource.layerCount,
+            r.dstOffset.x, r.dstOffset.y, r.dstOffset.z,
+            r.extent.width, r.extent.height, r.extent.depth);
+    }
+    FrameCapture::Transfer(std::move(text));
+}
 
 constexpr vk::AccessFlags2 ReadAccesses =
     AccessBit::eIndexRead | AccessBit::eVertexAttributeRead | AccessBit::eUniformRead |
@@ -384,6 +412,7 @@ void Runtime::PrepareTransfer(VideoCore::Image* src, VideoCore::Image* dst,
 
 void Runtime::CopyImageRegions(VideoCore::Image* src, VideoCore::Image* dst,
                                std::span<const vk::ImageCopy> regions) {
+    CaptureImageCopy(*src, *dst, regions, "image-copy");
     scheduler.Record([src = src->GetImage(), dst = dst->GetImage(),
                       regions = scheduler.RecordData(regions)](vk::CommandBuffer cmdbuf) {
         cmdbuf.copyImage(src, Layout::eTransferSrcOptimal, dst, Layout::eTransferDstOptimal,
@@ -430,6 +459,7 @@ void Runtime::CopyImage(VideoCore::Image* src, VideoCore::Image* dst) {
         });
     }
     PrepareTransfer(src, dst, Stage::eCopy);
+    const TransferMark mark{*this, "image copy", *src};
     CopyImageRegions(src, dst, regions);
     MarkCopied(dst, src->flags & VideoCore::ImageFlagBits::GpuModified);
 }
@@ -448,8 +478,15 @@ void Runtime::CopyImageThroughBuffer(VideoCore::Image* src, VideoCore::Image* ds
     };
     const u64 size = VideoCore::ImageCopyByteSize(download, src->info.pixel_format);
     PrepareTransfer(src, dst, Stage::eCopy, IsBufferAccessed(buffer, offset, size, true));
+    const TransferMark mark{*this, "image copy through buffer", *src};
     vk::BufferImageCopy upload = download;
     upload.imageSubresource.aspectMask = dst->aspect_mask & ~vk::ImageAspectFlagBits::eStencil;
+    const vk::ImageCopy region{
+        .srcSubresource = download.imageSubresource,
+        .dstSubresource = upload.imageSubresource,
+        .extent = download.imageExtent,
+    };
+    CaptureImageCopy(*src, *dst, {&region, 1}, "image-copy-via-buffer");
     scheduler.Record([src = src->GetImage(), dst = dst->GetImage(), buffer = buffer->Handle(),
                       download, upload](vk::CommandBuffer cmdbuf) {
         cmdbuf.copyImageToBuffer(src, Layout::eTransferSrcOptimal, buffer, download);
@@ -489,6 +526,7 @@ void Runtime::CopyMip(VideoCore::Image* src, VideoCore::Image* dst, u32 mip, u32
     SetBackingSamples(dst, dst->info.num_samples);
     SetBackingSamples(src, src->info.num_samples);
     PrepareTransfer(src, dst, Stage::eCopy);
+    const TransferMark mark{*this, "image mip copy", *src};
     CopyImageRegions(src, dst, {&region, 1});
     MarkCopied(dst, src->flags & VideoCore::ImageFlagBits::GpuModified);
 }

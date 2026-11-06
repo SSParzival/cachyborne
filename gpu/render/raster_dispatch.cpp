@@ -4,18 +4,13 @@
 // Split out of rasterizer.cpp (2026-10-26).
 
 
-// The copy shader's history hashes ~5000 copies of ~250 bytes a frame: inlined, not a DLL call each.
-#define XXH_INLINE_ALL
-#include <xxhash.h>
 #include <mutex>
 #include "shim/bb_env.h"
 #include <set>
-#include <thread>
-#include <unordered_map>
-#include "common/thread.h"
 #include <string>
 #include <filesystem>
 #include "render/raster_internal.h"
+#include "render/copy_filter.h"
 #include <vk_mem_alloc.h>
 
 
@@ -87,246 +82,18 @@ void UpdateCopyFilterRoom(const DrawPipe& pipe) {
                     share * 100.0);
     }
 }
-
-using Ranges = std::vector<std::pair<unsigned long long, unsigned long long>>;
-
-class CopyFilterThread {
-public:
-    struct Job {
-        u64 packet = 0;
-        u64 epoch = 0;
-        std::vector<CopyEntry> entries;
-        std::vector<u8> control; ///< the kept copies' control list entries; empty: all kept
-        u32 kept = 0;
-        // What DispatchRecord binds by, of all its copies (as CopyShaderDestinations and
-        // CopyShaderRanges give them): worked out here, not on the draw recording thread.
-        u64 base[2] = {};
-        Ranges writes, ranges[2]; ///< destinations; sources, destinations by 64 KiB
-    };
-
-    static CopyFilterThread& Get() {
-        static CopyFilterThread instance;
-        return instance;
-    }
-
-    /// Stage A: the copies of the copy shader call in packet `packet` (taken from `entries`).
-    /// A full queue posts nothing (stage B then finds no job and runs the call whole).
-    void Post(u64 packet, std::vector<CopyEntry>& entries, u64 src_base, u64 dst_base) {
-        const u64 at = head.load(std::memory_order_relaxed);
-        // A slot is free once stage B took it and this thread checked it (either order).
-        const u64 free_from = std::min(tail.load(std::memory_order_acquire),
-                                       processed.load(std::memory_order_acquire));
-        if (at - free_from >= jobs.size()) {
-            return;
-        }
-        auto& job = jobs[at % jobs.size()];
-        job.packet = packet;
-        job.base[0] = src_base;
-        job.base[1] = dst_base;
-        job.entries.swap(entries);
-        head.store(at + 1, std::memory_order_release);
-        head.notify_one();
-    }
-
-    /// Stage B: the checked job for `packet`, or null (none: the history is dropped). Jobs of
-    /// packets before it never reached here (another path ran them): dropped the same way.
-    /// Not checked yet: null with `unchecked` set, taken (the call runs whole, which writes what
-    /// the check will assume anyway: the history holds). Never waits for this thread.
-    Job* Take(u64 packet, bool& unchecked) {
-        unchecked = false;
-        for (;;) {
-            const u64 at = tail.load(std::memory_order_relaxed);
-            if (at == head.load(std::memory_order_acquire)) {
-                Invalidate();
-                return nullptr;
-            }
-            Job& job = jobs[at % jobs.size()];
-            if (job.packet == packet) {
-                if (processed.load(std::memory_order_acquire) <= at) {
-                    unchecked = true;
-                    tail.store(at + 1, std::memory_order_release);
-                    ++unchecked_calls;
-                    return nullptr;
-                }
-                return &job;
-            }
-            if (job.packet > packet) {
-                Invalidate();
-                return nullptr;
-            }
-            Invalidate();
-            tail.store(at + 1, std::memory_order_release);
-        }
-    }
-
-    /// Stage B, after Take returned a job: done with it.
-    void Release() {
-        tail.store(tail.load(std::memory_order_relaxed) + 1, std::memory_order_release);
-    }
-
-    /// Stage B: a call did not run as its job said (not recorded, run whole after a check
-    /// against an older history): the history starts again.
-    void Invalidate() {
-        epoch.fetch_add(1, std::memory_order_acq_rel);
-    }
-    [[nodiscard]] u64 Epoch() const {
-        return epoch.load(std::memory_order_acquire);
-    }
-
-private:
-    struct Last {
-        u64 size, hash;
-    };
-
-    /// The copies' destination (or source) ranges merged across gaps up to `gap`, as (address,
-    /// size): what BuildRanges (shader_hle.cpp) makes of the same control list.
-    static void MergedRanges(const std::vector<CopyEntry>& entries, bool destinations, u64 gap,
-                             Ranges& out) {
-        out.clear();
-        for (const auto& e : entries) {
-            const u64 begin = destinations ? e.dst : e.src;
-            out.emplace_back(begin, begin + e.size);
-        }
-        std::sort(out.begin(), out.end());
-        size_t merged = 0;
-        for (size_t i = 1; i < out.size(); ++i) {
-            if (out[i].first <= out[merged].second + gap) {
-                out[merged].second = std::max(out[merged].second, out[i].second);
-            } else {
-                out[++merged] = out[i];
-            }
-        }
-        out.resize(out.empty() ? 0 : merged + 1);
-        for (auto& r : out) {
-            r.second -= r.first;
-        }
-    }
-
-    CopyFilterThread() : thread{[this] { Run(); }} {
-        thread.detach();
-    }
-
-    void Run() {
-        Common::SetCurrentThreadName("bb:CopyFilter");
-        for (u64 at = 0;; ++at) {
-            for (u64 h = head.load(std::memory_order_acquire); h <= at;
-                 h = head.load(std::memory_order_acquire)) {
-                head.wait(h, std::memory_order_acquire);
-            }
-            Check(jobs[at % jobs.size()]);
-            processed.store(at + 1, std::memory_order_release);
-        }
-    }
-
-    void Check(Job& job) {
-        const u64 now_epoch = Epoch();
-        if (now_epoch != history_epoch) {
-            last.clear();
-            ranges.clear();
-            history_epoch = now_epoch;
-        }
-        job.epoch = now_epoch;
-        const auto& entries = job.entries;
-        hashes.clear();
-        keep.clear();
-        for (const auto& e : entries) {
-            const u64 hash = XXH3_64bits(reinterpret_cast<const void*>(e.src), e.size);
-            hashes.push_back(hash);
-            const auto it = last.find(e.dst);
-            const bool unchanged = it != last.end() && it->second.size == e.size &&
-                                   it->second.hash == hash &&
-                                   std::memcmp(reinterpret_cast<const void*>(e.dst),
-                                               reinterpret_cast<const void*>(e.src), e.size) == 0;
-            if (!unchanged) {
-                keep.push_back(u32(hashes.size() - 1));
-            }
-        }
-        total += entries.size();
-        left_out += entries.size() - keep.size();
-        ++calls;
-        // The kept ones are noted. Noted copies never overlap each other: one into exactly a noted
-        // destination updates it in place (the ordered map only for new destinations).
-        for (const u32 i : keep) {
-            const auto& e = entries[i];
-            if (const auto it = last.find(e.dst); it != last.end() && it->second.size == e.size) {
-                it->second = {e.size, hashes[i]};
-                continue;
-            }
-            auto lo = ranges.lower_bound(e.dst);
-            if (lo != ranges.begin()) {
-                auto prev = std::prev(lo);
-                if (prev->first + prev->second > e.dst) {
-                    lo = prev;
-                }
-            }
-            while (lo != ranges.end() && lo->first < e.dst + e.size) {
-                last.erase(lo->first);
-                lo = ranges.erase(lo);
-            }
-            ranges.emplace(e.dst, e.size);
-            last[e.dst] = {e.size, hashes[i]};
-        }
-        job.kept = u32(keep.size());
-        job.control.clear();
-        if (keep.size() < entries.size()) {
-            job.control.resize(keep.size() * 12);
-            for (size_t j = 0; j < keep.size(); ++j) {
-                std::memcpy(job.control.data() + j * 12,
-                            reinterpret_cast<const void*>(entries[keep[j]].control), 12);
-            }
-        }
-        if (last.size() > 200000) {
-            Invalidate();
-        }
-        static const u64 dest_gap = CopyDestinationGap();
-        MergedRanges(entries, true, dest_gap, job.writes);
-        MergedRanges(entries, false, 64_KB, job.ranges[0]);
-        MergedRanges(entries, true, 64_KB, job.ranges[1]);
-        const u32 now = BbStats::coarse_second.load(std::memory_order_relaxed);
-        if (now - printed >= 5) {
-            static const bool where = bb_env_on("BB_COPY_WHERE");
-            if (printed != 0 && where) {
-                std::printf("Copy filter (5 s): %llu of %llu copies left out in %llu calls; "
-                            "history restarted %llu times; %llu calls ran unchecked\n",
-                            (unsigned long long)left_out, (unsigned long long)total,
-                            (unsigned long long)calls,
-                            (unsigned long long)(now_epoch - printed_epoch),
-                            (unsigned long long)unchecked_calls.exchange(0));
-            }
-            printed = now;
-            printed_epoch = now_epoch;
-            total = left_out = calls = 0;
-        }
-    }
-
-    std::array<Job, 512> jobs;
-    std::atomic<u64> head{0};      ///< stage A posts
-    std::atomic<u64> processed{0}; ///< this thread checked
-    std::atomic<u64> tail{0};      ///< stage B took
-    std::atomic<u64> epoch{0};
-    std::atomic<u64> unchecked_calls{0};
-    // This thread's.
-    std::unordered_map<u64, Last> last; ///< destination -> its last copy
-    std::map<u64, u64> ranges;          ///< destination -> size (the overlap check)
-    std::vector<u64> hashes;
-    std::vector<u32> keep;
-    u64 history_epoch = 0, total = 0, left_out = 0, calls = 0, printed_epoch = 0;
-    u32 printed = 0;
-    std::thread thread;
-};
-
 } // namespace
 
 void Rasterizer::PostCopyFilterJob(const Shader::Info& cs, u32 groups) {
-    if (!CopySkipSameOn() || !draw_pipe) {
+    if (!CopySkipSameOn() || !draw_pipe || !copy_filter) {
         return;
     }
     thread_local std::vector<CopyEntry> entries;
     entries.clear();
     if (CopyShaderEntries(cs, groups, entries)) {
-        CopyFilterThread::Get().Post(draw_pipe->NextPacket(), entries,
-                                     cs.buffers[1].GetSharp(cs).base_address,
-                                     cs.buffers[2].GetSharp(cs).base_address);
+        copy_filter->Post(draw_pipe->NextPacket(), entries,
+                          cs.buffers[1].GetSharp(cs).base_address,
+                          cs.buffers[2].GetSharp(cs).base_address);
     }
 }
 
@@ -364,18 +131,17 @@ void Rasterizer::DispatchRecord(const ComputePipeline* pipeline) {
     // shader's control list (one entry per work group) in the stream buffer, bound instead of the
     // game's (BindBuffers); none: the call is left out.
     const bool copy_shader = Game::BufferCopyShader() != 0 && cs.pgm_hash == Game::BufferCopyShader();
-    static const bool copy_filter_env = !bb_env_off("BB_COPY_SKIP_SAME") || bb_env("BB_TOGGLE_FILE");
     u32 kept_groups = 0; // with a filtered control list: its work groups
     bool copy_job = false; // the call runs as its job said (else the history starts again)
     thread_local Ranges copy_writes, copy_ranges[2];
     bool ranges_given = false; // copy_writes, copy_ranges and copy_bases from its checked job
     u64 copy_bases[2] = {};
-    if (copy_shader && copy_filter_env && draw_pipe) {
+    if (copy_shader && copy_filter && draw_pipe) {
         static const bool gate = bb_env_on("BB_COPY_FILTER_GATE");
         if (gate) {
             UpdateCopyFilterRoom(*draw_pipe);
         }
-        auto& filter = CopyFilterThread::Get();
+        auto& filter = *copy_filter;
         // Switched off (busy, or live): the calls from now on run whole, past the history.
         static bool was_on = false;
         const bool filter_on = CopySkipSameOn();
@@ -497,7 +263,7 @@ void Rasterizer::DispatchRecord(const ComputePipeline* pipeline) {
     buffer_cache.paged_ranges = {};
     if (!bound) {
         if (copy_job) {
-            CopyFilterThread::Get().Invalidate(); // its copies did not run
+            copy_filter->Invalidate(); // its copies did not run
         }
         return;
     }

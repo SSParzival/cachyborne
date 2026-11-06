@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <limits>
 #include <span>
 #include <unordered_map>
@@ -58,6 +59,18 @@ VertexRange IndexedRange(std::span<const Index, Extent> indices, int32_t base_ve
     return {uint32_t(int64_t(lo) + base_vertex), hi - lo + 1};
 }
 
+// BAR-backed indices are uncached CPU reads. Read them sequentially once, then
+// scan and hash the same host snapshot rather than traversing PCIe twice.
+template <class Index, class Hash>
+auto SnapshotIndexedRange(const Index* indices, size_t count, int32_t base_vertex,
+                          bool restart, Hash&& hash) {
+    thread_local std::vector<Index> snapshot;
+    snapshot.resize(count);
+    if (count) std::memcpy(snapshot.data(), indices, count * sizeof(Index));
+    return std::pair{IndexedRange(std::span<const Index>(snapshot), base_vertex, restart),
+                     hash(snapshot.data(), count * sizeof(Index))};
+}
+
 // Vertex shader constant buffers (stride 16) of Bloodborne's G-buffer shaders: the 864-byte
 // scene constants (camera), 416-byte model constants and palettes of 3x4 bone matrices
 // (48 bytes per bone). Characters have 656+ bytes; weapons and props 2-8 bones (96-384).
@@ -74,7 +87,8 @@ inline BufferRole ClassifyBuffer(uint32_t size) {
 
 // Scanning and hashing the index list of every stored draw each frame took ~10% of the GPU
 // thread. Static meshes keep their index buffers, so a result is reused and fully verified
-// again every `Revalidate` frames. A stale result only costs camera-quality vectors: the
+// again within `Revalidate` frames. First deadlines are spread by key so meshes
+// first seen together do not force all BAR reads onto one frame. A stale result only costs camera-quality vectors: the
 // shader bounds every history access by the stored range.
 class IndexRangeCache {
 public:
@@ -98,7 +112,7 @@ public:
     Result Get(const Key& key, uint64_t frame, Scan&& scan) {
         auto& entry = entries[key];
         entry.last_use = frame;
-        if (entry.valid && frame - entry.verified < Revalidate) {
+        if (entry.valid && frame < entry.next_verify) {
             ++stats.hits;
             return entry.result;
         }
@@ -109,7 +123,13 @@ public:
             ++stats.stale; // the cached result was wrong for up to Revalidate frames
         }
         entry.result = fresh;
-        entry.verified = frame;
+        // Avalanche the structured addresses/counts before taking a phase. Their
+        // low bits alone repeat for aligned mesh buffers loaded in one batch.
+        uint64_t phase = KeyHash{}(key);
+        phase = (phase ^ (phase >> 30)) * 0xbf58476d1ce4e5b9ULL;
+        phase = (phase ^ (phase >> 27)) * 0x94d049bb133111ebULL;
+        phase ^= phase >> 31;
+        entry.next_verify = frame + (entry.valid ? Revalidate : 1 + phase % Revalidate);
         entry.valid = true;
         return entry.result;
     }
@@ -121,7 +141,7 @@ public:
 private:
     struct Entry {
         Result result;
-        uint64_t verified{}, last_use{};
+        uint64_t next_verify{}, last_use{};
         bool valid{};
     };
     struct KeyHash {

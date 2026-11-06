@@ -374,17 +374,21 @@ void BufferCache::UnmapInPlace(VAddr addr, u64 size) {
 
 void BufferCache::Maintain() {
     maintained_epoch = packet_epoch;
-    // A heap's pieces given back 3 s ago: their chunk buffers go, then their memory.
+    // Remove stale bindings and record their page-table updates before choosing
+    // the tick that protects the old chunk memory.
+    ProcessPendingUnmaps();
     if (const auto retired = BbGuestMemory::RetiredChunks(); !retired.empty()) {
+        std::vector<std::unique_ptr<Buffer>> expired_views;
+        expired_views.reserve(retired.size());
         for (const std::uint32_t index : retired) {
-            chunk_buffers[index % chunk_buffers.size()].reset();
+            expired_views.push_back(chunk_buffers.Take(index));
         }
-        BbGuestMemory::DestroyRetiredChunks();
+        BbGuestMemory::DestroyRetiredChunks(scheduler,
+            [views = std::move(expired_views)]() mutable { views.clear(); });
     }
     if (VramTrapsEnabled()) {
         ReportVramTraps();
     }
-    ProcessPendingUnmaps();
     ProcessIdleBlocks();
     ProcessDemotions();
     ProcessPendingAssets();

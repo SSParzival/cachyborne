@@ -264,6 +264,11 @@ public:
     bool PendingSignalValue(VAddr address, u64& value);
     /// The GPU command thread or the draw recording thread (fault handling runs inline there).
     bool IsGpuSideThread() const;
+    /// Includes the CPU label callback thread: none may wait for its own progress.
+    bool CanWaitGpuProgress() const;
+    /// Guest thread: wait one submitted tick further, including CPU label callbacks.
+    bool StepGpuFor(std::chrono::nanoseconds timeout);
+    bool WaitGpuTickFor(u64 tick, std::chrono::steady_clock::time_point deadline);
     /// A guest write hit a protected page.
     /// `guest_rip`: the guest instruction that wrote (0: unknown), see BufferCache::NoteCpuWrite.
     bool OnWriteFault(VAddr addr, bool assume_locks, u64 guest_rip = 0);
@@ -727,6 +732,7 @@ private:
     /// pipe_regs' blocks written since its last CLEAR_STATE (Gcn::ResetRegs).
     Gcn::RegTouched pipe_touched;
     bool pipe_synced = false;
+    bool pipe_recorded = false; ///< ordered recorder has applied at least one draw packet
     std::array<Gcn::CbDbExtent, Gcn::NUM_COLOR_BUFFERS> pipe_cb_extent{};
     Gcn::CbDbExtent pipe_db_extent{};
     /// Stage A: small read-only guest buffers copied into the constant ring for a packet.
@@ -931,6 +937,9 @@ private:
     std::unique_ptr<class IndirectGuard> indirect_guard; ///< stage B only (lazily)
     /// Submissions (prepared draws) kept alive until stage B reaches the position.
     std::deque<std::pair<u64, std::shared_ptr<const void>>> pipe_keepalive;
+    // Destruction order: GPU signals, draw pipe (may consume jobs), copy checker,
+    // then the buffers/mappings. The checker must never outlive its owner.
+    std::unique_ptr<class CopyFilterThread> copy_filter;
     std::unique_ptr<DrawPipe> draw_pipe;
 
     /// Labels written once the GPU has run the work (SignalAfterGpu). Last: its thread stops before the scheduler goes.
@@ -945,6 +954,8 @@ private:
     void GpuWatchdog(u64 tick);
     std::mutex gpu_signals_mutex;
     std::condition_variable_any gpu_signals_cv;
+    std::condition_variable gpu_progress_cv;
+    unsigned gpu_progress_waiters = 0; // protected by gpu_signals_mutex
     std::deque<GpuSignal> gpu_signals;
     /// bbport: signals registered on the draw recording thread since it last handed them over
     /// (PublishSignals: at the end of each guest submission and at every flush), one lock per

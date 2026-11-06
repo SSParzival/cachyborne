@@ -33,6 +33,7 @@ class DirtyTracker;
 #include "common/interval_set.h"
 #include "common/types.h"
 #include "buffers/buffer.h"
+#include "buffers/guest_chunk_views.h"
 #include "buffers/fault_buffer.h"
 #include "buffers/range_set.h"
 #include "vulkan/timeline.h"
@@ -314,11 +315,7 @@ public:
         if (buffer == &stream_buffer) {
             return "stream copy";
         }
-        for (const auto& chunk : chunk_buffers) {
-            if (chunk.get() == buffer) {
-                return "game memory";
-            }
-        }
+        if (chunk_buffers.Contains(buffer)) return "game memory";
         return "other (VRAM)";
     }
     /// Whether any part of the range is.
@@ -805,7 +802,7 @@ private:
     std::vector<std::pair<VAddr, u64>> precise_uploads;
     std::atomic<bool> late_writes_pending{false};
     u64 bind_wait_tick = 0;                            ///< the next arena binds wait for it
-    std::array<std::unique_ptr<Buffer>, 4096> chunk_buffers{}; ///< per guest memory chunk (Chunk::index)
+    GuestChunkViews chunk_buffers; ///< keyed by the full lifetime allocation index
 
     u32 arena_memory_type_index{};
     /// bbport: system memory for residency when VRAM is full (4 GB cards), if sparse binding takes it

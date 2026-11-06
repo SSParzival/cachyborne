@@ -22,7 +22,7 @@ namespace Vulkan::PipelineStore {
 /// Increment the one whose layout changes.
 constexpr u32 ShaderBinaryVersion = 25u; // disk permutation indices never reused; deterministic phi groups
 constexpr u32 ShaderMetaVersion = 8u;    // the object motion buffer addresses
-constexpr u32 PipelineKeyVersion = 7u;   // repair indices/bindings; serialize vertex-input elements with bounds
+constexpr u32 PipelineKeyVersion = 8u;   // invalid vertex formats no longer serialize float fallback inputs
 
 void SaveCompute(const ComputePipelineKey& key, const ComputePipeline::SerializationSupport& sdata);
 void SaveGraphics(const GraphicsPipelineKey& key, u64 hash,

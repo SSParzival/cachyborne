@@ -224,18 +224,21 @@ public:
         ProducerScope producer{*this, "Record"};
         if (workers.empty() || direct_mode) {
             func(current_cmdbuf);
+            record_data_pending = false;
             return;
         }
         if (BbToggle::Disabled(BbToggle::ThreadedRecording)) {
             EnterDirectMode();
             func(current_cmdbuf);
+            record_data_pending = false;
             return;
         }
-        if (!CurrentChunk().Push(std::forward<Func>(func))) {
-            RetireChunk();
-            const bool pushed = CurrentChunk().Push(std::forward<Func>(func));
-            ASSERT(pushed);
-        }
+        const bool pushed = CurrentChunk().Push(std::forward<Func>(func));
+        ASSERT(pushed);
+        record_data_pending = false;
+        // The complete command now owns every span. Retire at this safe
+        // boundary rather than accumulating more overflow in a long copy loop.
+        if (CurrentChunk().Size() > RecordChunk::Capacity) RetireChunk();
     }
 
     /// Record() for a draw, dispatch or pass that runs shaders, between GPU breadcrumbs
@@ -288,11 +291,13 @@ public:
     /// Makes room for `bytes` of RecordData() plus the command that uses them in the current
     /// chunk: data and command must share a chunk, which is recycled once executed.
     void ReserveRecordData(size_t bytes) {
-        if (!IsRecordingDeferred()) {
+        if (!IsRecordingDeferred() || record_data_pending) {
             return;
         }
-        ASSERT(bytes + 1024 <= RecordChunk::Capacity);
-        if (RecordChunk::Capacity - CurrentChunk().Size() < bytes + 1024) {
+        // Only an explicit batch boundary may retire the chunk. Larger batches
+        // use chunk-owned overflow rather than splitting their descriptors.
+        if (bytes > RecordChunk::Capacity - 1024 ||
+            CurrentChunk().Size() > RecordChunk::Capacity - (bytes + 1024)) {
             RetireChunk();
         }
     }
@@ -305,9 +310,11 @@ public:
         if (!IsRecordingDeferred() || data.empty()) {
             return data;
         }
-        // Room for the data and the command that follows it, so both stay in one chunk.
+        // A first copy can reserve a fresh pooled chunk. Later copies for the
+        // same command must stay with it, even when they need owned overflow.
         const size_t bytes = data.size_bytes();
-        ReserveRecordData(bytes + alignof(T));
+        if (!record_data_pending) ReserveRecordData(bytes + alignof(T));
+        record_data_pending = true;
         auto* dst = static_cast<T*>(CurrentChunk().Allocate(bytes, alignof(T)));
         std::memcpy(dst, data.data(), bytes);
         return {dst, data.size()};
@@ -588,6 +595,7 @@ private:
     bool resume_rendering = false;     ///< a cut closed the render pass with render_state
     void* pass_end_caller = nullptr;   ///< BB_PASS_BREAK_TRACE: who ended the last render pass
     std::unique_ptr<RecordChunk> record_chunk;
+    bool record_data_pending = false; ///< returned spans not yet consumed by Record
     std::vector<std::unique_ptr<RecordChunk>> full_chunks;
     std::unique_ptr<RecordChunk> ordered_chunk;
     std::vector<std::unique_ptr<RecordChunk>> ordered_full;

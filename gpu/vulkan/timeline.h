@@ -43,6 +43,9 @@ public:
     void Refresh();
     /// Returns once the GPU reached `tick` (a lost device stops the port with a report).
     void Wait(u64 tick);
+    /// Returns false on timeout; only a successful wait publishes completion.
+    /// timeout_ns is a Vulkan timeout in nanoseconds (zero only polls).
+    [[nodiscard]] bool WaitFor(u64 tick, u64 timeout_ns);
 
 private:
     const Instance& instance;

@@ -214,6 +214,20 @@ void CommandProcessor::WaitGpuIdle() noexcept {
     submit_cv.wait(lock, [this] { return num_submits == 0; });
 }
 
+bool CommandProcessor::WaitDecodedFor(std::chrono::nanoseconds timeout) {
+    if (std::this_thread::get_id() == thread_id) return false;
+    std::unique_lock lock{submit_mutex};
+    const auto target = submitted_by_queue;
+    ++decoded_waiters;
+    const bool done = decoded_cv.wait_for(lock, timeout, [this, &target] {
+        for (std::size_t i = 0; i < target.size(); ++i)
+            if (decoded_by_queue[i] < target[i]) return false;
+        return true;
+    });
+    --decoded_waiters;
+    return done;
+}
+
 bool CommandProcessor::IsGpuIdle() const {
     static const bool use_retired = !bb_env_off("BB_WORK_RETIRED");
     // BB_SUBMIT_LOCK=decode with honest labels: decoded is enough.
@@ -480,6 +494,8 @@ void CommandProcessor::Run(std::stop_token stop) {
                 --num_submits;
                 std::scoped_lock submit_lock{submit_mutex};
                 ++decoded_total;
+                ++decoded_by_queue[current_queue];
+                if (decoded_waiters) decoded_cv.notify_all();
                 frame_end = !frame_ends.empty() && frame_ends.front().first <= decoded_total;
                 submit_cv.notify_all();
             }
@@ -669,6 +685,7 @@ void CommandProcessor::SubmitGfx(std::span<const u32> dcb, std::span<const u32> 
     ++num_submits;
     ++submissions_total;
     BbTimeline::Note(BbTimeline::GuestSubmit, 0, submissions_total);
+    ++submitted_by_queue[GfxQueueId];
     work_retired = false;
     submit_cv.notify_one();
 }
@@ -690,6 +707,7 @@ void CommandProcessor::SubmitAsc(u32 gnm_vqid, std::span<const u32> acb) {
     ++num_submits;
     ++submissions_total;
     work_retired = false;
+    ++submitted_by_queue[gnm_vqid];
     submit_cv.notify_one();
 }
 

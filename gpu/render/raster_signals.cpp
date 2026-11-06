@@ -14,6 +14,44 @@
 #include <pthread.h>
 
 namespace Vulkan {
+namespace {
+thread_local bool on_gpu_signal_thread = false;
+}
+
+bool Rasterizer::CanWaitGpuProgress() const {
+    return !IsGpuSideThread() && !on_gpu_signal_thread;
+}
+
+bool Rasterizer::WaitGpuTickFor(u64 tick, std::chrono::steady_clock::time_point deadline) {
+    if (!CanWaitGpuProgress()) return false;
+    const auto remaining = std::max(std::chrono::nanoseconds::zero(),
+        std::chrono::duration_cast<std::chrono::nanoseconds>(deadline - std::chrono::steady_clock::now()));
+    if (!scheduler.GetWorkSemaphore()->WaitFor(tick, static_cast<u64>(remaining.count())))
+        return false;
+    // The callback remains in the queue until it returns. A completed Vulkan
+    // tick alone cannot prove that CPU-written guest labels have landed.
+    std::unique_lock lock{gpu_signals_mutex};
+    ++gpu_progress_waiters;
+    const bool done = gpu_progress_cv.wait_until(lock, deadline, [this, tick] {
+        return gpu_signals.empty() || gpu_signals.front().tick > tick;
+    });
+    --gpu_progress_waiters;
+    return done;
+}
+
+bool Rasterizer::StepGpuFor(std::chrono::nanoseconds timeout) {
+    if (!CanWaitGpuProgress()) return false;
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    auto* semaphore = scheduler.GetWorkSemaphore();
+    semaphore->Refresh();
+    const u64 done = semaphore->KnownGpuTick(), submitted = scheduler.SubmittedTick();
+    if (submitted > done) return WaitGpuTickFor(done + 1, deadline);
+    {
+        std::scoped_lock lock{gpu_signals_mutex};
+        if (gpu_signals.empty() || gpu_signals.front().tick > done) return false;
+    }
+    return WaitGpuTickFor(done, deadline);
+}
 
 void Rasterizer::PublishSignals() {
     // Only the recording thread, or the GPU command thread while it is idle (drained), touches
@@ -405,6 +443,7 @@ bool Rasterizer::PendingSignalValue(VAddr address, u64& value) {
 }
 
 void Rasterizer::GpuSignalLoop(std::stop_token token) {
+    on_gpu_signal_thread = true;
     Common::SetCurrentThreadName("bb:GpuSignals");
     auto* semaphore = scheduler.GetWorkSemaphore();
     const vk::Semaphore handle = semaphore->Handle();
@@ -474,6 +513,7 @@ void Rasterizer::GpuSignalLoop(std::stop_token token) {
             signal();
             std::scoped_lock lk{gpu_signals_mutex};
             gpu_signals.pop_front();
+            if (gpu_progress_waiters) gpu_progress_cv.notify_all();
         }
     }
 }

@@ -193,7 +193,7 @@ constexpr bool Is32BitPerComponent(DataFormat format) {
            format == DataFormat::Format32_32_32 || format == DataFormat::Format32_32_32_32;
 }
 
-/// Packed formats stored with the components in the reverse order of a Vulkan format.
+/// Packed component order remaps; unused ISA encodings read as invalid descriptors.
 constexpr DataFormat RemapDataFormat(DataFormat format) {
     switch (format) {
     case DataFormat::Format11_11_10:
@@ -203,6 +203,12 @@ constexpr DataFormat RemapDataFormat(DataFormat format) {
     case DataFormat::Format5_5_5_1:
         return DataFormat::Format1_5_5_5;
     default:
+        // A descriptor read while the guest rewrites it can contain a reserved encoding.
+        // No number-format fallback can make these into a real data format.
+        if (const u32 value = u32(format);
+            value == 15 || (value >= 23 && value <= 31) || value == 42 || value == 43) {
+            return DataFormat::FormatInvalid;
+        }
         return format;
     }
 }

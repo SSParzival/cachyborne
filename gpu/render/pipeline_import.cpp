@@ -107,6 +107,12 @@ void PipelineCache::StartShaderImport() {
     if (!pack || !*pack || !game || !*game || !std::filesystem::exists(pack, ec)) {
         return;
     }
+    // WarmUp can have queued a replacement profile. The import child reads
+    // profile.bin immediately; publish it before spawning that process.
+    if (!store.Flush()) {
+        LOG_WARNING(Render, "Shader import deferred: pipeline cache writes failed");
+        return;
+    }
     const std::string dir = store.Directory().string();
     const std::string params = fmt::format("{:x}", Shader::MotionVectors::params_address);
     const std::string positions = fmt::format("{:x}", Shader::MotionVectors::positions_address);

@@ -101,6 +101,9 @@ public:
     void Present(Frame* frame, bool is_reusing_frame = false, bool is_game_frame = true);
     /// Waits until the GPU has finished the commands that render `frame` (any thread).
     void WaitRendered(const Frame* frame);
+    /// Guest allocation pressure: bounded GPU progress; never record on the caller.
+    /// stage 0: one submitted tick; 1: flush recorded work; 2: decode queued work then flush.
+    bool AdvanceGpuFor(unsigned stage, std::chrono::nanoseconds timeout);
 
 private:
     /// Takes a free frame, waits for its last present and resizes it to the expected size.

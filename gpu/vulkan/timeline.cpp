@@ -67,12 +67,17 @@ void Semaphore::Refresh() {
 }
 
 void Semaphore::Wait(u64 tick) {
+    ASSERT_MSG(WaitFor(tick, std::numeric_limits<u64>::max()),
+               "timeline wait unexpectedly timed out");
+}
+
+bool Semaphore::WaitFor(u64 tick, u64 timeout_ns) {
     if (IsFree(tick)) {
-        return;
+        return true;
     }
     Refresh();
     if (IsFree(tick)) {
-        return;
+        return true;
     }
     const vk::Semaphore handle = *semaphore;
     const vk::SemaphoreWaitInfo wait{
@@ -80,17 +85,14 @@ void Semaphore::Wait(u64 tick) {
         .pSemaphores = &handle,
         .pValues = &tick,
     };
-    for (;;) {
-        const vk::Result result =
-            instance.GetDevice().waitSemaphores(&wait, std::numeric_limits<u64>::max());
-        if (result == vk::Result::eSuccess) {
-            break;
-        }
-        if (result == vk::Result::eErrorDeviceLost) {
-            Breadcrumbs::ReportDeviceLost("waiting for a submission");
-            ASSERT_MSG(false, "Device lost while waiting for a submission");
-        }
+    const vk::Result result = instance.GetDevice().waitSemaphores(&wait, timeout_ns);
+    if (result == vk::Result::eTimeout) {
+        return false;
     }
+    if (result == vk::Result::eErrorDeviceLost) {
+        Breadcrumbs::ReportDeviceLost("waiting for a submission");
+    }
+    ASSERT_MSG(result == vk::Result::eSuccess, "timeline wait: {}", vk::to_string(result));
     // A successful driver wait proves this value has been reached. Refresh is
     // throttled and may deliberately retain a pre-wait value for 50 us; callers
     // reclaiming staging immediately after Finish must see the completed tick.
@@ -100,6 +102,7 @@ void Semaphore::Wait(u64 tick) {
            !gpu_tick.compare_exchange_weak(known, tick, std::memory_order_release,
                                            std::memory_order_acquire)) {
     }
+    return true;
 }
 
 } // namespace Vulkan

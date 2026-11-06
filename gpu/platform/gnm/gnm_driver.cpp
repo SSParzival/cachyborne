@@ -62,6 +62,10 @@ extern "C" std::uint64_t runtime_heap_growths(void);
 
 namespace BbGnm {
 
+bool AdvanceGpuFor(unsigned stage, u64 timeout_ns) {
+    return presenter && presenter->AdvanceGpuFor(stage, std::chrono::nanoseconds(timeout_ns));
+}
+
 bool SubmitFxInitZero(u64 address, u32 bytes) {
     if (!liverpool || !bytes || bytes > 32768 || (bytes & 3) || (address & 3)) return false;
     const auto commands = BbFxInit::Commands({address, bytes});

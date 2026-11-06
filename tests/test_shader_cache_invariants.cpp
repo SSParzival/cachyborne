@@ -5,6 +5,7 @@
 #include <limits>
 #include "render/permutation_indices.h"
 #include "render/pipeline.h"
+#include "render/pipeline_cache.h"
 #include "common/serdes.h"
 #include "shader/info.h"
 #include "shader/ir/program.h"
@@ -12,6 +13,29 @@
 #include "shader/ir/passes/ir_passes.h"
 
 int main() {
+    // The cache reads each stage into a temporary Program. A second stage
+    // with the same program hash is adopted into the already resident Program;
+    // destroying the temporary must not leave a dangling specialization Info.
+    {
+        Vulkan::Program resident;
+        resident.info.pgm_hash=0x12345678;
+        for (bool append : {false,true}) {
+            auto temporary=std::make_unique<Vulkan::Program>();
+            temporary->info.pgm_hash=resident.info.pgm_hash;
+            Shader::StageSpecialization spec{};
+            spec.info=&temporary->info;
+            if (append) resident.AddPermut({},std::move(spec));
+            else resident.InsertPermut({},std::move(spec),3);
+            temporary.reset();
+            const auto& stored=resident.modules.back().spec;
+            assert(stored.Valid() && stored.info==&resident.info);
+            assert(stored.info->pgm_hash==0x12345678);
+            Shader::StageSpecialization expected{};
+            expected.info=&resident.info;
+            assert(stored==expected);
+        }
+        assert(!resident.modules[0].spec.Valid()); // sparse slots stay empty
+    }
     // Execute the production-generated walker: nested null tables zero the whole subtree,
     // preserve adjacent user data, and do not poison the next non-null invocation.
     {

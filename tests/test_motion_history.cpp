@@ -4,6 +4,7 @@
 #include <array>
 #include <cassert>
 #include <cstdio>
+#include <numeric>
 #include "gpu/upscale/motion_history.h"
 
 using namespace Vulkan::Motion;
@@ -131,7 +132,8 @@ int main() {
            ClassifyBuffer(384) == BufferRole::SmallSkeleton);
     assert(ClassifyBuffer(656) == BufferRole::Skeleton && ClassifyBuffer(64) == BufferRole::Other);
 
-    // Index ranges: reused between full scans, rescanned every Revalidate frames, trimmed.
+    // Index ranges: a cohort loaded together is revalidated across the whole
+    // interval; no mesh stays stale longer than Revalidate frames.
     IndexRangeCache ranges;
     uint32_t scans = 0;
     const IndexRangeCache::Key mesh{.address = 0x1000, .count = 3, .index_size = 2};
@@ -140,12 +142,55 @@ int main() {
         return IndexRangeCache::Result{{4, 3}, 99};
     };
     assert(ranges.Get(mesh, 0, scan).topology == 99 && scans == 1);
-    assert(ranges.Get(mesh, IndexRangeCache::Revalidate - 1, scan).range == (VertexRange{4, 3}));
-    assert(scans == 1);
-    ranges.Get(mesh, IndexRangeCache::Revalidate, scan);
+    for (uint64_t frame = 1; frame <= IndexRangeCache::Revalidate; ++frame)
+        assert(ranges.Get(mesh, frame, scan).range == (VertexRange{4, 3}));
     assert(scans == 2);
     ranges.Trim(IndexRangeCache::Revalidate + IndexRangeCache::Unused + 1);
     assert(ranges.Size() == 0);
+
+    IndexRangeCache cohort;
+    constexpr size_t Meshes = 512;
+    std::array<uint64_t, Meshes> last_scan{};
+    std::array<uint32_t, IndexRangeCache::Revalidate> per_frame{};
+    for (uint64_t frame = 0; frame <= 3 * IndexRangeCache::Revalidate; ++frame) {
+        for (size_t i = 0; i < Meshes; ++i) {
+            const IndexRangeCache::Key key{.address = 0x100000 + i * 0x10000,
+                                          .count = 300, .index_size = 2};
+            const auto result = cohort.Get(key, frame, [&] {
+                assert(frame - last_scan[i] <= IndexRangeCache::Revalidate);
+                last_scan[i] = frame;
+                if (frame && frame <= IndexRangeCache::Revalidate) ++per_frame[frame-1];
+                return IndexRangeCache::Result{{4, 3}, frame};
+            });
+            assert(frame - result.topology < IndexRangeCache::Revalidate);
+        }
+    }
+    assert(std::accumulate(per_frame.begin(), per_frame.end(), 0u) == Meshes);
+    assert(*std::max_element(per_frame.begin(), per_frame.end()) < Meshes / 8);
+
+    // The range and topology hash must describe exactly one snapshot for both
+    // index widths, including restart markers and signed base-vertex rejection.
+    const auto check_snapshot = []<class Index>(std::vector<Index> input) {
+        const auto hash = [&](const void* data, size_t bytes) {
+            assert(data != input.data());
+            uint64_t value = 0;
+            for (size_t i = 0; i < bytes; ++i)
+                value = value * 131 + static_cast<const unsigned char*>(data)[i];
+            return value;
+        };
+        for (bool restart : {false, true}) {
+            for (int base : {-10, 0, 20}) {
+                const auto result = SnapshotIndexedRange(input.data(), input.size(), base, restart, hash);
+                assert(result.first == IndexedRange(std::span<const Index>(input), base, restart));
+                uint64_t expected = 0;
+                for (size_t i = 0; i < input.size()*sizeof(Index); ++i)
+                    expected = expected * 131 + reinterpret_cast<const unsigned char*>(input.data())[i];
+                assert(result.second == expected);
+            }
+        }
+    };
+    check_snapshot(std::vector<uint16_t>{5, 8, 7, UINT16_MAX});
+    check_snapshot(std::vector<uint32_t>{5, 8, 7, UINT32_MAX});
 
     assert(JitterPhases(1920, 1920) == 8);
     assert(JitterPhases(1280, 1920) == 18);

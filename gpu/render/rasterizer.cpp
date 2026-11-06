@@ -9,6 +9,7 @@
 #include <string>
 #include <filesystem>
 #include "render/raster_internal.h"
+#include "render/copy_filter.h"
 #include <vk_mem_alloc.h>
 
 namespace Vulkan {
@@ -62,6 +63,9 @@ Rasterizer::Rasterizer(const Instance& instance_, Scheduler& scheduler_, Runtime
 
     GpuProfiler::Init(instance, scheduler);
     if (DrawPipeWanted()) {
+        if (!bb_env_off("BB_COPY_SKIP_SAME") || bb_env("BB_TOGGLE_FILE")) {
+            copy_filter = std::make_unique<CopyFilterThread>();
+        }
         constant_ring = std::make_unique<ConstantRing>(instance, scheduler);
         draw_pipe = std::make_unique<DrawPipe>(&RunDrawPacket, this);
         buffer_cache.in_place_read_context = this;
@@ -646,17 +650,13 @@ void Rasterizer::DrawRecord(const GraphicsPipeline* pipeline, const PreparedDraw
                     BB_SECTION(MotionIndex);
                     const auto scanned = object_motion->IndexRange(
                         {index_address, count, index_size, s32(base_vertex), restart}, [&] {
-                            const auto* data = reinterpret_cast<const void*>(index_address);
-                            const auto scan_range =
+                            const auto scan =
                                 index_size == 2
-                                    ? Motion::IndexedRange(
-                                          std::span(static_cast<const u16*>(data), count),
-                                          s32(base_vertex), restart)
-                                    : Motion::IndexedRange(
-                                          std::span(static_cast<const u32*>(data), count),
-                                          s32(base_vertex), restart);
-                            return Motion::IndexRangeCache::Result{scan_range,
-                                                                   XXH3_64bits(data, bytes)};
+                                    ? Motion::SnapshotIndexedRange(reinterpret_cast<const u16*>(index_address),
+                                          count, s32(base_vertex), restart, XXH3_64bits)
+                                    : Motion::SnapshotIndexedRange(reinterpret_cast<const u32*>(index_address),
+                                          count, s32(base_vertex), restart, XXH3_64bits);
+                            return Motion::IndexRangeCache::Result{scan.first, scan.second};
                         });
                     range = scanned.range;
                     topology = scanned.topology;

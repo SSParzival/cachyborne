@@ -6,8 +6,11 @@
 
 #include <array>
 #include <cstddef>
+#include <limits>
+#include <memory>
 #include <new>
 #include <utility>
+#include <vector>
 
 #include "bbport_toggles.h"
 #include "common/types.h"
@@ -35,36 +38,55 @@ class RecordChunk {
 public:
     static constexpr size_t Capacity = 128 * 1024;
 
-    /// Returns false (and leaves `func` untouched) when the chunk has no room.
+    RecordChunk() = default;
+    RecordChunk(const RecordChunk&) = delete;
+    RecordChunk& operator=(const RecordChunk&) = delete;
+    ~RecordChunk() {
+        // Cancellation must release captured resources without running Vulkan.
+        for (auto* command = first; command;) {
+            auto* next = command->next;
+            command->~CommandBase();
+            command = next;
+        }
+    }
+
+    /// Overflow stays owned by this chunk: never separate a command from the
+    /// RecordData spans it reads. Allocation failures propagate before recording.
     template <typename Func>
     bool Push(Func&& func) {
         using Command = TypedCommand<std::decay_t<Func>>;
         static_assert(sizeof(Command) <= Capacity, "recorded command is too large");
-        const size_t offset = (used + alignof(Command) - 1) & ~(alignof(Command) - 1);
-        if (offset + sizeof(Command) > Capacity) {
-            return false;
-        }
-        auto* command = new (storage + offset) Command(std::forward<Func>(func));
+        auto* command = new (Allocate(sizeof(Command), alignof(Command)))
+            Command(std::forward<Func>(func));
         if (last) {
             last->next = command;
         } else {
             first = command;
         }
         last = command;
-        used = offset + sizeof(Command);
-        PrefetchAhead();
         return true;
     }
 
-    /// Raw storage in the chunk for a command's variable-length data; null when full.
+    /// Raw storage lives through Execute, including overflow and over-aligned data.
     void* Allocate(size_t bytes, size_t align) {
-        const size_t offset = (used + align - 1) & ~(align - 1);
-        if (offset + bytes > Capacity) {
-            return nullptr;
+        if (!align || (align & (align - 1)) || bytes > std::numeric_limits<size_t>::max() - align) {
+            throw std::bad_array_new_length();
         }
-        used = offset + bytes;
-        PrefetchAhead();
-        return storage + offset;
+        const size_t offset = (used + align - 1) & ~(align - 1);
+        if (align <= 64 && offset <= Capacity && bytes <= Capacity - offset) {
+            used = offset + bytes;
+            PrefetchAhead();
+            return storage + offset;
+        }
+        const auto alignment = std::align_val_t(align < 64 ? 64 : align);
+        std::unique_ptr<std::byte, AlignedDelete> block{
+            static_cast<std::byte*>(::operator new(bytes, alignment)), AlignedDelete{alignment}};
+        auto* result = block.get();
+        spills.push_back(std::move(block));
+        // Size is a batching hint; saturate rather than wrapping on huge input.
+        spill_bytes = bytes > std::numeric_limits<size_t>::max() - Capacity - spill_bytes
+            ? std::numeric_limits<size_t>::max() - Capacity : spill_bytes + bytes;
+        return result;
     }
 
     void Execute(vk::CommandBuffer cmdbuf) {
@@ -76,6 +98,8 @@ public:
         }
         first = last = nullptr;
         used = 0;
+        spills.clear();
+        spill_bytes = 0;
     }
 
     [[nodiscard]] bool Empty() const noexcept {
@@ -83,7 +107,7 @@ public:
     }
 
     [[nodiscard]] size_t Size() const noexcept {
-        return used;
+        return used + spill_bytes;
     }
 
     u32 segment = 0; ///< the command buffer segment the chunk is recorded into (Scheduler)
@@ -98,8 +122,8 @@ private:
     /// transfers instead of stalling on each (RecordPrefetch).
     void PrefetchAhead() const {
         if (!BbToggle::Disabled(BbToggle::RecordPrefetch)) {
-            __builtin_prefetch(storage + used + 384, 1, 3);
-            __builtin_prefetch(storage + used + 448, 1, 3);
+            if (used + 384 < Capacity) __builtin_prefetch(storage + used + 384, 1, 3);
+            if (used + 448 < Capacity) __builtin_prefetch(storage + used + 448, 1, 3);
         }
     }
 
@@ -122,6 +146,12 @@ private:
     size_t used = 0;
     CommandBase* first{};
     CommandBase* last{};
+    struct AlignedDelete {
+        std::align_val_t alignment;
+        void operator()(std::byte* p) const noexcept { ::operator delete(p, alignment); }
+    };
+    std::vector<std::unique_ptr<std::byte, AlignedDelete>> spills;
+    size_t spill_bytes = 0;
 };
 
 } // namespace Vulkan

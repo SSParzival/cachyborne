@@ -73,12 +73,16 @@ struct Program {
         : info{stage, l_stage, params} {}
 
     void AddPermut(vk::ShaderModule module, Shader::StageSpecialization&& spec) {
+        // Cache deserialization can build a specialization against a temporary
+        // Program. Every stored specialization borrows this Program's Info.
+        spec.info = &info;
         modules.emplace_back(module, std::move(spec));
     }
 
     /// At its index as cached: permutation hashes include the index.
     void InsertPermut(vk::ShaderModule module, Shader::StageSpecialization&& spec,
                       size_t perm_idx) {
+        spec.info = &info;
         modules.resize(std::max(modules.size(), perm_idx + 1));
         modules[perm_idx] = {module, std::move(spec)};
     }

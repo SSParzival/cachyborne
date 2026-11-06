@@ -52,6 +52,9 @@ public:
     static void Note(const char* text);
     /// A line kept with the next draw or dispatch (like Buffer).
     static void Pending(std::string text);
+    /// An actual image transfer, in stream order. Unlike Pending's buffer
+    /// samples, it must not disappear after a pass's first four draws.
+    static void Transfer(std::string text);
 
 private:
     enum : u32 { Idle, Armed, Recording };

@@ -54,6 +54,7 @@ using Gcn::RegDirty;
 using Gcn::Regs;
 
 class CommandProcessor {
+    friend struct CommandProcessorTestAccess;
 public:
     static constexpr u32 GfxQueueId = 0;
     static constexpr u32 NumGfxRings = 1;     ///< the high-priority ring is the system's
@@ -74,6 +75,9 @@ public:
     /// (BbGnm::NoteFramesRetired) once the GPU has done everything submitted so far.
     void SubmitDone(u64 frame = 0) noexcept;
     void WaitGpuIdle() noexcept;
+    /// Wait only for the submissions queued at entry to be decoded, with a deadline.
+    /// Guest threads only; this does not imply GPU or CPU-label completion.
+    bool WaitDecodedFor(std::chrono::nanoseconds timeout);
     /// Nothing to decode, and (BB_WORK_RETIRED, default) the draw recording thread and the fences
     /// it deferred are done too. sceGnmSubmitDone does not block the guest when this is true.
     bool IsGpuIdle() const;
@@ -303,6 +307,8 @@ private:
     std::thread::id thread_id;
     u32 thread_tid = 0;
     std::mutex submit_mutex;
+    std::condition_variable decoded_cv;
+    unsigned decoded_waiters = 0; // under submit_mutex; do not steal the CP's work notification
     std::condition_variable_any submit_cv;
     std::deque<Common::UniqueFunction<void>> commands;
     std::atomic<u32> num_commands{0};
@@ -312,6 +318,7 @@ private:
     // Under submit_mutex.
     u64 submissions_total = 0;
     u64 decoded_total = 0;
+    std::array<u64, NumTotalQueues> submitted_by_queue{}, decoded_by_queue{};
     std::deque<std::pair<u64, u64>> frame_ends; ///< (submissions, frame) per sceGnmSubmitDone
     u64 gfx_submit_seq = 0;
     Work* last_decoded = nullptr; ///< BB_TIMELINE

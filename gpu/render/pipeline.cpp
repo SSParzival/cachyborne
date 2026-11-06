@@ -604,6 +604,9 @@ void GraphicsPipeline::GetVertexInputs(
         const auto step_rate = attrib.GetStepRate();
         const auto buffer = given ? sharps[index] : attrib.GetSharp(vs_info);
         ++index;
+        if (buffer.GetDataFmt() == Gcn::DataFormat::FormatInvalid) {
+            continue;
+        }
         // An impossible format is a V# read while the game rewrote it (seen with BBSC on,
         // 2026-10-14: data format 9 with number format 7): a float format for this draw instead
         // of ending the session.

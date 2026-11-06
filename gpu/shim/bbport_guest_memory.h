@@ -11,10 +11,12 @@
 
 #include <cstdint>
 #include <vector>
+#include "common/unique_function.h"
 #include "vulkan/vk_common.h"
 
 namespace Vulkan {
 class Instance;
+class Scheduler;
 }
 
 namespace BbGuestMemory {
@@ -57,10 +59,14 @@ bool Widen(std::uint64_t phys, std::uint64_t size);
 /// never written granules are not imported for it (its page table leaves them to the trash).
 void SetPagedRead(bool on);
 
-/// Chunk indices (Chunk::index) given back at least 3 s ago (a heap's piece, BB_HEAP_GROW): the
-/// buffer cache drops its buffers over them, then calls DestroyRetiredChunks.
+/// Chunk indices (Chunk::index) given back at least 3 s ago (a heap's piece, BB_HEAP_GROW).
+/// This CPU-side grace interval is not proof that GPU references have completed.
 std::vector<std::uint32_t> RetiredChunks();
-void DestroyRetiredChunks();
+/// Snapshots this batch now, then releases its views and allocations in that
+/// order only after the draw scheduler's current submission completes. Unmaps
+/// and their page-table updates must already be recorded before this call.
+void DestroyRetiredChunks(Vulkan::Scheduler& scheduler,
+                          Common::UniqueFunction<void>&& release_views = {});
 
 /// Lazy guest memory: the game's memory imported where the GPU uses it.
 bool Lazy();

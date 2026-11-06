@@ -204,7 +204,7 @@ struct ColorBuffer {
 
     /// Bound: an address and a format.
     explicit operator bool() const {
-        return base_address && info.format;
+        return base_address && GetDataFmt() != DataFormat::FormatInvalid;
     }
 
     u32 Pitch() const {

@@ -80,8 +80,8 @@ inline bool uncached = false;
 
 
 /// Chunks a heap gave back (runtime_memory_decommit; BB_HEAP_GROW): out of the lookups at once,
-/// their buffers and memory freed 3 s later (RetiredChunks, DestroyRetiredChunks) when nothing
-/// the GPU still runs can use them.
+/// their buffers and memory freed after a 3 s CPU grace interval AND completion
+/// of the scheduler submission that retires their views and page-table entries.
 struct RetiredChunk {
     Chunk* chunk;
     std::chrono::steady_clock::time_point at;

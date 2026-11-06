@@ -18,6 +18,8 @@ namespace BbGnm {
 void RegisterLib(Core::Loader::SymbolsResolver* sym);
 /// Initialize a small FX target without changing a guest graphics context's cursor or state.
 bool SubmitFxInitZero(u64 address, u32 bytes);
+/// Bounded allocation-pressure progress: stage 0 GPU step, 1 recorded flush, 2 decode+flush.
+bool AdvanceGpuFor(unsigned stage, u64 timeout_ns);
 
 /// The submission lock is released when the command processor has decoded a frame (instead of
 /// when the GPU went idle): only with honest labels.
