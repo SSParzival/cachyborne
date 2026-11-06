@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: Copyright 2026 bbport contributors
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later AND GPL-3.0-or-later
 /* runtime_pad.c part: controls: bindings (bbport.ini key./pad. lines), keyboard sticks, mouse buttons and wheel, mouse look.
  * #included by runtime_pad.c in order (one translation unit: it shares that file's
  * statics); not compiled on its own. */
@@ -15,12 +15,14 @@ enum {
     IN_CROSS, IN_CIRCLE, IN_SQUARE, IN_TRIANGLE, IN_L1, IN_R1, IN_L2, IN_R2, IN_L3, IN_R3,
     IN_OPTIONS, IN_TOUCHPAD, IN_TOUCHPAD_RIGHT, IN_UP, IN_DOWN, IN_LEFT, IN_RIGHT,
     IN_MOVE_UP, IN_MOVE_DOWN, IN_MOVE_LEFT, IN_MOVE_RIGHT, IN_LOOK_UP, IN_LOOK_DOWN, IN_LOOK_LEFT,
-    IN_LOOK_RIGHT, IN_SPRINT, IN_DODGE, IN_WALK, IN_COUNT
+    IN_LOOK_RIGHT, IN_SPRINT, IN_DODGE, IN_WALK, IN_MENU_CONFIRM, IN_MENU_PREV,
+    IN_MENU_NEXT, IN_MENU_STORAGE, IN_MENU_INVENTORY, IN_MENU_DISPLAY, IN_MENU_STATUS, IN_COUNT
 };
 static const char *const input_names[IN_COUNT]={
     "cross","circle","square","triangle","l1","r1","l2","r2","l3","r3","options","touchpad",
     "touchpad_right","up","down","left","right","move_up","move_down","move_left","move_right",
     "look_up","look_down","look_left","look_right","sprint","dodge","walk",
+    "menu_confirm","menu_prev","menu_next","menu_storage","menu_inventory","menu_display","menu_status",
 };
 static const uint32_t input_buttons[IN_COUNT]={
     BTN_CROSS,BTN_CIRCLE,BTN_SQUARE,BTN_TRIANGLE,BTN_L1,BTN_R1,BTN_L2,BTN_R2,BTN_L3,BTN_R3,
@@ -49,7 +51,10 @@ static void bind_defaults(void) {
     static const struct { int input; int key; int mod; } keys[]={
         {IN_DODGE,SDL_SCANCODE_SPACE,NONE}, {IN_SPRINT,SHIFT,NONE}, {IN_CROSS,SDL_SCANCODE_F,NONE},
         {IN_WALK,SDL_SCANCODE_LALT,NONE},
-        {IN_CROSS,SDL_SCANCODE_RETURN,NONE}, {IN_TRIANGLE,SDL_SCANCODE_Q,NONE},
+        {IN_MENU_CONFIRM,SDL_SCANCODE_RETURN,NONE},
+        {IN_MENU_PREV,SDL_SCANCODE_PAGEUP,NONE}, {IN_MENU_NEXT,SDL_SCANCODE_PAGEDOWN,NONE},
+        {IN_MENU_STORAGE,SDL_SCANCODE_HOME,NONE}, {IN_MENU_INVENTORY,SDL_SCANCODE_END,NONE},
+        {IN_MENU_DISPLAY,SDL_SCANCODE_F,NONE}, {IN_MENU_STATUS,SDL_SCANCODE_R,NONE}, {IN_TRIANGLE,SDL_SCANCODE_Q,NONE},
         {IN_L1,SDL_SCANCODE_E,NONE}, {IN_SQUARE,SDL_SCANCODE_TAB,NONE}, {IN_SQUARE,SDL_SCANCODE_R,NONE},
         {IN_R3,SDL_SCANCODE_C,NONE}, {IN_L3,SDL_SCANCODE_LCTRL,NONE},
         {IN_OPTIONS,SDL_SCANCODE_ESCAPE,NONE}, {IN_TOUCHPAD,SDL_SCANCODE_G,NONE},
@@ -104,6 +109,8 @@ static int key_from_name(const char *name) {
  * ~1000 pixels/s turn the camera at full speed), mouse_invert_y=1, mouse_invert_x=1. */
 /* Issue #299: bbport.ini button_prompts=auto (the device used last), playstation, xbox or keyboard. */
 static int prompt_forced=-1;
+/* Optional SOCD last-input priority; neutral preserves the original policy. */
+static int key_opposites_last;
 static int mouse_look=1, mouse_invert_y, mouse_invert_x;
 static float mouse_sensitivity=1.0f;
 /* key.<input>= / pad.<input>= lines of the settings file. */
@@ -112,6 +119,7 @@ static int motion_enabled = -1;
 static void load_bindings(void) {
     bind_defaults();
     mouse_look=1; mouse_invert_y=0; mouse_invert_x=0; mouse_sensitivity=1.0f; prompt_forced=-1;
+    key_opposites_last=0;
     const char *path=bb_env("BB_CONFIG");
     FILE *f=path ? fopen(path,"r") : NULL;
     if (!f) return;
@@ -129,6 +137,9 @@ static void load_bindings(void) {
             }
             else if (!strncmp(line,"mouse_invert_y=",15)) mouse_invert_y=atoi(value)!=0;
             else if (!strncmp(line,"mouse_invert_x=",15)) mouse_invert_x=atoi(value)!=0;
+            else if (!strncmp(line,"key_opposites=",14))
+                key_opposites_last=!strncmp(value,"last",4) &&
+                    (value[4]=='\r' || value[4]=='\n' || value[4]=='\0');
             else if (!strncmp(line,"mouse_sensitivity=",18)) {
                 const float v=strtof(value,NULL);
                 if (v>=0.05f && v<=20.0f) mouse_sensitivity=v;
@@ -222,6 +233,9 @@ static int chord_held(const bool *k, int code) {
 static int key_down(const bool *k, int input) {
     for (int i=0;i<bindings[input].key_count;++i) {
         const int code=bindings[input].keys[i], mod=bindings[input].mods[i];
+        /* Older profiles included Return in key.cross. Confirmation now has its
+         * own binding; do not let that saved default interact during play. */
+        if (input==IN_CROSS && (code==SDL_SCANCODE_RETURN || code==SDL_SCANCODE_KP_ENTER)) continue;
         if (!code_down(k,code)) continue;
         if (mod>=0 ? code_down(k,mod) : !chord_held(k,code)) return 1;
     }
@@ -240,42 +254,72 @@ static int pad_value(SDL_Gamepad *g, int input) {
     return value;
 }
 
-/* The keys as a stick. A digital key would be the stick thrown to its stop at once, and the
- * diagonal the corner of the square (1.41 long): the game's character then snaps to the new
- * direction and slips into a run. Here the keys give a direction on the unit circle (a diagonal
- * is as long as one key), and the stick follows it as a real thumb does: its length ramps
- * (BB_KEY_RISE_MS 70, BB_KEY_FALL_MS 45) and its angle turns at BB_KEY_TURN_DPS (1100 degrees
- * a second) the short way round, so a reversal sweeps through the sides, not through a dead
- * centre. A stick almost at rest takes the new angle at once. */
-typedef struct { float angle, mag; uint64_t last_us; } KeyStick;
+/* The movement stick keeps its push over gaps of at most 150 ms, but emits no input
+ * during the gap. Sprint turns go round the unit circle (90 degrees in 70 ms);
+ * a straight single-axis reversal flips at once for the game's quick-turn.
+ * Ported from bbhost v0.2.24 (946b846, 0db9b8e, b0098e0). Look keeps its own
+ * rise/fall and turn smoothing. Angles here use +X right, +Y down. */
+typedef struct {
+    float angle, mag;
+    uint64_t last_us, held_us;
+    int tx, ty;
+    unsigned axis_keys[2];
+    int axis_last[2];
+} KeyStick;
+/* Rising edges, not sample timestamps: ties within one poll remain neutral.
+ * Releasing the newer key resumes the older held direction. Keep this state
+ * independent per axis and stick, without resetting movement magnitude. */
+static int key_axis(KeyStick *st, int axis, int negative, int positive) {
+    const unsigned held=(negative ? 1u : 0u)|(positive ? 2u : 0u);
+    const unsigned pressed=held & ~st->axis_keys[axis];
+    st->axis_keys[axis]=held;
+    if (pressed) st->axis_last[axis]=pressed==1 ? -1 : pressed==2 ? 1 : 0;
+    return held==3 ? st->axis_last[axis] : (positive!=0)-(negative!=0);
+}
 static float key_tunable(const char *name, float def) {
     const char *env=bb_env(name);
     if (!env || !*env) return def;
     const float v=(float)atof(env);
     return v>0 ? v : def;
 }
-static int key_stick(KeyStick *st, uint64_t now, int left, int right, int up, int down, uint8_t *x, uint8_t *y) {
-    static float rise_ms, fall_ms, turn_dps;
+static int key_stick(KeyStick *st, uint64_t now, int left, int right, int up, int down, int movement, int sprint, uint8_t *x, uint8_t *y) {
+    static float rise_ms, fall_ms, turn_dps, move_turn_dps;
     if (rise_ms==0) {
         rise_ms=key_tunable("BB_KEY_RISE_MS",70.0f); fall_ms=key_tunable("BB_KEY_FALL_MS",45.0f);
         turn_dps=key_tunable("BB_KEY_TURN_DPS",1100.0f);
+        move_turn_dps=key_tunable("BB_KEY_TURN_DPS",90000.0f/70.0f);
     }
-    const int tx=(right?1:0)-(left?1:0), ty=(down?1:0)-(up?1:0);
+    const int last_x=key_axis(st,0,left,right), last_y=key_axis(st,1,up,down);
+    const int tx=movement && key_opposites_last ? last_x : (right?1:0)-(left?1:0);
+    const int ty=movement && key_opposites_last ? last_y : (down?1:0)-(up?1:0);
     float dt=st->last_us && now>st->last_us ? (float)(now-st->last_us)*1e-6f : 0.0f;
     st->last_us=now;
     if (dt>0.05f) dt=0.05f;
+    if (movement && !tx && !ty) {
+        if (now>st->held_us && now-st->held_us>150000) st->mag=0;
+        return 0;
+    }
     const float target_mag=(tx || ty) ? 1.0f : 0.0f;
     if (tx || ty) {
         const float target=atan2f((float)ty,(float)tx);
-        if (st->mag<0.12f) st->angle=target;
+        const int flip=(tx && !ty && !st->ty && tx==-st->tx) ||
+                       (ty && !tx && !st->tx && ty==-st->ty);
+        if (st->mag<0.12f || (movement && (!sprint || flip))) st->angle=target;
         else {
             float diff=target-st->angle;
             while (diff>(float)M_PI) diff-=2.0f*(float)M_PI;
             while (diff<-(float)M_PI) diff+=2.0f*(float)M_PI;
-            const float step=turn_dps*(float)M_PI/180.0f*dt;
+            /* A diagonal reversal goes through the forward half of the circle. */
+            if (movement && fabsf(diff)>(float)M_PI-0.01f)
+                diff=fabsf(remainderf(st->angle+(float)M_PI/2,2*(float)M_PI)) <=
+                     fabsf(remainderf(st->angle-(float)M_PI/2,2*(float)M_PI)) ?
+                     -(float)M_PI : (float)M_PI;
+            const float speed=movement ? move_turn_dps : turn_dps;
+            const float step=speed*(float)M_PI/180.0f*dt;
             st->angle += diff>step ? step : diff<-step ? -step : diff;
         }
     }
+    if (movement) { st->tx=tx; st->ty=ty; st->held_us=now; }
     const float rate=target_mag>st->mag ? 1.0f/(rise_ms*1e-3f) : 1.0f/(fall_ms*1e-3f);
     const float dm=rate*dt;
     st->mag += target_mag>st->mag ? (target_mag-st->mag<dm ? target_mag-st->mag : dm)
@@ -345,16 +389,29 @@ static void apply_keyboard(PadData *d, const bool *k) {
     else if (!menu) options_latched=1;
     for (int i=IN_CROSS;i<=IN_RIGHT;++i) {
         if (i==IN_TOUCHPAD || i==IN_TOUCHPAD_RIGHT || !key_down(k,i)) continue;
+        /* Combat shortcuts never press a menu's page, bulk-transfer or status buttons.
+         * The controller has already contributed its buttons and is left intact. */
+        if (menu && (i==IN_CROSS || i==IN_SQUARE || i==IN_TRIANGLE || (i>=IN_L1 && i<=IN_R3))) continue;
         d->buttons |= (i==IN_OPTIONS && menu && !options_latched) ? BTN_CIRCLE : input_buttons[i];
+    }
+    if (menu) {
+        static const uint32_t menu_buttons[]={BTN_CROSS,BTN_L1,BTN_R1,BTN_L2,BTN_R2,BTN_SQUARE,BTN_TRIANGLE};
+        for (int i=IN_MENU_CONFIRM;i<IN_COUNT;++i)
+            if (key_down(k,i)) {
+                d->buttons|=menu_buttons[i-IN_MENU_CONFIRM];
+                if (i==IN_MENU_STORAGE) d->l2=255;
+                if (i==IN_MENU_INVENTORY) d->r2=255;
+            }
     }
     if (keyboard_circle(k,d->timestamp,menu)) d->buttons|=BTN_CIRCLE;
     if (key_down(k,IN_TOUCHPAD)) touch_click(d,0);
     if (key_down(k,IN_TOUCHPAD_RIGHT)) touch_click(d,1);
-    if (key_down(k,IN_L2)) d->l2=255;
-    if (key_down(k,IN_R2)) d->r2=255;
+    if (!menu && key_down(k,IN_L2)) d->l2=255;
+    if (!menu && key_down(k,IN_R2)) d->r2=255;
     /* A gamepad's stick is kept while no key moves it. */
     key_stick(&move_stick,d->timestamp,key_down(k,IN_MOVE_LEFT),key_down(k,IN_MOVE_RIGHT),
-              key_down(k,IN_MOVE_UP),key_down(k,IN_MOVE_DOWN),&d->left_x,&d->left_y);
+              key_down(k,IN_MOVE_UP),key_down(k,IN_MOVE_DOWN),1,
+              !menu && (key_down(k,IN_SPRINT) || key_down(k,IN_DODGE)),&d->left_x,&d->left_y);
     /* Walk (default Left Alt, held): the left stick at 40%, the game's walking pace, from the move
      * keys or a gamepad's stick (FromSoftware's PC ports bind it the same way). */
     if (key_down(k,IN_WALK)) {
@@ -362,7 +419,7 @@ static void apply_keyboard(PadData *d, const bool *k) {
         d->left_y=(uint8_t)(128+((int)d->left_y-128)*2/5);
     }
     key_stick(&look_stick,d->timestamp,key_down(k,IN_LOOK_LEFT),key_down(k,IN_LOOK_RIGHT),
-              key_down(k,IN_LOOK_UP),key_down(k,IN_LOOK_DOWN),&d->right_x,&d->right_y);
+              key_down(k,IN_LOOK_UP),key_down(k,IN_LOOK_DOWN),0,0,&d->right_x,&d->right_y);
     memset((void *)key_latch,0,sizeof(key_latch));
 }
 

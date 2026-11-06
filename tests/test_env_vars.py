@@ -18,7 +18,7 @@ class EnvVarsTests(unittest.TestCase):
                        prepared='/prepared', user='/user', game='/game', probe='/probe', cache='/cache')
         _, env = core.launch_command(profile, base_env={})
         expected = dict(BB_FPS='60', BB_FPS_LIMIT='60', BB_FRAME_HOOKS='1',
-                        BB_VBLANK_HZ='1000', RADV_TEX_ANISO='16', BB_DMEM_MB='5056',
+                        BB_VBLANK_HZ='1000', RADV_TEX_ANISO='16', BB_DMEM_MB='5936',
                         BB_CPU_PINNING='1', BB_P_CPUS='0-11', BB_E_CPUS='12-19')
         for key, value in expected.items():
             self.assertEqual(env[key], value, key)

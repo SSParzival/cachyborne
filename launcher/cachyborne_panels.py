@@ -102,6 +102,13 @@ class NativePanels:
         paths = self.group(page, "Carpetas y contenido")
         self.entry(paths, "user_dir", "Carpeta de guardados (vacío: predeterminada)")
         self.switch(paths, "mods_enabled", "Activar mods")
+        enhancements = self.group(page, "Mejoras del juego")
+        self.switch(enhancements, "change_appearance", "Espejo del Sueño: cambiar apariencia",
+                    "Abre el editor de personaje en el espejo del taller. Vuelve a preparar tras cambiar esta opción.")
+        self.switch(enhancements, "rebirth", "Renacimiento en el Altar de la Desesperación",
+                    "Requiere la piedra de Yharnam y modo sin conexión. Devuelve los ecos de los niveles y permite deshacer antes de aceptar. Vuelve a preparar tras cambiar esta opción.")
+        self.switch(enhancements, "messenger_gifts", "Mensajeros del Sueño: regalos de reserva",
+                    "Desbloquea en el Sueño del Cazador los tres sombreros cosméticos de reserva para los mensajeros.")
         for key, title in [
             ("mods_dir", "Directorio de mods"),
             ("mods_config", "Archivo mods.json"),
@@ -384,6 +391,7 @@ class NativePanels:
 
     def add_upstream_controls(self, group, page, only=None):
         labels = {
+            "key_opposites": ["Neutral (se anulan)", "Prioridad a la última pulsada"],
             "anti_aliasing": ["Automático", "Original del juego", "FXAA2_GS", "SMAA (sin escalador)", "Desactivado"],
             "texture_quality": ["Automática (mitad con ≤3 GB VRAM)", "Completa", "Mitad", "Cuarta parte"],
             "frame_generation": ["Desactivada", "FSR 3.1 (experimental)", "DLSS (RTX 40/50, requiere DLSSG)"],
@@ -394,6 +402,8 @@ class NativePanels:
         for key, (default, owner, title, values) in options.INI_OPTIONS.items():
             if owner != page or (key != only if only else key == "game_text_language"):
                 continue
+            if "ini." + key in self.fields:
+                continue  # already placed explicitly next to its related controls
             self.ini.setdefault(key, default)
             if values == ("0", "1"):
                 self.switch(group, "ini." + key, title)

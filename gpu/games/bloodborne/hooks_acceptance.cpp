@@ -2,18 +2,27 @@
 // Opt-in offline acceptance instrumentation. Calls run on the game's update
 // thread; samples are drained to disk by a bounded E-core writer.
 #include "hooks_internal.h"
+#include "params.h"
+#include "player_data.h"
+#include "rebirth.h"
+#include "rebirth_script.h"
+#include "event_flags.h"
 #include "shim/bb_env.h"
 #include "common/thread.h"
+#include "shim/bbport_frame_tasks.h"
 #include <fstream>
 #include <thread>
 
 namespace BbGuestHooks {
 namespace {
+bool ReadRange(void*, std::uintptr_t address, void* destination, std::size_t size) {
+    if (address < 0x10000 || address > UINTPTR_MAX-size) return false;
+    iovec local{destination,size}, remote{reinterpret_cast<void*>(address),size};
+    return process_vm_readv(getpid(),&local,1,&remote,1,0)==ssize_t(size);
+}
 template <typename T> T Read(u64 address) {
     T value{};
-    if (address < 0x10000 || address > UINTPTR_MAX - sizeof(T)) return value;
-    iovec local{&value, sizeof(T)}, remote{reinterpret_cast<void*>(address), sizeof(T)};
-    if (process_vm_readv(getpid(), &local, 1, &remote, 1, 0) != ssize_t(sizeof(T))) return {};
+    if (!ReadRange(nullptr,address,&value,sizeof(value))) return {};
     return value;
 }
 struct Pose {
@@ -31,10 +40,13 @@ struct Capture {
     FILE* output = nullptr;
     const char* commands = nullptr;
     u64 sequence = 0, sampled_ns = 0, command_ns = 0;
-    ~Capture() {
+    void Stop() {
         if (writer.joinable()) { writer.request_stop(); writer.join(); }
         if (output) std::fclose(output);
+        output=nullptr;
+        commands=nullptr;
     }
+    ~Capture() { Stop(); }
     void Start(FILE* file) {
         output = file;
         if (!file) return;
@@ -126,6 +138,62 @@ void PS4_SYSV_ABI AcceptanceTick() {
                 }
             }
         std::printf("Acceptance command: %llu listed\n", (unsigned long long)seq);
+    } else if (action == "player") {
+        capture.sequence=seq;
+        const auto player=BbPlayerData::Read({nullptr,ReadRange},ImageBase+0x553b130);
+        if (player) {
+            const auto hp=BbPlayerData::Stat({nullptr,ReadRange},*player,"hp");
+            const auto max=BbPlayerData::Stat({nullptr,ReadRange},*player,"max_hp");
+            std::printf("Acceptance player: {\"sequence\":%llu,\"level\":%d,\"echoes\":%lld,\"origin\":%u,\"hp\":%lld,\"max_hp\":%lld,\"stats\":[%d,%d,%d,%d,%d,%d]}\n",
+                (unsigned long long)seq,player->build.level,(long long)player->build.echoes,player->origin,
+                (long long)hp.value_or(-1),(long long)max.value_or(-1),player->build.stats[0],player->build.stats[1],
+                player->build.stats[2],player->build.stats[3],player->build.stats[4],player->build.stats[5]);
+        } else std::printf("Acceptance command: %llu rejected player read\n",(unsigned long long)seq);
+    } else if (action == "rebirth") {
+        capture.sequence=seq;
+        std::string request;
+        const bool valid=(file>>request) && (request=="reset" || request=="undo");
+        if (valid && p.map==0x18020000 && BbRebirth::Read().enabled &&
+            BbEventFlags::Set(ImageBase,request=="reset" ? rebirth::kReqReset : rebirth::kReqUndo,true))
+            std::printf("Acceptance command: %llu rebirth %s requested\n",(unsigned long long)seq,request.c_str());
+        else std::printf("Acceptance command: %llu rejected rebirth request\n",(unsigned long long)seq);
+    } else if (action == "param_ids") {
+        capture.sequence=seq;
+        std::string table;
+        unsigned capacity=0;
+        const BbParams::Reader reader{nullptr,ReadRange};
+        // Explicit diagnostics only, capped so a command cannot generate
+        // unbounded log traffic or allocations on the game's update thread.
+        if ((file>>table>>capacity) && capacity<=4096) {
+            const auto found=BbParams::FindTable(reader,ImageBase+0x5540340,table);
+            std::array<u32,4096> ids{};
+            std::size_t count=0;
+            if (found && BbParams::ListIds(reader,*found,capacity ? ids.data() : nullptr,capacity,&count)) {
+                std::printf("Acceptance param ids: %s count %zu ids",table.c_str(),count);
+                for (std::size_t i=0;i<std::min<std::size_t>(count,capacity);++i)
+                    std::printf(" %u",ids[i]);
+                std::printf("\nAcceptance command: %llu param ids read\n",(unsigned long long)seq);
+                return;
+            }
+        }
+        std::printf("Acceptance command: %llu rejected param ids read\n",(unsigned long long)seq);
+    } else if (action == "param") {
+        capture.sequence = seq;
+        std::string table;
+        u32 id=0,offset=0;
+        const BbParams::Reader reader{nullptr,ReadRange};
+        if (file >> table >> id >> offset) {
+            const auto found=BbParams::FindTable(reader,ImageBase+0x5540340,table);
+            const auto row=found ? BbParams::FindRow(reader,*found,id) : std::nullopt;
+            const auto value=row ? BbParams::ReadWord(reader,*row,offset) : std::nullopt;
+            if (value) {
+                std::printf("Acceptance param: %s row %u offset %u bytes %zu value %u\n",
+                    table.c_str(),id,offset,row->bytes,*value);
+                std::printf("Acceptance command: %llu param read\n",(unsigned long long)seq);
+                return;
+            }
+        }
+        std::printf("Acceptance command: %llu rejected param read\n",(unsigned long long)seq);
     } else if (action == "warp" && (file >> lamp)) {
         capture.sequence = seq;
         if (lamp < 2000000 || lamp >= 7000000 || !Lamp(lamp)) {
@@ -142,24 +210,23 @@ bool InstallAcceptance() {
     const char* poses = bb_env("BB_ACCEPTANCE_POSES");
     const char* commands = bb_env("BB_ACCEPTANCE_COMMAND");
     if ((!poses && !commands) || bb_env_on("BB_ONLINE") || bb_env_on("BB_BBSC")) return false;
-    constexpr u64 site = 0x2034770;
-    constexpr std::array<u8, 6> expected{0x55,0x48,0x89,0xe5,0x41,0x57};
     constexpr std::array<u8, 15> warp{0x55,0x48,0x89,0xe5,0x41,0x57,0x41,0x56,
         0x53,0x48,0x83,0xec,0x38,0x89,0xfb};
     constexpr std::array<u8, 14> lookup{0x55,0x48,0x89,0xe5,0x41,0x57,0x41,0x56,
         0x41,0x54,0x53,0x41,0x89,0xf4};
-    if (std::memcmp(reinterpret_cast<void*>(ImageBase + site), expected.data(), expected.size()) ||
-        std::memcmp(reinterpret_cast<void*>(ImageBase + 0x13cdf30), warp.data(), warp.size()) ||
+    if (std::memcmp(reinterpret_cast<void*>(ImageBase + 0x13cdf30), warp.data(), warp.size()) ||
         std::memcmp(reinterpret_cast<void*>(ImageBase + 0x1f26b40), lookup.data(), lookup.size())) return false;
     FILE* file = poses ? std::fopen(poses, "wx") : nullptr;
     if (poses && !file) return false;
-    if (!Core::InstallGuestCodeHook(reinterpret_cast<void*>(ImageBase + site), expected, site,
-        [](u64, const Core::GuestRegisterSnapshot*) { AcceptanceTick(); })) {
-        if (file) std::fclose(file);
-        return false;
-    }
+    // Initialize before publishing the callback through the frame task's
+    // release/acquire count; the observer can run as soon as Subscribe returns.
     capture.commands = commands;
     capture.Start(file);
+    if (!BbFrameTasks::Subscribe(reinterpret_cast<u8*>(ImageBase),0x6000000,
+        [] { AcceptanceTick(); })) {
+        capture.Stop();
+        return false;
+    }
     std::puts("Acceptance: offline update sampling and validated lamp commands enabled");
     return true;
 }

@@ -21,15 +21,16 @@ DATA = Path(os.environ.get('XDG_DATA_HOME', Path.home() / '.local/share')) / 'ca
 RAM_ROOT = Path('/dev/shm') / f'cachyborne_ram_{os.getuid()}'
 CACHE = Path(os.environ.get('XDG_CACHE_HOME', Path.home() / '.cache')) / 'cachyborne'
 from cachyborne_options import INI_DEFAULTS, RETIRED_ENV, validate_ini
+from bbport_graphics_memory import GRAPHICS_VRAM_MODES, direct_pool_mb, graphics_vram_layout, validate_heap_patches
 
 DEFAULTS = dict(fault_wait=False, voice_language='eng', memory_profile='16gb', pinning=True, p_cpus='0-11', e_cpus='12-19', ramdisk=False,
                 gamemode=False, radv=True, gamescope=False, hdr=False, vrr=False,
                 gamescope_fsr=False, width=2560, height=1440, fps='60', fps_limit=60,
-                shader_recipes='', image_shapes='', readbacks='', output_auto=False, upscaler='fsr411', output_res='2560x1440', render_res='1706x960',
+                shader_recipes='', image_shapes='', readbacks='', output_auto=False, upscaler='fsr411', output_res='2560x1440', render_res='2560x1440',
                 fullscreen=True, present_mode='mailbox', audio=True, gamepad='',
-                scheduler='current', fsr4_dir='', fsr411_dll='', fsr411_loader='', fsr412_driver='', dlss_fg_library='', dlss_library='', fsr411_dir=str(DATA / 'fsr4_412'), mods_dir='', mods_enabled=True, mods_config='',
-                patches_dir='', patches_config='', user_dir='', runtime_env={}, original_settings={},
-                runtime_ini=INI_DEFAULTS | {'preset': '1', 'sharpen': '1', 'sharpness': '0.35', 'object_motion': '1',
+                scheduler='current', fsr4_dir='', fsr411_dll='', fsr411_loader='', fsr412_driver='', dlss_fg_library='', dlss_library='', fsr411_dir=str(DATA / 'fsr4_412'), mods_dir='', mods_enabled=True, mods_config='', change_appearance=False, rebirth=False, messenger_gifts=False,
+                patches_dir='', patches_config='', user_dir='', runtime_env={'BB_GUEST_VRAM':'0'}, original_settings={},
+                runtime_ini=INI_DEFAULTS | {'preset': '0', 'sharpen': '1', 'sharpness': '0.35', 'object_motion': '1',
                              'show_fps': '1', 'menu_language': 'es', 'live_resolution': '0', 'effect_chromatic_aberration': '0', 'effect_dof': '0',
                              'effect_motion_blur': '0', 'skip_intro': '1'})
 ICON_URL = ('https://image.api.playstation.com/vulcan/img/rnd/202010/2614/'
@@ -107,6 +108,10 @@ def save_preferences(settings, as_default=False):
     return snapshot
 
 
+NATIVE_60_ENV = dict(BB_GPU_SPIN_US='0', BB_PIPE_SPIN_US='0',
+                     BB_LIMITER_MARGIN_US='auto', BB_PACE_STABLE='1')
+
+
 def performance_settings(current=None, target='60'):
     """A target, not a frame-rate guarantee; preserve bindings, mods and user directories."""
     import copy
@@ -114,25 +119,42 @@ def performance_settings(current=None, target='60'):
     settings['runtime_ini'] = dict(DEFAULTS['runtime_ini']) | settings.get('runtime_ini', {})
     settings.update(fps=target, fps_limit=int(target), pinning=True, ramdisk=False, radv=True)
     chosen_upscaler = current.get('upscaler') if current and 'upscaler' in current else DEFAULTS['upscaler']
-    settings.update(upscaler=chosen_upscaler, output_res='2560x1440', render_res='1706x960',
+    settings.update(upscaler=chosen_upscaler, output_auto=False, output_res='2560x1440', render_res='2560x1440' if target=='60' else '1706x960',
                     width=2560, height=1440, p_cpus='0-11', e_cpus='12-19',
                     voice_language='eng', present_mode='mailbox')
     settings['original_settings'] = dict(settings.get('original_settings', {})) | dict(language='20', ui_language='es')
     for key in ('texture_quality', 'vbao', 'anti_aliasing', 'effect_ssao', 'effect_dynamic_shadows',
                 'effect_bloom', 'light_grid_opt', 'sharpen', 'sharpness', 'frame_generation'):
         settings['runtime_ini'][key] = DEFAULTS['runtime_ini'][key]
-    settings['runtime_ini'].update(menu_language='es', preset='1', effect_chromatic_aberration='0', effect_dof='0', effect_motion_blur='0', live_resolution='0')
+    settings['runtime_ini'].update(menu_language='es', preset='0' if target=='60' else '1', effect_chromatic_aberration='0', effect_dof='0', effect_motion_blur='0', live_resolution='0')
     settings['runtime_ini'].update(upscaler=settings['upscaler'], output_res=settings['output_res'])
     # Clear conflicting old editor overrides when explicitly applying a recommended preset.
     for key in ('BB_FPS', 'BB_FPS_LIMIT', 'BB_FRAME_HOOKS', 'BB_VBLANK_HZ', 'BB_UPSCALER', 'BB_UPSCALE_PRESET', 'BB_RENDER_RES',
                 'BB_OUTPUT_RES', 'BB_PC_MODEL', 'BB_GUEST_IN_PLACE', 'BB_AS_0_3', 'BB_VOICE_LANGUAGE',
-                'BB_LANGUAGE', 'BB_MENU_LANGUAGE', 'BB_PRESENT_MODE', 'BB_P_CPUS', 'BB_E_CPUS'):
+                'BB_LANGUAGE', 'BB_MENU_LANGUAGE', 'BB_PRESENT_MODE', 'BB_P_CPUS', 'BB_E_CPUS',
+                *NATIVE_60_ENV, 'BB_PACE_CATCHUP', 'BB_NATIVE_FLIP_PACING'):
         settings['runtime_env'].pop(key, None)
+    if target == '60':
+        # CPU-facing guest data must stay cached; GPU resources and mirrors
+        # still use VRAM. BAR reads of both graphics heaps measured 10-11 FPS.
+        settings['runtime_env']['BB_GUEST_VRAM'] = '0'
+        settings['runtime_env'].pop('BB_GUEST_VRAM_RANGES', None)
+        settings['runtime_env'].update(NATIVE_60_ENV)
     return settings
 
 
 def validate_settings(s):
     import re
+    if not isinstance(s.get('change_appearance', False), bool):
+        raise ValueError('La opción del espejo debe ser booleana')
+    if not isinstance(s.get('rebirth', False), bool):
+        raise ValueError('La opción del altar debe ser booleana')
+    if not isinstance(s.get('messenger_gifts', False), bool):
+        raise ValueError('La opción de regalos de mensajeros debe ser booleana')
+    if s.get('rebirth', False) and (s.get('original_settings', {}).get('online', False) or
+            str(s.get('runtime_env', {}).get('BB_ONLINE', '0')).startswith('1') or
+            str(s.get('runtime_env', {}).get('BB_BBSC', '0')).startswith('1')):
+        raise ValueError('El renacimiento del altar requiere el modo sin conexión')
     validate_ini(s.get('runtime_ini', {}))
     for key in ('p_cpus', 'e_cpus'):
         if not re.fullmatch(r'\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*', s[key]):
@@ -229,10 +251,7 @@ def public_environment(env):
 
 
 def direct_memory_mb(settings):
-    if settings.get('large_heaps'):
-        return 9152
-    width, height = map(int, settings['render_res'].split('x'))
-    return 5056 if width * height <= 1920 * 1080 else 9152
+    return direct_pool_mb(settings)
 
 
 def amd_gtt_budget(sysfs=Path('/sys/class/drm')):
@@ -245,14 +264,61 @@ def amd_gtt_budget(sysfs=Path('/sys/class/drm')):
     return max(budgets, default=(0, None))
 
 
+def gpu_bar_budget(env):
+    """Query the selected Vulkan device without SDL, a window or an audio device."""
+    try:
+        result = subprocess.run([str(ROOT / 'out/bb-gpu-capabilities'), '--memory-budget'],
+                                env=os.environ | env, text=True, capture_output=True,
+                                check=True, timeout=10)
+        info = json.loads(result.stdout)
+        if info['vendor'] == 0x1002 and info['discrete'] is True:
+            return max(0, int(info['bar_budget']))
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError):
+        pass
+    return 0
+
+
+def graphics_vram_environment(settings, env):
+    """Bind exactly the two patched heaps; the retail default ranges are too short at 1440p."""
+    mode = env.get('BB_GUEST_VRAM')
+    if mode not in GRAPHICS_VRAM_MODES:
+        return {}
+    ranges, _ = graphics_vram_layout(settings, mode)
+    if env.get('BB_GUEST_VRAM_RANGES', ranges) != ranges:
+        raise ValueError('BB_GUEST_VRAM_RANGES no coincide con los heaps gráficos preparados.')
+    if (env.get('BB_GUEST_MEMORY', 'dmabuf') != 'dmabuf' or
+            any(env.get(key) == '0' for key in ('BB_PC_MODEL', 'BB_GUEST_IN_PLACE', 'BB_LAYER_MEMORY')) or
+            env.get('BB_GUEST_LAZY') == '1'):
+        raise ValueError('VRAM graphics requiere dma-buf, memoria in-place y BB_LAYER_MEMORY=1 sin lazy.')
+    for key, maximum in (('BB_DMEM_EXTRA_MB', 256), ('BB_RENDER_RESOURCE_CACHE_MB', 256)):
+        try:
+            valid = 0 <= int(env.get(key, str(maximum))) <= maximum
+        except ValueError:
+            valid = False
+        if not valid:
+            raise ValueError(f'{key} excede la reserva validada de {maximum} MiB.')
+    return {'BB_GUEST_VRAM_RANGES': ranges, 'BB_GUEST_MEMORY': 'dmabuf',
+            'BB_GUEST_LAZY': '0', 'BB_LAYER_MEMORY': '1'}
+
+
 def check_memory_budget(settings):
-    if settings.get('memory_profile') == '16gb' and direct_memory_mb(settings) > 5056:
-        raise ValueError('El perfil de 16 GB admite hasta 1920x1080 internos (o 1916x1078) sin paquetes de texturas que requieran heaps grandes. Usa FSR para salida 1440p/4K y texturas compatibles. El pool de 9152 MiB excede el presupuesto seguro.')
-    env = settings.get('runtime_env', {})
-    if env.get('BB_GUEST_VRAM') == '1': return
+    env = os.environ | settings.get('runtime_env', {})
+    graphics = graphics_vram_environment(settings, env)
+    # A requested VRAM mode is not proof of capacity or of actual placement.
+    vram_bytes = 0
+    if graphics:
+        _, vram_bytes = graphics_vram_layout(settings, env['BB_GUEST_VRAM'])
+        required_vram = vram_bytes + (3072 << 20)  # render targets, mirrors, compositor headroom
+        if gpu_bar_budget(env) < required_vram:
+            raise ValueError('VRAM BAR insuficiente o no verificable para los heaps gráficos y reserva de 3072 MiB.')
     budget, _ = amd_gtt_budget()
-    required = (direct_memory_mb(settings) + 256 + 512) * 1024**2
+    if not budget and (graphics or direct_memory_mb(settings) > 5056):
+        raise ValueError(f'No se puede verificar GTT para el pool de {direct_memory_mb(settings)} MiB del perfil de 16 GB.')
+    required = (direct_memory_mb(settings) + 256 + 512) * 1024**2 - vram_bytes
     if budget and required > budget:
+        if graphics:
+            raise ValueError(f'GTT insuficiente: tras ubicar los heaps gráficos en VRAM se requieren '
+                             f'{required // 1024**2} MiB, disponibles {budget // 1024**2} MiB.')
         raise ValueError(f'La resolución interna requiere un pool GPU de {direct_memory_mb(settings)} MiB, '
                          f'pero GTT dispone de {budget // 1024**2} MiB. '
                          'Usa como máximo 1916x1078 internos con salida 2560x1440 y FSR 4; '
@@ -369,6 +435,9 @@ def setup(game, settings=None):
     out.mkdir(mode=0o700)
     try:
         source_game = game
+        from world_assets import feature_layers
+        mod_layers = feature_layers(game, out, change_appearance=s.get('change_appearance', False),
+            rebirth=s.get('rebirth', False), rebirth_tool=ROOT / 'out/gpu/rebirth-script-tool') + mod_layers
         if mod_layers:
             game = mods.build_overlay(game, out, mod_layers)
             # Persist this generation's symlink view. Sources must remain in place until next setup.
@@ -414,6 +483,8 @@ def setup(game, settings=None):
         for name in ARTIFACTS:
             if not (out / name).is_file() or not (out / name).stat().st_size:
                 raise RuntimeError(tr('Setup did not create {}').format(name))
+        if setup_env.get('BB_GUEST_VRAM') in GRAPHICS_VRAM_MODES:
+            validate_heap_patches((out / 'patches.bin').read_bytes(), s)
         user = Path(s.get('user_dir') or DATA / 'user').expanduser().resolve()
         user.mkdir(parents=True, exist_ok=True)
         CACHE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -501,11 +572,15 @@ def launch_command(profile, app0=None, extra=(), base_env=None):
     validate_settings(s)
     env = (os.environ if base_env is None else base_env).copy()
     env.update(s.get('runtime_env', {}))
+    env.update(graphics_vram_environment(s, env))
     for key in RETIRED_ENV:
         env.pop(key, None)
     out = Path(profile['prepared'])
     direct_mb = str(direct_memory_mb(s))
     values = dict(BB_CONFIG=str(out / 'bbport.ini'), BB_GPU_USER_DIR=profile['user'],
+                  BB_CHANGE_APPEARANCE='1' if s.get('change_appearance', False) else '0',
+                  BB_REBIRTH='1' if s.get('rebirth', False) else '0',
+                  BB_MESSENGER_GIFTS='1' if s.get('messenger_gifts', False) else '0',
                   MESA_SHADER_CACHE_DIR=str(Path(profile['cache']) / 'mesa'), MESA_SHADER_CACHE_MAX_SIZE='4G',
                   BB_CPU_PINNING='1' if s['pinning'] else '0', BB_P_CPUS=s['p_cpus'], BB_E_CPUS=s['e_cpus'],
                   BB_RENDER_RES=s['render_res'], BB_OUTPUT_RES=s['output_res'],
@@ -521,6 +596,12 @@ def launch_command(profile, app0=None, extra=(), base_env=None):
                   BB_ICON_BMP=str(ROOT / 'assets/icons/cachyborne.bmp'), SDL_APP_ID='cachyborne-play',
                   BB_COPY_GPU_BUFFERS='1', BB_GPU_WRITE_TWINS='1', BB_GPU_WRITE_TWINS_MAX='65536',
                   BB_AUDIO='auto' if s['audio'] else 'none', BB_GAMEPAD=s['gamepad'])
+    # Accepted fixed-60 policy: keep a stable flip phase and let the retail
+    # pacer sleep. Other caps retain their policy; explicit environment wins.
+    if (env.get('BB_FPS',values['BB_FPS']) == '60' and
+        env.get('BB_FPS_LIMIT',values['BB_FPS_LIMIT']) == '60' and
+        env.get('BB_FRAME_HOOKS',values['BB_FRAME_HOOKS']) == '1'):
+        values.update(NATIVE_60_ENV)
     if str(s.get('runtime_ini', {}).get('live_resolution', '0')) == '1':
         values['BB_RENDER_RES'] = values['BB_OUTPUT_RES'] = ''
     values['BB_SHADER_GAME_DIR'] = str(app0 or profile['game'])
@@ -542,8 +623,9 @@ def launch_command(profile, app0=None, extra=(), base_env=None):
                 break
     for key, value in values.items():
         env.setdefault(key, value)
-    # Pinned generation paths and CPU switch must follow the validated profile.
-    for key in ('BB_CONFIG', 'BB_GPU_USER_DIR', 'BB_CPU_PINNING', 'BB_P_CPUS', 'BB_E_CPUS', 'BB_RENDER_RES', 'BB_OUTPUT_RES'):
+    # Generation paths, CPU switches and the altar's paired asset/runtime choice
+    # must follow the validated profile.
+    for key in ('BB_CONFIG', 'BB_GPU_USER_DIR', 'BB_CPU_PINNING', 'BB_P_CPUS', 'BB_E_CPUS', 'BB_RENDER_RES', 'BB_OUTPUT_RES', 'BB_DMEM_MB', 'BB_REBIRTH'):
         env[key] = values[key]
     command = [profile['probe'], str(out / 'boot-linked.bin'), '--content-profile', str(out / 'content.bin'),
                '--patches', str(out / 'patches.bin'), '--app0', str(app0 or profile['game']),
@@ -571,7 +653,11 @@ def publish_profile(profile):
     command, env = launch_command(profile, base_env={})
     quote = shlex.quote
     fixed = {'BB_CONFIG', 'BB_GPU_USER_DIR', 'BB_CPU_PINNING', 'BB_P_CPUS', 'BB_E_CPUS',
-             'BB_RENDER_RES', 'BB_OUTPUT_RES'}
+             'BB_RENDER_RES', 'BB_OUTPUT_RES', 'BB_DMEM_MB'}
+    if env.get('BB_GUEST_VRAM') in GRAPHICS_VRAM_MODES:
+        fixed.update({'BB_GUEST_VRAM', 'BB_GUEST_VRAM_RANGES', 'BB_GUEST_MEMORY',
+                      'BB_GUEST_LAZY', 'BB_LAYER_MEMORY', 'BB_DMEM_EXTRA_MB',
+                      'BB_RENDER_RESOURCE_CACHE_MB'})
     lines = ['# Generated by cachyborne-setup. Source only from the prepared profile.',
              'set -euo pipefail']
     # The JSON path is immutable, even if another setup publishes while we start.
@@ -603,9 +689,12 @@ def publish_profile(profile):
         # Change only the app0 argument, not any arbitrary equal path in a wrapper.
         command[command.index('--app0') + 1] = str(target)
     gtt_budget, gtt_file = amd_gtt_budget()
-    if gtt_budget:
+    if env.get('BB_GUEST_VRAM') in GRAPHICS_VRAM_MODES:
+        # Use the identical live Vulkan + GTT checks for shell and Python launches.
+        lines += [shlex.join(diagnostic + ['--check-memory'])]
+    elif gtt_budget:
         required = (direct_memory_mb(profile['settings']) + 256 + 512) * 1024**2
-        lines += ['if [[ ${BB_GUEST_VRAM:-0} != 1 && ${BB_PC_MODEL:-1} != 0 && ${BB_GUEST_IN_PLACE:-1} != 0 && -r ' + quote(str(gtt_file)) + ' ]]; then',
+        lines += ['if [[ ${BB_PC_MODEL:-1} != 0 && ${BB_GUEST_IN_PLACE:-1} != 0 && -r ' + quote(str(gtt_file)) + ' ]]; then',
                   '    gtt_budget=',
                   '    IFS= read -r gtt_budget < ' + quote(str(gtt_file)) + ' || true',
                   '    [[ $gtt_budget =~ ^[0-9]+$ && $gtt_budget -ge ' + str(required) + ' ]] || { echo "Insufficient AMD GTT budget; use 1916x1078 internal resolution and run setup." >&2; exit 1; }',
@@ -625,6 +714,8 @@ def publish_profile(profile):
 def check_runtime_requirements(profile):
     s = profile['settings']
     check_memory_budget(s)
+    if (os.environ | s.get('runtime_env', {})).get('BB_GUEST_VRAM') in GRAPHICS_VRAM_MODES:
+        validate_heap_patches((Path(profile['prepared']) / 'patches.bin').read_bytes(), s)
     for key, tool in (('gamemode', 'gamemoderun'), ('gamescope', 'gamescope')):
         if s[key] and not shutil.which(tool):
             raise RuntimeError(tr('Missing optional wrapper: {}').format(tool))
@@ -778,11 +869,12 @@ def main(argv=None):
     prepare.add_argument('--voice-language', choices=list(dict(VOICE_LANGUAGES)))
     for key in ('render-res', 'output-res', 'fsr411-dir', 'mods-dir', 'mods-config', 'patches-dir', 'patches-config'):
         prepare.add_argument('--' + key)
-    for key in ('ramdisk', 'gamemode', 'gamescope', 'pinning'):
+    for key in ('ramdisk', 'gamemode', 'gamescope', 'pinning', 'change-appearance', 'rebirth', 'messenger-gifts'):
         prepare.add_argument('--' + key, action=argparse.BooleanOptionalAction, default=None)
     launch = commands.add_parser('launch')
     launch.add_argument('--profile', type=Path, help=argparse.SUPPRESS)
     launch.add_argument('--dry-run', action='store_true')
+    launch.add_argument('--check-memory', action='store_true', help=argparse.SUPPRESS)
     launch.add_argument('--stage', action='store_true', help='Preload RAM only; do not start the game')
     launch.add_argument('probe_args', nargs=argparse.REMAINDER)
     shortcut = commands.add_parser('desktop')
@@ -804,6 +896,11 @@ def main(argv=None):
             install_shortcuts(on_desktop=args.desktop, download_icon=args.download_icon)
         else:
             profile = load_profile(args.profile)
+            if args.check_memory:
+                check_memory_budget(profile['settings'])
+                if (os.environ | profile['settings'].get('runtime_env', {})).get('BB_GUEST_VRAM') in GRAPHICS_VRAM_MODES:
+                    validate_heap_patches((Path(profile['prepared']) / 'patches.bin').read_bytes(), profile['settings'])
+                return 0
             app0 = profile['game']
             if args.stage or (profile['settings']['ramdisk'] and not args.dry_run):
                 app0 = stage(profile)

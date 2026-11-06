@@ -18,6 +18,9 @@ typedef struct {
 } BbGpuConfig;
 /* Registers kernel event queues (needed with or without graphics). */
 void bbgpu_register_kernel(void);
+/* Before plugin initialization/import binding. Installs the native owner-scoped
+ * HLE registration backend once; no plugin table or module is loaded here. */
+int bbgpu_plugin_hle_backend_install(int (*add)(uint64_t,const char*,void*),void (*retire)(uint64_t));
 /* Creates window, Vulkan device, presenter and GPU command processor. */
 int bbgpu_init(const BbGpuConfig *config);
 /* Optional software latency sampling: the disabled path only reads this flag. */

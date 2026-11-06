@@ -469,6 +469,7 @@ def game_environment(s):
         server = s["online_server"].strip() or online.SHADNET_SERVER
         community = online.community_address(s["online_community"])
         env["BB_ONLINE"] = "1"
+        env["BB_SKIP_NETWORK_CHOICE"] = "0"
         env["BB_SHADNET_SERVER"] = server
         env["BB_SHADNET_WEBAPI"] = online.webapi_setting(s["online_webapi"], server, community)
         env["BB_SHADNET_NPID"] = s["online_npid"].strip()

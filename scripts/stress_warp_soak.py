@@ -14,7 +14,6 @@ import os
 from pathlib import Path
 import re
 import shutil
-import signal
 import subprocess
 import sys
 import time
@@ -22,6 +21,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'launcher'))
 import cachyborne as core
+from isolated_game import MemoryWatch, headless_command, isolate_profile, stop_group, fault_checks
 
 
 class Tail:
@@ -41,6 +41,31 @@ class Tail:
         return parts
 
 
+def gpu_sample(devices, sysfs=Path('/sys/bus/pci/devices')):
+    """Whole-board telemetry for the game's sole DRM device, including other apps."""
+    result = dict(gpu_power_uw=None, gpu_busy_percent=None)
+    if len(devices) != 1:
+        return result
+    address = next(iter(devices))
+    if not re.fullmatch(r'[0-9a-fA-F]{4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-7]', address):
+        return result
+    root = sysfs / address
+    try:
+        busy = int((root / 'gpu_busy_percent').read_text())
+        if 0 <= busy <= 100: result['gpu_busy_percent'] = busy
+    except (OSError, ValueError):
+        pass
+    for path in sorted((root / 'hwmon').glob('hwmon*/power1_average')):
+        try:
+            power = int(path.read_text())
+            if power >= 0:
+                result['gpu_power_uw'] = power
+                break
+        except (OSError, ValueError):
+            pass
+    return result
+
+
 def memory_sample(pid):
     """Kernel counters, deduplicating DRM clients and memfd inodes."""
     root = Path('/proc') / str(pid)
@@ -50,7 +75,13 @@ def memory_sample(pid):
     def kib(name):
         match = re.search(r'^' + name + r':\s+(\d+)', rollup, re.M)
         return int(match[1]) * 1024 if match else 0
-    clients, memfds = set(), set()
+    # Keep cumulative faults, CPU and actual disk I/O beside the memory samples
+    # so a frame pause can be correlated without attributing it to the GPU.
+    fields = (root / 'stat').read_text().rsplit(')', 1)[1].split()
+    io = {name: int(value) for name, value in
+          (line.split(':', 1) for line in (root / 'io').read_text().splitlines())}
+    swap = re.search(r'^VmSwap:\s+(\d+)', status, re.M)
+    clients, memfds, devices = set(), set(), set()
     vram = gtt = memfd_bytes = 0
     for fd in (root / 'fdinfo').iterdir():
         try:
@@ -58,6 +89,8 @@ def memory_sample(pid):
             client = re.search(r'^drm-client-id:\s+(\d+)', text, re.M)
             if client and client[1] not in clients:
                 clients.add(client[1])
+                device = re.search(r'^drm-pdev:\s*(\S+)', text, re.M)
+                if device: devices.add(device[1])
                 for name in ('vram', 'gtt'):
                     match = re.search(r'^drm-memory-' + name + r':\s+(\d+)\s+KiB', text, re.M)
                     if match:
@@ -72,7 +105,13 @@ def memory_sample(pid):
         except (FileNotFoundError, ProcessLookupError):
             continue
     return dict(rss=rss, anonymous=kib('Anonymous'), pss_shmem=kib('Pss_Shmem'),
-                vram=vram, gtt=gtt, memfd_allocated=memfd_bytes)
+                vram=vram, gtt=gtt, memfd_allocated=memfd_bytes,
+                swap=int(swap[1])*1024 if swap else 0,
+                minor_faults=int(fields[7]), major_faults=int(fields[9]),
+                cpu_user_ticks=int(fields[11]), cpu_system_ticks=int(fields[12]),
+                ticks_per_second=os.sysconf('SC_CLK_TCK'),
+                disk_read_bytes=io.get('read_bytes', 0), disk_write_bytes=io.get('write_bytes', 0),
+                **gpu_sample(devices))
 
 
 def floor_checks(floors, rss_mib=256, vram_mib=512, staging_mib=32):
@@ -103,29 +142,40 @@ def main(argv=None):
     if args.iterations < 1 or args.settle < 31 or args.transition_timeout < 10:
         parser.error('iterations >= 1, settle >= 31 seconds and transition-timeout >= 10 are required')
     profile = copy.deepcopy(core.load_profile(args.profile))
+    memory_watch = MemoryWatch(core.available_memory)
     out = args.out.resolve(); out.mkdir(parents=True, mode=0o700, exist_ok=False)
     source_user = Path(profile['user'])
     original = hashes(source_user / 'savedata')
     isolated = out / 'user'; shutil.copytree(source_user, isolated)
     profile['user'] = str(isolated)
+    isolate_profile(profile)
     s = profile['settings']
     s.update(fps='60', fps_limit=60, ramdisk=False, gamemode=False, gamescope=False, fullscreen=False, hdr=False)
     s.setdefault('runtime_env', {}).update(BB_ONLINE='0', BB_BBSC='0', BB_FPS='60', BB_FPS_LIMIT='60')
     command, env = core.launch_command(profile)
-    if env['BB_DMEM_MB'] != '5056':
-        raise RuntimeError('Acceptance requires the 5056 MiB guest pool')
+    direct_pool = core.direct_memory_mb(s)
+    if int(env['BB_DMEM_MB']) != direct_pool:
+        raise RuntimeError('La memoria directa no coincide con los heaps del perfil')
     pad = out / 'pad'; pad.write_text('')
     commands = out / 'command'; commands.write_text('')
     poses = out / 'poses.csv'
     env.update(BB_ACCEPTANCE_COMMAND=str(commands), BB_ACCEPTANCE_POSES=str(poses),
                BB_STAGING_STATS='1', BB_FRAME_STATS='1', BB_AUDIO_STATS='1',
                BB_PAD_FILE=str(pad), SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS='1', BB_SKIP_NETWORK_CHOICE='1')
+    # Gamescope is the parent process, not the game whose DRM/RSS counters we
+    # measure. The shell writes its own PID, then exec preserves it for bb-probe.
+    pidfile = out / 'game.pid'
+    command = ['sh', '-c', 'echo "$$" > "$1"; shift; exec "$@"',
+               'isolated-game', str(pidfile), *command]
+    command, env = headless_command(command, env, s['output_res'], 60)
     logpath = out / 'game.log'
     pose_reader, log_reader = Tail(poses), Tail(logpath)
     last_pose, lamps, pools, samples, transitions, floors = {}, {}, {}, [], [], []
     recent, columns, sequence = '', [], 0
     started = time.monotonic()
-    result = dict(accepted=False, requested_cycles=args.iterations, direct_pool_mib=5056,
+    result = dict(accepted=False, requested_cycles=args.iterations, direct_pool_mib=direct_pool,
+                  render_res=s['render_res'], output_res=s['output_res'],
+                  preset=str(s['runtime_ini']['preset']), isolated_display=True, audio=False,
                   settle_seconds=args.settle, transitions=transitions, floors=floors)
     with logpath.open('w') as log, (out / 'memory.csv').open('w') as sample_file:
         sample_csv = None
@@ -133,11 +183,12 @@ def main(argv=None):
                                    stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         def poll():
             nonlocal last_pose, columns, recent, sample_csv
+            memory_watch.check()
             if process.poll() is not None:
                 raise RuntimeError(f'Game exited early: {process.returncode}')
             lines = log_reader.lines()
             recent = (recent + '\n'.join(lines) + '\n')[-65536:]
-            if re.search(r'STOP:|Host fault|Guest fault|Device lost while|Assertion Failed', recent):
+            if not all(fault_checks(recent).values()):
                 raise RuntimeError('Game fault; inspect game.log')
             for line in lines:
                 if match := re.match(r'Acceptance lamp: (\d+) map (\d+)', line):
@@ -150,7 +201,9 @@ def main(argv=None):
                 elif columns and len(row) == len(columns):
                     last_pose = dict(zip(columns, row))
                     if int(last_pose['dropped']): raise RuntimeError('Pose telemetry dropped samples')
-            sample = memory_sample(process.pid)
+            if not pidfile.exists():
+                return None # the compositor has not yet spawned its child
+            sample = memory_sample(int(pidfile.read_text().strip()))
             sample.update(s=round(time.monotonic() - started, 3), cycle=len(floors),
                           map=int(last_pose.get('map', 0)), staging=sum(p['cached'] + p['uncached'] + p['device'] for p in pools.values()),
                           vulkan_usage=max((p['vulkan_usage'] for p in pools.values()), default=0),
@@ -214,11 +267,10 @@ def main(argv=None):
         except (OSError, RuntimeError, ValueError) as error:
             result['error'] = str(error)
         finally:
-            if process.poll() is None:
-                os.killpg(process.pid, signal.SIGTERM)
-                try: process.wait(timeout=10)
-                except subprocess.TimeoutExpired:
-                    os.killpg(process.pid, signal.SIGKILL); process.wait()
+            print('Acceptance: stopping isolated processes', file=log, flush=True)
+            stop_group(process)
+            result.setdefault('checks',{}).update(fault_checks(logpath.read_text(errors='replace')))
+            result['accepted'] &= all(result['checks'].values())
             result.update(exit_code=process.returncode, elapsed_s=round(time.monotonic()-started, 3),
                           original_saves_unchanged=hashes(source_user / 'savedata') == original,
                           samples=len(samples), peak_rss=max((s['rss'] for s in samples), default=0),

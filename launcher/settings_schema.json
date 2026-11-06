@@ -516,7 +516,7 @@
      "key": "preset",
      "type": "choice",
      "store": "ini",
-     "default": "1",
+     "default": "0",
      "choices": [
       {
        "value": "0",
@@ -1566,6 +1566,36 @@
       "pt_BR": "Dispositivos",
       "zh_CN": "设备",
       "fr_FR": "Périphériques"
+     }
+    },
+    {
+     "key": "key_opposites",
+     "type": "choice",
+     "store": "ini",
+     "default": "neutral",
+     "title": {
+      "en": "Opposing movement keys",
+      "es": "Teclas de movimiento opuestas"
+     },
+     "description": {
+      "en": "Neutral cancels opposing directions. Last pressed gives priority to the newer key; applies on restart.",
+      "es": "Neutral anula direcciones opuestas. La última pulsada tiene prioridad; se aplica al reiniciar."
+     },
+     "choices": [
+      {
+       "value": "neutral",
+       "en": "Neutral",
+       "es": "Neutral"
+      },
+      {
+       "value": "last",
+       "en": "Last pressed",
+       "es": "Última pulsada"
+      }
+     ],
+     "group": {
+      "en": "Keyboard and mouse",
+      "es": "Teclado y ratón"
      }
     },
     {

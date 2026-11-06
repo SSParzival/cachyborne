@@ -20,6 +20,7 @@ static std::string Read(const char* path) {
 int main() {
     BbSettings::Values defaults;
     assert(defaults.preset == BbSettings::Quality);
+    assert(!defaults.frame_clock);
     assert(defaults.light_grid_opt && defaults.vbao && defaults.anti_aliasing == BbSettings::AaSmaa);
     assert(defaults.texture_quality == BbSettings::TqFull);
     assert(defaults.sharpness == 0.35f);
@@ -150,6 +151,20 @@ int main() {
     s.frame_generation = BbSettings::FrameGenOff;
     s.low_latency = BbSettings::LowLatencyOff;
     assert(BbSettings::EffectiveLowLatency() == BbSettings::LowLatencyOff);
+    unsetenv("BB_FRAME_CLOCK");
+    write_frame_gen("frame_clock=1\n");
+    BbSettings::Load();
+    assert(s.frame_clock);
+    setenv("BB_FRAME_CLOCK","0",1);
+    BbSettings::Load();
+    assert(!s.frame_clock); // explicit zero wins over persisted true
+    setenv("BB_FRAME_CLOCK","1",1);
+    write_frame_gen("frame_clock=0\n");
+    BbSettings::Load();
+    assert(s.frame_clock);
+    unsetenv("BB_FRAME_CLOCK");
+    BbSettings::Save();
+    assert(Read(path).find("frame_clock=1\n") != std::string::npos);
     unlink(path);
     std::puts("PASS: settings save keeps other keys, menu position, menu language, frame generation, low latency");
 }

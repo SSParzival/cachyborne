@@ -51,7 +51,7 @@ cmake -S gpu -B out/gpu -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER="
 grep '^-- Online module' out/gpu-cmake.log || true
 echo "GPU library: PGO $pgo, LTO ${BB_LTO:-ON}"
 # A failed GPU build must stop here: an older libbbgpu.so would otherwise be used silently.
-if ! ninja -C out/gpu -j "${BB_BUILD_JOBS:-4}" bbgpu $(grep -q "^build bbnet20:" out/gpu/build.ninja && echo bbnet20) > out/gpu-build.log 2>&1; then
+if ! ninja -C out/gpu -j "${BB_BUILD_JOBS:-4}" bbgpu rebirth-script-tool $(grep -q "^build bbnet20:" out/gpu/build.ninja && echo bbnet20) > out/gpu-build.log 2>&1; then
     grep -v '^\[' out/gpu-build.log | tail -40 >&2
     echo 'GPU library build failed (full log: out/gpu-build.log)' >&2; exit 1
 fi
@@ -99,6 +99,10 @@ if [[ ${1:-} == --test ]]; then
     out/pad-test
     "$CC" -std=c11 "${native[@]}" "${link[@]}" -g -Wall -Wextra -Werror -pthread -I. -Isrc tests/test_runtime.c "${runtime[@]}" out/libatrac9.a -lm "${gpu[@]}" "${libraries[@]}" -o out/runtime-test
     out/runtime-test
+    "$CC" -std=c11 "${native[@]}" "${link[@]}" -g -Wall -Wextra -Werror -pthread "${includes[@]}" -Isrc tests/test_quit.c -o out/quit-test
+    out/quit-test
+    "$CC" -std=c11 "${native[@]}" "${link[@]}" -g -Wall -Wextra -Werror -pthread "${includes[@]}" -Isrc tests/test_savedata_quit.c -o out/savedata-quit-test
+    out/savedata-quit-test
     "$CC" -std=c11 "${native[@]}" "${link[@]}" -g -Wall -Wextra -Werror -pthread -Isrc tests/test_file_mods.c src/runtime_remote.c -o out/file-mods-test
     out/file-mods-test
     "$CC" -std=c11 "${native[@]}" "${link[@]}" -g -Wall -Wextra -Werror -pthread -I. -Isrc tests/test_sema.c "${runtime[@]}" out/libatrac9.a -lm "${gpu[@]}" "${libraries[@]}" -o out/sema-test

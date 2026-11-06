@@ -11,9 +11,21 @@ sys.path.insert(0, str(ROOT / 'launcher'))
 import cachyborne as core
 import cachyborne_original as bridge
 import bbport_launcher as original
+import cachyborne_options as options
 
 
 class OriginalSettingsTests(unittest.TestCase):
+    def test_online_keeps_title_choice_and_extra_environment_can_override(self):
+        settings = copy.deepcopy(core.DEFAULTS)
+        settings['original_settings'] = dict(online=True, skip_network_choice=True)
+        env = options.reconcile(settings)['runtime_env']
+        self.assertEqual(env['BB_ONLINE'], '1')
+        self.assertEqual(env['BB_SKIP_NETWORK_CHOICE'], '0')
+        settings['original_settings']['extra_env'] = 'BB_SKIP_NETWORK_CHOICE=1'
+        self.assertEqual(options.reconcile(settings)['runtime_env']['BB_SKIP_NETWORK_CHOICE'], '1')
+        settings['original_settings'].update(online=False, extra_env='')
+        self.assertEqual(options.reconcile(settings)['runtime_env']['BB_SKIP_NETWORK_CHOICE'], '1')
+
     def test_every_original_setting_and_ini_key_survives_import(self):
         settings = copy.deepcopy(original.DEFAULTS)
         settings.update(game_dir='/games/app0', user_dir='/games/saves', fps_mode='uncap', fps_limit=144,

@@ -13,6 +13,8 @@ import struct
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'launcher'))
+from bbport_graphics_memory import GRAPHICS_HEAPS, graphics_heap_sizes
 
 EBOOT_BASE=0x400000
 # BB_FPS presets: patch names from patches/Bloodborne.xml (app version 01.09).
@@ -70,13 +72,14 @@ def intel_cpu(cpuinfo='/proc/cpuinfo'):
         return 'GenuineIntel' in os.environ.get('PROCESSOR_IDENTIFIER', '')
 
 
-# The title's PLAY ONLINE / PLAY OFFLINE dialog: the port has no PSN, the game goes straight to the
-# main menu offline. On by default (the launcher's switch); BB_SKIP_NETWORK_CHOICE=0 shows it.
+# Skip the title's PLAY ONLINE / PLAY OFFLINE dialog offline; online players
+# need the choice. An explicit BB_SKIP_NETWORK_CHOICE overrides either default.
 SKIP_NETWORK_CHOICE='Skip Online/Offline Choice'
 
 
 def skip_network_choice(env=os.environ):
-    return env.get('BB_SKIP_NETWORK_CHOICE','1')!='0'
+    default='0' if env.get('BB_ONLINE','0')=='1' else '1'
+    return env.get('BB_SKIP_NETWORK_CHOICE',default)!='0'
 
 
 # Two per-frame GX command heaps: the game writes through NULL when a 256 KiB heap fills (#162).
@@ -339,7 +342,6 @@ def resolution_writes(xml,size,app_version,segments,ui=OUTPUT_SIZE):
 # at 2560x1080 those sizes left 3.7 GiB more RAM in use, while the game used about what it uses
 # at 1080p (1.1 and 0.6 GiB, measured in a heavy area). The heaps grow with the scene instead:
 # by (pixels / 1080p - 1) / 3 of the patch's increase, all of it at 4K.
-GRAPHICS_HEAPS=((0x04b36dd8,0x8ef00000,0xf7000000),(0x04b36de0,0x37600000,0xa0000000))
 
 
 def elf_read(elf, vaddr, size):
@@ -356,16 +358,13 @@ def elf_read(elf, vaddr, size):
 def graphics_heap_writes(elf, size, full=False):
     """The graphics heaps sized for the scene `size` (`full`: the patch's sizes, a texture pack),
     or None when the eboot's table differs."""
-    scale=1.0 if full else min(1.0,max(0.0,(size[0]*size[1]/(OUTPUT_SIZE[0]*OUTPUT_SIZE[1])-1)/3))
     writes=[]
-    for address,original,full in GRAPHICS_HEAPS:
+    for (address,original,_),grown in zip(GRAPHICS_HEAPS,graphics_heap_sizes(size,full)):
         offset=address-EBOOT_BASE
         current=elf_read(elf,offset,8)
         if current is None or struct.unpack('<Q',current)[0]!=original:
             return None
-        granule=16<<20
-        grown=original+-(-int((full-original)*scale)//granule)*granule
-        writes.append((offset,struct.pack('<Q',min(grown,full))))
+        writes.append((offset,struct.pack('<Q',grown)))
     return writes
 
 

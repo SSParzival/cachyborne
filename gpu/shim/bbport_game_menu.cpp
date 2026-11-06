@@ -24,7 +24,9 @@
 
 #include "bbport_guest_hooks.h"
 #include "bbport_settings.h"
+#include "games/bloodborne/save_quit.h"
 #include <fmt/format.h>
+extern "C" void runtime_quit_at_title(void) __attribute__((weak));
 
 namespace BbGameMenu {
 namespace {
@@ -79,10 +81,14 @@ struct Layout {
 constexpr Layout ControlsLayout{0x4934065, 113020, 0, 6}; // "ControllSetting"
 constexpr u32 TextName = 0xc8, TextHelp = 0xc9; // SP_menu text / SP_one-line help
 constexpr u32 ScreenSoundItem = 110001;         // "Screen/Sound" in the System menu: ours follow it
+constexpr u32 TextDialog = 0xcc, ExitQuestion = 110000;
+constexpr u32 TitleItemFirst = 401301, TitleItemLast = 401307;
+constexpr u64 SystemMenu = 0x1bb3ad0, AddActionItem = 0x1b4c9a0;
 
 const u8 MsgLookupPrologue[] = {0x89, 0xf0, 0x48, 0x8b, 0x77, 0x08, 0x48, 0x8b, 0x34, 0xc6};
 const u8 AddPageItemPrologue[] = {0x55, 0x48, 0x89, 0xe5, 0x41, 0x57};
 const u8 RowInputPrologue[] = {0x55, 0x48, 0x89, 0xe5, 0x41, 0x57};
+const u8 SystemMenuPrologue[] = {0x55, 0x48, 0x89, 0xe5, 0x41, 0x57};
 
 u64 image_base = 0;
 template <typename F>
@@ -265,7 +271,7 @@ struct Page {
 std::vector<Page> pages;
 // "Exit to desktop" in the System menu (the title screen's too): a Quit Game to the desktop, as PC
 // games have (Discord requests 2026-10-21; the Nexus mod "Just Exit Game" did it until now).
-u32 exit_name = 0, exit_help = 0;
+u32 exit_name = 0, exit_help = 0, exit_help_world = 0, exit_question = 0;
 
 void DefineTexts() {
     const u32 off = AddText("Off"), on = AddText("On");
@@ -348,6 +354,8 @@ void DefineTexts() {
     }
     exit_name = AddText("Exit to desktop");
     exit_help = AddText("Closes the game, as its window's close button does");
+    exit_help_world = AddText("Saves and closes the game");
+    exit_question = AddText("Quit the game and return to the desktop?");
 }
 
 // ---- The game's structures, as its own code builds them. ----
@@ -541,6 +549,9 @@ void* PS4_SYSV_ABI QuitFactory(void* out, void* arg) {
     SDL_PushEvent(&event);
     return Factory(out, arg, reinterpret_cast<void*>(&Content<0>), 0);
 }
+void* PS4_SYSV_ABI SaveQuitFactory(void* out, void* arg) {
+    return BbSaveQuit::OpenQuestion(out,arg);
+}
 constexpr std::size_t MaxPages = 6;
 void* const factories[MaxPages] = {
     reinterpret_cast<void*>(&PageFactory<0>), reinterpret_cast<void*>(&PageFactory<1>),
@@ -566,6 +577,10 @@ AddFn add_original = nullptr;
 std::atomic<const void*> screen_sound_text{nullptr};
 
 const char16_t* PS4_SYSV_ABI LookupHook(void* repository, u32 table, u32 category, u32 id) {
+    if (category == TextDialog && id == ExitQuestion && BbSaveQuit::Asking() && exit_question)
+        return TextOf(exit_question);
+    if (category == TextName && id >= TitleItemFirst && id <= TitleItemLast && runtime_quit_at_title)
+        runtime_quit_at_title();
     if (OurText(id)) {
         // BB_GAME_MENU_TRACE=1: how often the game asks for our texts (per 2 s).
         static const bool count = bb_env_on("BB_GAME_MENU_TRACE");
@@ -653,6 +668,29 @@ void AddItem(void* menu, u32 name, u32 help, void* factory) {
     DestroyTexts(pair);
 }
 
+void AddActionEntry(void* menu,u32 name,u32 help,void* factory) {
+    alignas(16) u8 pair[2 * TextSize] = {};
+    MakeTexts(pair,name,help);
+    alignas(16) u8 function[FunctionSize] = {};
+    *reinterpret_cast<u64*>(function) = image_base + FactoryVtable;
+    *reinterpret_cast<void**>(function + 8) = factory;
+    *reinterpret_cast<void**>(function + 0x20) = function;
+    Game<AddFn>(AddActionItem)(menu,pair,function,nullptr);
+    DestroyFunction(function);
+    DestroyTexts(pair);
+}
+thread_local bool building_in_world=false;
+bool system_menu_hook_ready=false;
+using SystemMenuFn = void* (PS4_SYSV_ABI*)(void*,void*,u64);
+SystemMenuFn system_menu_original=nullptr;
+void* PS4_SYSV_ABI SystemMenuHook(void* out,void* arg,u64 in_world) {
+    const bool previous=building_in_world;
+    building_in_world=(in_world & 0xff)!=0;
+    void* result=system_menu_original(out,arg,in_world);
+    building_in_world=previous;
+    return result;
+}
+
 void* PS4_SYSV_ABI AddHook(void* menu, void* pair, void* function, void* out) {
     void* result = add_original(menu, pair, function, out);
     const void* screen_sound = screen_sound_text.load();
@@ -660,7 +698,9 @@ void* PS4_SYSV_ABI AddHook(void* menu, void* pair, void* function, void* out) {
         for (std::size_t i = 0; i < pages.size() && i < MaxPages; ++i) {
             AddItem(menu, pages[i].name, pages[i].help, factories[i]);
         }
-        if (exit_name) {
+        if (exit_name && system_menu_hook_ready && building_in_world && BbSaveQuit::Available()) {
+            AddActionEntry(menu,exit_name,exit_help_world,reinterpret_cast<void*>(&SaveQuitFactory));
+        } else if (exit_name && system_menu_hook_ready && !building_in_world) {
             AddItem(menu, exit_name, exit_help, reinterpret_cast<void*>(&QuitFactory));
         }
     }
@@ -724,6 +764,8 @@ void PatchImage(unsigned char* image, std::uint64_t size) {
         return;
     }
     DefineTexts();
+    if (!BbSaveQuit::Install(image,size))
+        std::puts("Save before desktop: hooks unavailable; the world's own Quit Game remains available");
     for (const Page& p : pages) {
         for (const Row& r : p.rows) {
             byte_field[r.field] = r.kind == Kind::Toggle || r.kind == Kind::Slider;
@@ -745,7 +787,10 @@ void PatchImage(unsigned char* image, std::uint64_t size) {
         Detour(image, AddPageItem, AddPageItemPrologue, sizeof(AddPageItemPrologue),
                reinterpret_cast<void*>(&AddHook), reinterpret_cast<void**>(&add_original), cursor) &&
         Detour(image, RowInput, RowInputPrologue, sizeof(RowInputPrologue),
-               reinterpret_cast<void*>(&RowInputHook), reinterpret_cast<void**>(&row_input_original), cursor);
+               reinterpret_cast<void*>(&RowInputHook), reinterpret_cast<void**>(&row_input_original), cursor) &&
+        Detour(image, SystemMenu, SystemMenuPrologue, sizeof(SystemMenuPrologue),
+               reinterpret_cast<void*>(&SystemMenuHook), reinterpret_cast<void**>(&system_menu_original), cursor);
+    system_menu_hook_ready=ok;
     mprotect(stubs, page, PROT_READ | PROT_EXEC);
     std::printf("Game menu: %s (%zu pages in System)\n", ok ? "the port's pages are in" : "hooks failed, off",
                 pages.size());

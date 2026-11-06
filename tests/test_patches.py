@@ -194,6 +194,15 @@ class FrameRateTests(unittest.TestCase):
         self.assertEqual(patches.fps_patches('60', {'BB_FRAME_HOOKS': '0'}), ['60 FPS++'])
 
 
+class NetworkChoiceTests(unittest.TestCase):
+    def test_defaults_and_explicit_overrides(self):
+        self.assertTrue(patches.skip_network_choice({}))
+        self.assertTrue(patches.skip_network_choice({'BB_ONLINE': '0'}))
+        self.assertFalse(patches.skip_network_choice({'BB_ONLINE': '1'}))
+        self.assertFalse(patches.skip_network_choice({'BB_SKIP_NETWORK_CHOICE': '0'}))
+        self.assertTrue(patches.skip_network_choice({'BB_ONLINE': '1', 'BB_SKIP_NETWORK_CHOICE': '1'}))
+
+
 class IntelTonemapTests(unittest.TestCase):
     def cpuinfo(self, vendor):
         path = Path(tempfile.mkdtemp()) / 'cpuinfo'

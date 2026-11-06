@@ -57,6 +57,8 @@ void Set(Values& v, const std::string& key, const std::string& value) {
         v.jitter = i != 0;
     } else if (key == "reactive") {
         v.reactive = i != 0;
+    } else if (key == "frame_clock") {
+        v.frame_clock = i != 0;
     } else if (key == "object_motion") {
         v.object_motion = i != 0;
     } else if (key == "reactive_scale") {
@@ -335,7 +337,7 @@ void Load() {
         {"BB_REACTIVE_THRESHOLD", "reactive_threshold"}, {"BB_REACTIVE_MAX", "reactive_max"},
         {"BB_UPSCALE_PRESET", "preset"},            {"BB_OBJECT_MOTION", "object_motion"},
         {"BB_FRAME_GEN", "frame_generation"},       {"BB_FRAME_GEN_MULTIPLIER", "frame_generation_multiplier"},
-        {"BB_LOW_LATENCY", "low_latency"},
+        {"BB_LOW_LATENCY", "low_latency"}, {"BB_FRAME_CLOCK", "frame_clock"},
     };
     for (const auto& [env, key] : env_keys) {
         if (const char* value = std::getenv(env)) {
@@ -480,6 +482,7 @@ void Save() {
     put("jitter", flag(v.jitter));
     put("reactive", flag(v.reactive));
     put("object_motion", flag(v.object_motion));
+    put("frame_clock", flag(v.frame_clock));
     put("reactive_scale", fixed(v.reactive_scale, 2));
     put("reactive_threshold", fixed(v.reactive_threshold, 2));
     put("reactive_max", fixed(v.reactive_max, 2));

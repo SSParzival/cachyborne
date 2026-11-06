@@ -7,6 +7,9 @@
 #include "bbport_guest_hooks.h"
 #include "bloodborne_kit_restore.h"
 #include "bloodborne_menu_pointer.h"
+#include "bloodborne/gx_job_barrier.h"
+#include "bloodborne/gx_reclaim.h"
+#include <cstdio>
 
 namespace Game {
 namespace {
@@ -30,10 +33,14 @@ constexpr CodeRange DynamicWriters[] = {
 };
 
 void InstallHooks(const CoreServices& services) {
+    // Own the collector before the legacy statistics trap is considered.
+    if (!BbGxReclaim::Install(reinterpret_cast<unsigned char*>(ImageBase),0x6000000))
+        std::puts("GX allocation recovery: retail signature unavailable; original allocation path retained");
     // The resource loaders' copies, the GPU memory range allocator and the heap (bbport_guest_hooks).
     BbGuestHooks::Install(services.fresh_range, services.dead_range, services.live_range);
     // The mouse as a pointer in the game's menus (bloodborne_menu_pointer).
     BbMenuPointer::Install();
+    BbGxBarrier::Install();
     // BBSC's kit back to the vanilla bells when BBSC is off (bloodborne_kit_restore).
     BbKitRestore::Install();
 }

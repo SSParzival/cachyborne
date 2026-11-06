@@ -67,14 +67,20 @@ class GameProfileValidationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "No hay archivos"):
                 options.validate_game_language(copy.deepcopy(core.DEFAULTS), directory)
 
-    def test_native_pool_rejects_16gb_system_gtt_before_running_the_game(self):
+    def test_native_pool_sized_to_patches_fits_16gb_system_gtt(self):
         settings = copy.deepcopy(core.DEFAULTS) | {"render_res": "2560x1440"}
         with patch.object(
             core, "amd_gtt_budget", return_value=(8250814464, Path("/sys/example"))
         ):
-            with self.assertRaisesRegex(ValueError, "1916x1078"):
+            core.check_memory_budget(settings)
+        self.assertEqual(core.direct_memory_mb(settings), 5936)
+
+    def test_larger_heaps_still_reject_insufficient_gtt(self):
+        settings = copy.deepcopy(core.DEFAULTS) | {'render_res':'3840x2160'}
+        with patch.object(core, 'amd_gtt_budget', return_value=(8250814464, Path('/sys/example'))):
+            with self.assertRaisesRegex(ValueError, 'GTT'):
                 core.check_memory_budget(settings)
-        self.assertEqual(core.direct_memory_mb(settings), 9152)
+        self.assertEqual(core.direct_memory_mb(settings), 8395)
 
     def test_near_native_keeps_retail_pool_and_command_plan_consistent(self):
         settings = copy.deepcopy(core.DEFAULTS) | {"render_res": "1916x1078"}
@@ -87,7 +93,7 @@ class GameProfileValidationTests(unittest.TestCase):
         for env in ({}, {"BB_GUEST_VRAM": "1"}, {"BB_PC_MODEL": "0"}, {"BB_GUEST_IN_PLACE": "0"}):
             settings["runtime_env"] = env
             with patch.object(core, "amd_gtt_budget", return_value=(0, None)):
-                with self.assertRaisesRegex(ValueError, "9152"):
+                with self.assertRaisesRegex(ValueError, "5936"):
                     core.check_memory_budget(settings)
 
     def test_sysfs_budget_only_uses_amd_cards_and_survives_missing_attributes(self):

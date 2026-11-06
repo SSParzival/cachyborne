@@ -17,6 +17,21 @@ import game_check
 import mods
 
 
+def _gtk_display_available() -> bool:
+    if not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
+        return False
+    probe = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import gi; gi.require_version('Gtk', '4.0'); from gi.repository import Gtk; Gtk.Window()",
+        ],
+        capture_output=True,
+        timeout=10,
+    )
+    return probe.returncode == 0
+
+
 class MidnightSettingsTests(unittest.TestCase):
     def test_schema_covers_every_original_setting_and_binding(self):
         tree = ast.parse((ROOT / "launcher/bbport_launcher_common.py").read_text())
@@ -29,8 +44,8 @@ class MidnightSettingsTests(unittest.TestCase):
         self.assertEqual(set(original), set(options.LEGACY_DEFAULTS))
         bindings = ast.literal_eval(assignments["CONTROLS"])
         self.assertEqual(
-            [(r[0], r[2:]) for r in bindings],
-            [(r[0], r[2:]) for r in options.CONTROL_BINDINGS],
+            [(r[0], r[2:]) for r in bindings if r[0] != "cross"],
+            [(r[0], r[2:]) for r in options.CONTROL_BINDINGS if r[0] != "cross" and not r[0].startswith("menu_")],
         )
 
     def test_draft_and_personal_default_save_even_with_invalid_form(self):
@@ -108,8 +123,8 @@ class MidnightSettingsTests(unittest.TestCase):
         result = core.performance_settings(s)
         for key in ("upscaler", "hdr", "mod_selection"):
             self.assertEqual(result[key], s[key])
-        self.assertEqual(result["runtime_ini"]["preset"], "1")
-        self.assertEqual(result["render_res"], "1706x960")
+        self.assertEqual(result["runtime_ini"]["preset"], "0")
+        self.assertEqual(result["render_res"], "2560x1440")
         self.assertEqual(result["voice_language"], "eng")
         self.assertEqual(result["runtime_ini"]["key.cross"], "X")
         self.assertEqual(result["fps_limit"], 60)
@@ -239,7 +254,7 @@ class MidnightSettingsTests(unittest.TestCase):
         settings = copy.deepcopy(core.DEFAULTS)
         settings["runtime_ini"].update({"key.cross": None, "pad.cross": None})
         result = options.reconcile(settings)
-        self.assertEqual(result["runtime_ini"]["key.cross"], "F, Return")
+        self.assertEqual(result["runtime_ini"]["key.cross"], "F")
         self.assertEqual(result["runtime_ini"]["pad.cross"], "a")
         self.assertIsNone(settings["runtime_ini"]["key.cross"])
 
@@ -263,10 +278,7 @@ class MidnightSettingsTests(unittest.TestCase):
                 self.assertEqual(result["BB_SHADNET_PASSWORD"], " secret ")
                 self.assertEqual(result["BB_BBSC"], "1")
 
-    @unittest.skipUnless(
-        os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"),
-        "GTK display unavailable",
-    )
+    @unittest.skipUnless(_gtk_display_available(), "GTK display unavailable")
     def test_actual_native_window_has_all_controls_and_saves_without_legacy_window(
         self,
     ):
@@ -291,6 +303,14 @@ w=gui.Preferences(app)
 assert len(w.mod_rows)==2 and len(w.patch_rows)==1
 assert w.fields['ini.camera_speed_x']()==0.25
 assert w.language_values==['20']
+assert not w.fields['ini.frame_clock']()
+assert not w.fields['change_appearance']()
+assert not w.fields['rebirth']()
+assert not w.fields['messenger_gifts']()
+w.widgets['change_appearance'][0].set_active(True)
+w.widgets['rebirth'][0].set_active(True)
+w.widgets['messenger_gifts'][0].set_active(True)
+w.widgets['ini.frame_clock'][0].set_active(True)
 w.move_mod('Long mod name',-1)
 w.mod_rows[0][1].set_active(False)
 w.patch_rows[0][1].set_active(True)
@@ -299,7 +319,7 @@ assert selection['mod_selection']['order']==['Long mod name','A']
 assert selection['mod_selection']['disabled']==['Long mod name']
 assert selection['patch_selection']['enabled']==['test.xml/Patch']
 assert gui.options.NATIVE_LEGACY_FIELDS <= {k[7:] for k in w.fields if k.startswith('legacy.')}
-assert len(w.binding_defaults)==45
+assert len(w.binding_defaults)==52
 assert all('ini.'+key in w.fields for key in __import__('patches').EFFECTS if key != 'effect_game_aa')
 assert len(app.get_windows())==1
 w.widgets['upscaler'][0].set_selected(3)
@@ -310,6 +330,9 @@ w.widgets['voice_language'][0].set_selected(1)
 w.widgets['width'][0].set_text('')
 assert w.save(as_default=True)
 s=gui.core.preferences()
+assert s['change_appearance'] is True
+assert s['rebirth'] is True
+assert s['messenger_gifts'] is True
 assert s['width']=='' and s['runtime_ini']['key.cross']=='X'
 assert s['runtime_ini']['texture_quality']=='half'
 assert s['voice_language']=='esa'
@@ -324,6 +347,11 @@ assert all(gui.options.INI_CANONICAL_FIELDS.get(key, 'ini.'+key) in w.fields for
 assert 'ini.key.walk' in w.fields and 'ini.pad.walk' not in w.fields
 assert s['runtime_env']['BB_VOICE_LANGUAGE']=='esa'
 assert s['runtime_env']['BB_LANGUAGE']=='20'
+assert s['runtime_ini']['frame_clock']=='1'
+w.widgets['ini.key_opposites'][0].set_selected(1)
+assert w.collect(validate=True)['runtime_ini']['key_opposites']=='last'
+w.widgets['ini.key_opposites'][0].set_selected(0)
+assert w.collect(validate=True)['runtime_ini']['key_opposites']=='neutral'
 w.widgets['ini.preset'][0].set_selected(1)
 assert w.fields['render_res']()=='1706x960'
 w.widgets['ini.preset'][0].set_selected(0)

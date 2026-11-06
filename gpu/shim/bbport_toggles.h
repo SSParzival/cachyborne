@@ -150,6 +150,20 @@ inline std::atomic<std::uint64_t> asc_submits{0};
 inline std::atomic<std::uint64_t> guest_submit_stamp{0}, started_submit_stamp{0};
 /// The game's GPU range allocators (seen at their collector, 0x26aa860): object, live ranges, bytes.
 inline std::array<std::atomic<std::uint64_t>, 4> range_allocators{}, range_live{}, range_bytes{};
+/// Called with the retail collector's valid pool object, before walking its blocks.
+inline void NoteRangeCollector(std::uint64_t allocator) {
+    for (std::size_t i = 0; i < range_allocators.size(); ++i) {
+        std::uint64_t expected = 0;
+        if (range_allocators[i].load(std::memory_order_relaxed) == allocator ||
+            range_allocators[i].compare_exchange_strong(expected, allocator)) {
+            range_live[i].store(*reinterpret_cast<const std::uint64_t*>(allocator + 0xc8),
+                                std::memory_order_relaxed);
+            range_bytes[i].store(*reinterpret_cast<const std::uint64_t*>(allocator + 0xd0),
+                                 std::memory_order_relaxed);
+            break;
+        }
+    }
+}
 inline std::atomic<std::int64_t> hot_pages{0};
 /// Stall diagnostics (BB_FRAME_STATS): per-frame deltas printed for frames over 40 ms.
 inline std::atomic<std::uint64_t> images_registered{0};

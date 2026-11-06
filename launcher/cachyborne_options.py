@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 CONTROL_BINDINGS = [
-    ("cross", "Interactuar / Cruz", "F, Return", "a"),
+    ("cross", "Interactuar / Cruz", "F", "a"),
     ("circle", "Círculo", "", "b"),
     ("dodge", "Esquivar", "Space", None),
     ("sprint", "Correr", "Left Shift", None),
@@ -34,6 +34,13 @@ CONTROL_BINDINGS = [
     ("look_down", "Mirar abajo", "K", None),
     ("look_left", "Mirar a la izquierda", "J", None),
     ("look_right", "Mirar a la derecha", "L", None),
+    ("menu_confirm", "Menú: confirmar", "Return", None),
+    ("menu_prev", "Menú: página anterior", "PageUp", None),
+    ("menu_next", "Menú: página siguiente", "PageDown", None),
+    ("menu_storage", "Menú: pestaña L2", "Home", None),
+    ("menu_inventory", "Menú: pestaña R2", "End", None),
+    ("menu_display", "Menú: alternar pantalla", "F", None),
+    ("menu_status", "Menú: alternar estado", "R", None),
 ]
 
 LEGACY_DEFAULTS = dict(
@@ -175,6 +182,8 @@ TEXT_LANGUAGES = [("auto", "Seguir idioma del sistema PS4")] + [(code, dict(LANG
 # (INI values are strings); GUI labels/pages and validation share this definition.
 # key: default, page, Spanish title, choices or numeric bounds
 INI_OPTIONS = {
+    "key_opposites": ("neutral", "controls", "Teclas de movimiento opuestas", ("neutral", "last")),
+    "frame_clock": ("0", "graphics", "Reloj de cuadros nativo (experimental; requiere reiniciar)", ("0", "1")),
     "game_text_language": ("auto", "graphics", "Idioma de textos (cualquier región)", tuple(code for code, _ in TEXT_LANGUAGES)),
     "vbao": ("1", "graphics", "Oclusión ambiental GT-VBAO (requiere SSAO)", ("0", "1")),
     "contact_shadows": ("0", "graphics", "Sombras de contacto (pasada GPU adicional)", ("0", "1")),
@@ -191,7 +200,7 @@ INI_OPTIONS = {
 }
 INI_CANONICAL_FIELDS = {"upscaler": "upscaler", "output_res": "output_res", "game_voice_language": "voice_language"}
 INI_DEFAULTS = {key: spec[0] for key, spec in INI_OPTIONS.items()} | {
-    "upscaler": "fsr411", "preset": "1", "sharpen": "1", "sharpness": "0.35", "object_motion": "1",
+    "upscaler": "fsr411", "preset": "0", "sharpen": "1", "sharpness": "0.35", "object_motion": "1",
     "show_fps": "1", "output_res": "auto", "model_lod": "0", "mouse_look": "1", "mouse_sensitivity": "1.00",
     "mouse_invert_y": "0", "mouse_invert_x": "0", "button_prompts": "auto", "game_voice_language": "auto",
     **{"effect_" + key: value for key, value in (("chromatic_aberration", "0"), ("dof", "0"), ("motion_blur", "0"), ("ssao", "1"), ("dynamic_shadows", "1"), ("ssr", "0"), ("bloom", "1"))},
@@ -276,7 +285,7 @@ def reconcile(settings):
         env["BB_TROPHY_KEY"] = old["trophy_key"].strip()
     if old["online"]:
         env.update(
-            BB_ONLINE="1", BB_NET_GEN="20", BB_UPNP="1" if old["online_upnp"] else "0"
+            BB_ONLINE="1", BB_SKIP_NETWORK_CHOICE="0", BB_NET_GEN="20", BB_UPNP="1" if old["online_upnp"] else "0"
         )
         if old["online_pool"] == "huntersdream":
             env.update(

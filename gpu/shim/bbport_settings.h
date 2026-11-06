@@ -141,6 +141,8 @@ struct Values {
     std::atomic<bool> jitter{true};
     std::atomic<bool> reactive{false};
     std::atomic<bool> object_motion{true};
+    /// Experimental measured-delta consumers; applied at startup. BB_FRAME_CLOCK overrides INI.
+    std::atomic<bool> frame_clock{false};
     std::atomic<float> reactive_scale{1.0f};
     std::atomic<float> reactive_threshold{0.2f};
     std::atomic<float> reactive_max{0.9f};

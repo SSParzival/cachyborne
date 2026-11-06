@@ -19,11 +19,11 @@ class Upstream07SettingsTests(unittest.TestCase):
         s['runtime_ini'].update(ini)
         return s
 
-    def test_default_60fps_quality_profile_matches_schema_and_projection(self):
+    def test_default_60fps_native_profile_matches_schema_and_projection(self):
         s = options.reconcile(self.settings())
         self.assertEqual((s['fps'], s['fps_limit']), ('60', 60))
         expected = dict(texture_quality='full', vbao='1', anti_aliasing='smaa',
-                        preset='1', sharpen='1', sharpness='0.35', light_grid_opt='1',
+                        preset='0', sharpen='1', sharpness='0.35', light_grid_opt='1',
                         effect_ssao='1', effect_dynamic_shadows='1', effect_bloom='1',
                         effect_chromatic_aberration='0', effect_motion_blur='0', effect_dof='0')
         for key, value in expected.items():
@@ -38,8 +38,8 @@ class Upstream07SettingsTests(unittest.TestCase):
         self.assertEqual(items['fps_mode']['default'], '60')
         self.assertEqual(items['fps_limit']['default'], 60)
         self.assertEqual(patches.fps_patches('60', {'BB_FRAME_HOOKS': '1'}), [])
-        self.assertEqual(core.direct_memory_mb(s), 5056)
-        self.assertEqual(patches.PRESET_SCALES[int(s['runtime_ini']['preset'])], 1.5)
+        self.assertEqual(core.direct_memory_mb(s), 5936)
+        self.assertEqual(patches.PRESET_SCALES[int(s['runtime_ini']['preset'])], 1.0)
         self.assertEqual(patches.PRESET_SCALES[0], 1.0)
 
     def test_every_upstream_ini_default_has_a_native_schema_entry(self):
@@ -147,8 +147,8 @@ class Upstream07SettingsTests(unittest.TestCase):
 
     def test_texture_pack_large_heaps_cannot_bypass_16gb_budget(self):
         s = self.settings() | dict(large_heaps=True)
-        self.assertEqual(core.direct_memory_mb(s), 9152)
-        with self.assertRaisesRegex(ValueError, '16 GB'):
+        self.assertEqual(core.direct_memory_mb(s), 8395)
+        with self.assertRaisesRegex(ValueError, 'GTT|16 GB'):
             core.check_memory_budget(s)
 
     def test_pre_07_frame_generation_boolean_is_migrated(self):

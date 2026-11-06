@@ -48,10 +48,19 @@ static SDL_Gamepad *current_gamepad(void) {
     if (gamepad && !SDL_GamepadConnected(gamepad)) { SDL_CloseGamepad(gamepad); gamepad=NULL; }
     const char *want=preferred_gamepad();
     const uint64_t now=now_us();
-    if (!gamepad || (want && !on_preferred && now-last_scan>1000000)) {
+    if ((!gamepad || (want && !on_preferred)) && (!last_scan || now-last_scan>=1000000)) {
         last_scan=now;
         int count=0, pick=-1;
+        static int trace=-1;
+        if (trace<0) { const char *e=bb_env("BB_PAD_TRACE"); trace=e && (*e=='1' || *e=='2'); }
+        const uint64_t scan_start=trace ? now_us() : 0;
         SDL_JoystickID *ids=SDL_GetGamepads(&count);
+        if (trace) {
+            const uint64_t scan_end=now_us();
+            if (scan_end-scan_start>=2000)
+                printf("Runtime: gamepad enumeration %llu us at monotonic %llu us (%d devices)\n",
+                       (unsigned long long)(scan_end-scan_start),(unsigned long long)scan_end,count);
+        }
         for (int i=0; want && ids && i<count && pick<0; ++i) if (is_preferred(ids[i],want)) pick=i;
         if (pick<0 && !gamepad && ids && count>0) pick=0;
         if (pick>=0 && (!gamepad || SDL_GetGamepadID(gamepad)!=ids[pick])) {

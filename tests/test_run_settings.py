@@ -53,6 +53,159 @@ class PreparedLaunchTests(unittest.TestCase):
         self.assertIn(str(self.game), data['args'])
         self.assertEqual((self.out / 'patches.bin').read_bytes(), b'prepared')
 
+    def test_experimental_frame_clock_survives_reconcile_and_environment_override(self):
+        import copy
+        from cachyborne_options import reconcile, validate_ini
+        settings = copy.deepcopy(runner.DEFAULTS)
+        self.assertEqual(settings['runtime_ini']['frame_clock'], '0')
+        settings['runtime_ini']['frame_clock'] = '1'
+        settings['runtime_env']['BB_FRAME_CLOCK'] = '0'
+        result = reconcile(settings)
+        validate_ini(result['runtime_ini'])
+        self.assertEqual(result['runtime_ini']['frame_clock'], '1')
+        self.profile['settings'] = result
+        _, env = runner.launch_command(self.profile, base_env={})
+        self.assertEqual(env['BB_FRAME_CLOCK'], '0')
+
+    def test_fixed_60_efficiency_and_explicit_overrides(self):
+        import copy
+        self.profile['settings'] = copy.deepcopy(runner.DEFAULTS)
+        _, env = runner.launch_command(self.profile, base_env={})
+        self.assertEqual({k:env[k] for k in runner.NATIVE_60_ENV},
+                         dict(BB_GPU_SPIN_US='0',BB_PIPE_SPIN_US='0',
+                              BB_LIMITER_MARGIN_US='auto',BB_PACE_STABLE='1'))
+        _, env = runner.launch_command(self.profile, base_env={'BB_LIMITER_MARGIN_US':'off',
+                                                              'BB_PIPE_SPIN_US':'200'})
+        self.assertEqual(env['BB_LIMITER_MARGIN_US'],'off')
+        self.assertEqual(env['BB_PIPE_SPIN_US'],'200')
+        for overrides in ({'fps':'30','fps_limit':30},{'fps':'90','fps_limit':90},
+                          {'fps':'uncap','fps_limit':0},{'fps':'60','fps_limit':90}):
+            self.profile['settings'] = copy.deepcopy(runner.DEFAULTS) | overrides
+            _, env = runner.launch_command(self.profile, base_env={})
+            self.assertTrue(set(runner.NATIVE_60_ENV).isdisjoint(env))
+        self.profile['settings'] = copy.deepcopy(runner.DEFAULTS)
+        _, env = runner.launch_command(self.profile, base_env={'BB_FRAME_HOOKS':'0'})
+        self.assertTrue(set(runner.NATIVE_60_ENV).isdisjoint(env))
+
+    def test_recommended_cap_resets_conflicting_experiments(self):
+        import copy
+        settings = copy.deepcopy(runner.DEFAULTS)
+        settings['output_auto'] = True
+        settings['runtime_env'].update(BB_NATIVE_FLIP_PACING='1',BB_PACE_CATCHUP='1',
+                                       BB_LIMITER_MARGIN_US='5000',BB_PIPE_SPIN_US='200')
+        fixed = runner.performance_settings(settings,'60')
+        self.assertFalse(fixed['output_auto'])
+        self.assertEqual(fixed['output_res'],'2560x1440')
+        self.assertEqual(fixed['render_res'],'2560x1440')
+        self.assertTrue(settings['output_auto'])
+        self.assertEqual(fixed['runtime_env']['BB_LIMITER_MARGIN_US'],'auto')
+        self.assertEqual(fixed['runtime_env']['BB_PIPE_SPIN_US'],'0')
+        self.assertNotIn('BB_NATIVE_FLIP_PACING',fixed['runtime_env'])
+        self.assertNotIn('BB_PACE_CATCHUP',fixed['runtime_env'])
+        other = runner.performance_settings(fixed,'90')
+        self.assertTrue(set(runner.NATIVE_60_ENV).isdisjoint(other['runtime_env']))
+        self.assertEqual(settings['runtime_env']['BB_LIMITER_MARGIN_US'],'5000')
+
+    def test_mirror_choice_projects_to_launch_and_preserves_explicit_diagnostics(self):
+        import copy
+        self.profile['settings'] = copy.deepcopy(runner.DEFAULTS)
+        for enabled in (False, True):
+            self.profile['settings']['change_appearance'] = enabled
+            _, env = runner.launch_command(self.profile, base_env={})
+            self.assertEqual(env['BB_CHANGE_APPEARANCE'], str(int(enabled)))
+        self.profile['settings']['runtime_env']['BB_CHANGE_APPEARANCE'] = '0'
+        _, env = runner.launch_command(self.profile, base_env={})
+        self.assertEqual(env['BB_CHANGE_APPEARANCE'], '0')
+        self.profile['settings']['change_appearance'] = 'false'
+        with self.assertRaises(ValueError):
+            runner.validate_settings(self.profile['settings'])
+
+    def test_messenger_gifts_projects_to_launch_and_preserves_explicit_override(self):
+        import copy
+        self.profile['settings'] = copy.deepcopy(runner.DEFAULTS)
+        for enabled in (False, True):
+            self.profile['settings']['messenger_gifts'] = enabled
+            _, env = runner.launch_command(self.profile, base_env={})
+            self.assertEqual(env['BB_MESSENGER_GIFTS'], str(int(enabled)))
+        self.profile['settings']['runtime_env']['BB_MESSENGER_GIFTS'] = '0'
+        _, env = runner.launch_command(self.profile, base_env={})
+        self.assertEqual(env['BB_MESSENGER_GIFTS'], '0')
+        self.profile['settings']['messenger_gifts'] = 'false'
+        with self.assertRaises(ValueError):
+            runner.validate_settings(self.profile['settings'])
+
+    def test_altar_choice_pairs_runtime_with_profile_and_requires_offline(self):
+        import copy
+        self.profile['settings'] = copy.deepcopy(runner.DEFAULTS)
+        for enabled in (False, True):
+            self.profile['settings']['rebirth'] = enabled
+            # An inherited standalone override cannot disconnect the generated
+            # altar script from its runtime service in a prepared profile.
+            _, env = runner.launch_command(self.profile, base_env={'BB_REBIRTH': str(int(not enabled))})
+            self.assertEqual(env['BB_REBIRTH'], str(int(enabled)))
+        for key in ('BB_ONLINE','BB_BBSC'):
+            self.profile['settings']['runtime_env'][key] = '1'
+            with self.assertRaisesRegex(ValueError, 'sin conexión'):
+                runner.validate_settings(self.profile['settings'])
+            self.profile['settings']['runtime_env'].pop(key)
+        self.profile['settings']['original_settings']['online'] = True
+        with self.assertRaisesRegex(ValueError, 'sin conexión'):
+            runner.validate_settings(self.profile['settings'])
+        self.profile['settings']['original_settings']['online'] = False
+        self.profile['settings']['rebirth'] = 'false'
+        with self.assertRaisesRegex(ValueError, 'booleana'):
+            runner.validate_settings(self.profile['settings'])
+
+    def test_bad_mirror_layout_preserves_prepared_profile_and_original_data(self):
+        import copy
+        import game_check
+        import world_assets
+        source = self.game / world_assets.MIRROR_PATH
+        source.parent.mkdir(parents=True)
+        source.write_bytes(b'unsupported world layout')
+        settings = copy.deepcopy(runner.DEFAULTS)
+        settings.update(upscaler='fsr3', change_appearance=True)
+        (self.root / 'out').mkdir()
+        (self.root / 'out/bb-probe').touch()
+        before = (self.config / 'game_profile.json').read_bytes()
+        with patch.object(runner, 'CONFIG', self.config), \
+             patch.object(runner, 'DATA', self.root / 'data'), \
+             patch.object(runner, 'ROOT', self.root), \
+             patch.object(runner, 'check_memory_budget'), \
+             patch.object(game_check, 'image_sha256', return_value='hash'), \
+             patch.object(game_check, 'problem', return_value=None), \
+             patch.object(runner.subprocess, 'run'):
+            with self.assertRaisesRegex(ValueError, 'DCX'):
+                runner.setup(self.game, settings)
+        self.assertEqual((self.config / 'game_profile.json').read_bytes(), before)
+        self.assertEqual(source.read_bytes(), b'unsupported world layout')
+        self.assertEqual(list((self.root / 'data/prepared').iterdir()), [])
+
+    def test_menu_bindings_are_projected_independently_of_combat(self):
+        from cachyborne_options import CONTROL_BINDINGS, reconcile
+        defaults = {name: keys for name, _, keys, _ in CONTROL_BINDINGS}
+        self.assertEqual(defaults['cross'], 'F')
+        self.assertEqual(defaults['menu_confirm'], 'Return')
+        self.assertEqual([defaults[k] for k in ('menu_prev','menu_next','menu_storage','menu_inventory',
+                                              'menu_display','menu_status')],
+                         ['PageUp','PageDown','Home','End','F','R'])
+        settings = runner.DEFAULTS | {'runtime_ini': {'key.r1': 'X', 'key.menu_next': 'N'}}
+        result = reconcile(settings)
+        self.assertEqual(result['runtime_ini']['key.r1'], 'X')
+        self.assertEqual(result['runtime_ini']['key.menu_next'], 'N')
+
+    def test_opposing_key_policy_survives_reconcile_without_rewriting_prepared_ini(self):
+        from cachyborne_options import reconcile, validate_ini
+        self.assertEqual(runner.DEFAULTS['runtime_ini']['key_opposites'],'neutral')
+        for policy in ('neutral','last'):
+            settings=reconcile(runner.DEFAULTS | {'runtime_ini':{'key_opposites':policy}})
+            validate_ini(settings['runtime_ini'])
+            self.assertEqual(settings['runtime_ini']['key_opposites'],policy)
+            self.profile['settings']=settings
+            runner.launch_command(self.profile,base_env={})
+            self.assertEqual((self.out/'bbport.ini').read_text(),'prepared')
+        with self.assertRaises(ValueError): validate_ini({'key_opposites':'unknown'})
+
     def test_missing_artifact_refuses_launch(self):
         (self.out / 'content.bin').unlink()
         with patch.object(runner, 'CONFIG', self.config):
@@ -196,7 +349,7 @@ class PreparedLaunchTests(unittest.TestCase):
         command, env = runner.launch_command(self.profile, base_env={})
         self.assertFalse(self.profile['settings']['ramdisk'])
         self.assertEqual(self.profile['settings']['memory_profile'], '16gb')
-        self.assertEqual(env['BB_DMEM_MB'], '5056')
+        self.assertEqual(env['BB_DMEM_MB'], '5936')
         self.assertEqual(env['BB_PRESENT_MODE'], 'Mailbox')
         self.assertEqual(env['BB_MEMORY_WILLNEED'], '0')
         self.assertEqual(env['BB_ASYNC_PIPELINE_THREADS'], '2')
@@ -207,7 +360,7 @@ class PreparedLaunchTests(unittest.TestCase):
     def test_high_internal_resolution_retains_required_direct_pool(self):
         self.profile['settings']['render_res'] = '2560x1440'
         _, env = runner.launch_command(self.profile, base_env={})
-        self.assertEqual(env['BB_DMEM_MB'], '9152')
+        self.assertEqual(env['BB_DMEM_MB'], '5936')
 
     def test_desktop_shortcut_uses_xdg_desktop_and_is_executable(self):
         with patch.object(runner.subprocess, 'check_output', return_value=str(self.root / 'Escritorio')), \
@@ -299,9 +452,9 @@ class PreparedLaunchTests(unittest.TestCase):
                                      'runtime_env': {'BB_FPS': '60', 'BB_LANGUAGE': '3'}}
         recommended = runner.performance_settings(settings)
         self.assertEqual(recommended['fps'], '60')
-        self.assertEqual(recommended['render_res'], '1706x960')
+        self.assertEqual(recommended['render_res'], '2560x1440')
         self.assertEqual(recommended['upscaler'], 'fsr411')
-        self.assertEqual(recommended['runtime_ini']['preset'], '1')
+        self.assertEqual(recommended['runtime_ini']['preset'], '0')
         self.assertEqual(recommended['runtime_ini']['key.cross'], 'X')
         self.assertEqual(recommended['user_dir'], '/saves')
         self.assertNotIn('BB_FPS', recommended['runtime_env'])

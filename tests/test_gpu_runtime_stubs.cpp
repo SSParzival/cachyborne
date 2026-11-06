@@ -77,7 +77,12 @@ int runtime_memory_deferred(uint64_t* phys, uint64_t* end) { *phys = *end = 0; r
 int runtime_memory_commit(uint64_t, uint64_t) { std::abort(); }
 void runtime_memory_commit_ahead(uint64_t, uint64_t) { std::abort(); }
 int runtime_memory_decommit(uint64_t, uint64_t) { std::abort(); }
-void runtime_memory_discard_direct(uint64_t, uint64_t) { std::abort(); }
+static void (*discard_direct)(uint64_t, uint64_t) = nullptr;
+void runtime_test_set_discard_direct(void (*callback)(uint64_t, uint64_t)) { discard_direct=callback; }
+void runtime_memory_discard_direct(uint64_t phys, uint64_t size) {
+    if (!discard_direct) std::abort();
+    discard_direct(phys,size);
+}
 const char* runtime_file_user_dir() { return ""; }
 int runtime_savedata_active_slot(char*, size_t) { return -1; }
 int runtime_pad_steam_only() { return 0; }

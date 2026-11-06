@@ -207,7 +207,17 @@ static int read_input(const char *kind) {
     return 0;
 }
 
+static int list_audio_devices(void) {
+    if (!SDL_Init(SDL_INIT_AUDIO)) return 1;
+    int count=0;SDL_AudioDeviceID *devices=SDL_GetAudioPlaybackDevices(&count);
+    for(int i=0;devices && i<count;++i) {
+        const char *name=SDL_GetAudioDeviceName(devices[i]);
+        if(name) puts(name);
+    }
+    SDL_free(devices);SDL_Quit();return 0;
+}
 int main(int argc, char **argv) {
+    if (argc > 1 && !strcmp(argv[1], "--audio-devices")) return list_audio_devices();
     if (argc > 1 && !strcmp(argv[1], "--read-input")) {
         return read_input(argc > 2 ? argv[2] : "any");
     }
@@ -277,6 +287,36 @@ int main(int argc, char **argv) {
     } else {
         for (uint32_t i = 1; i < count; ++i)
             if (better_device(devices[i], selected)) selected = devices[i];
+    }
+    if (argc > 1 && !strcmp(argv[1], "--memory-budget")) {
+        VkPhysicalDeviceProperties props;
+        vkGetPhysicalDeviceProperties(selected, &props);
+        VkPhysicalDeviceMemoryBudgetPropertiesEXT budget = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT,
+        };
+        const int supported = has_extension(selected, VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+        VkPhysicalDeviceMemoryProperties2 memory = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2,
+            .pNext = supported ? &budget : NULL,
+        };
+        vkGetPhysicalDeviceMemoryProperties2(selected, &memory);
+        VkDeviceSize available = 0;
+        for (uint32_t i = 0; i < memory.memoryProperties.memoryTypeCount; ++i) {
+            const VkMemoryType type = memory.memoryProperties.memoryTypes[i];
+            const VkMemoryPropertyFlags want = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+            if ((type.propertyFlags & want) != want) continue;
+            const uint32_t heap = type.heapIndex;
+            const VkDeviceSize free_bytes = budget.heapBudget[heap] > budget.heapUsage[heap]
+                ? budget.heapBudget[heap] - budget.heapUsage[heap] : 0;
+            if (free_bytes > available) available = free_bytes;
+        }
+        printf("{\"vendor\":%u,\"discrete\":%s,\"bar_budget\":%llu}\n",
+               props.vendorID, props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+                   ? "true" : "false", (unsigned long long)available);
+        free(devices);
+        vkDestroyInstance(instance, NULL);
+        return 0;
     }
     if (device_mode) {
         VkPhysicalDeviceProperties props;

@@ -1,14 +1,36 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 import importlib.util
+from paths import ROOT
 from pathlib import Path
 import tempfile
 import unittest
+from isolated_game import fault_checks
 
-SPEC = importlib.util.spec_from_file_location('warp_soak', Path(__file__).resolve().parents[1] / 'scripts/stress_warp_soak.py')
+SPEC = importlib.util.spec_from_file_location('warp_soak', ROOT / 'scripts/stress_warp_soak.py')
 soak = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(soak)
 
 class WarpEvidenceTests(unittest.TestCase):
+    def test_power_comes_from_one_known_device_and_missing_values_stay_unknown(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); device=root/'0000:03:00.0'
+            sensor=device/'hwmon/hwmon7/power1_average'
+            sensor.parent.mkdir(parents=True);sensor.write_text('28000000\n')
+            (device/'gpu_busy_percent').write_text('13\n')
+            self.assertEqual(soak.gpu_sample({'0000:03:00.0'},root),dict(gpu_power_uw=28000000,gpu_busy_percent=13))
+            for devices in (set(), {'0000:03:00.0','0000:04:00.0'}, {'../escape'}):
+                self.assertEqual(soak.gpu_sample(devices,root),dict(gpu_power_uw=None,gpu_busy_percent=None))
+            sensor.write_text('unavailable');(device/'gpu_busy_percent').write_text('101')
+            self.assertEqual(soak.gpu_sample({'0000:03:00.0'},root),dict(gpu_power_uw=None,gpu_busy_percent=None))
+
+    def test_shutdown_cannot_hide_a_fault_after_a_completed_soak(self):
+        stopped='Acceptance: stopping isolated processes\n'
+        self.assertTrue(all(fault_checks(stopped+'ErrorSurfaceLostKHR').values()))
+        for fault in ('Host fault', 'Guest fault', 'Assertion Failed',
+                      'ErrorDeviceLost', 'Device lost while waiting', 'Fault (signal 11) at RIP 0x240'):
+            self.assertFalse(all(fault_checks(stopped+fault).values()))
+        self.assertFalse(all(fault_checks('STOP: abort\n'+stopped).values()))
+
     def test_tail_preserves_split_acknowledgements(self):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'log'; tail=soak.Tail(path)

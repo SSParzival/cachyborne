@@ -19,6 +19,7 @@
 //  - Event flags: 0x1399bf0 (0, flag) reads one, 0x132e5a0 (0, flag, value) sets it; both need
 //    SprjEventFlagMan ([0x553b100]) to exist.
 #include "bloodborne_kit_restore.h"
+#include "bloodborne/event_flags.h"
 #include "shim/bb_env.h"
 
 #include <algorithm>
@@ -54,9 +55,7 @@ constexpr Addr CodeEnd = 0x50d96dc;
 constexpr Addr GameTick = 0x1308dc0;
 constexpr std::uint8_t GameTickEntry[] = {0x55, 0x48, 0x89, 0xe5, 0x41, 0x57}; // push rbp...
 constexpr Addr LocalState = 0x553e878, GlobalState = 0x5556678, CarriedHolder = 0x553b130;
-constexpr Addr EventFlagMan = 0x553b100;
 constexpr Addr FitsFn = 0x14d9a80, AddFn = 0x14da0a0, ChangeFn = 0x14d94a0, FreeFn = 0x14dab20;
-constexpr Addr GetFlagFn = 0x1399bf0, SetFlagFn = 0x132e5a0;
 
 /// BBSC's kit (BbscKit) and the vanilla item each stands for (0: none, the Duel Bell).
 struct KitItem {
@@ -233,20 +232,12 @@ bool Remove(Addr inventory, std::uint32_t id) {
 }
 
 bool EventFlag(std::uint32_t flag) {
-    if (Get<Addr>(At(EventFlagMan)) == 0) {
-        return false;
-    }
-    using GetFlag = bool PS4_SYSV_ABI (*)(std::uint64_t unused, std::uint32_t flag);
-    return reinterpret_cast<GetFlag>(At(GetFlagFn))(0, flag);
+    bool value=false;
+    return BbEventFlags::Read(ImageBase,std::span(&flag,1),std::span(&value,1)) && value;
 }
 
 void ClearEventFlag(std::uint32_t flag) {
-    if (Get<Addr>(At(EventFlagMan)) == 0) {
-        return;
-    }
-    using SetFlag = std::uint64_t PS4_SYSV_ABI (*)(std::uint64_t unused, std::uint32_t flag,
-                                                   std::uint8_t value);
-    reinterpret_cast<SetFlag>(At(SetFlagFn))(0, flag, 0);
+    BbEventFlags::Set(ImageBase,flag,false);
 }
 
 // ---- The journal ---------------------------------------------------------------------------------
@@ -491,6 +482,10 @@ void Install() {
     }
     if (bb_env_on("BB_ONLINE") && bb_env_on("BB_BBSC")) {
         return; // BBSC runs and hooks the same tick
+    }
+    if (!BbEventFlags::Validate(reinterpret_cast<unsigned char*>(ImageBase),0x6000000)) {
+        std::puts("BBSC kit restore: event-flag entry points differ: off");
+        return;
     }
     if (!Core::InstallGuestCodeHook(reinterpret_cast<void*>(At(GameTick)), GameTickEntry, 0,
                                     OnGameTick)) {

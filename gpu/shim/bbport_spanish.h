@@ -5,6 +5,10 @@
 #include <utility>
 namespace BbSettings {
 inline constexpr std::pair<std::string_view, const char*> SpanishTranslations[] = {
+    {"Exit to desktop", "Salir al escritorio"},
+    {"Closes the game, as its window's close button does", "Cierra el juego, como el botón de cerrar la ventana"},
+    {"Saves and closes the game", "Guarda y cierra el juego"},
+    {"Quit the game and return to the desktop?", "¿Salir del juego y volver al escritorio?"},
     {"Trophy earned", "Trofeo conseguido"},
     {"As launched", "Como al iniciar"},
     {"Toy Pad", "Base de figuras"},

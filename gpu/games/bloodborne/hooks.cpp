@@ -16,6 +16,7 @@
 #include "bbport_fx_init_clear.h"
 #include "bbport_effect_flags.h"
 #include "platform/gnm/gnm.h"
+#include "games/bloodborne/gx_reclaim.h"
 
 #include <algorithm>
 #include <array>
@@ -281,18 +282,7 @@ void OnTrap(int sig, siginfo_t* info, void* context) {
         return;
     }
     if (rip == ImageBase + CollectorEntry) {
-        const u64 allocator = u64(g[REG_RDI]);
-        for (std::size_t i = 0; i < BbStats::range_allocators.size(); ++i) {
-            u64 expected = 0;
-            if (BbStats::range_allocators[i].load(std::memory_order_relaxed) == allocator ||
-                BbStats::range_allocators[i].compare_exchange_strong(expected, allocator)) {
-                BbStats::range_live[i].store(*reinterpret_cast<const u64*>(allocator + 0xc8),
-                                             std::memory_order_relaxed);
-                BbStats::range_bytes[i].store(*reinterpret_cast<const u64*>(allocator + 0xd0),
-                                              std::memory_order_relaxed);
-                break;
-            }
-        }
+        BbStats::NoteRangeCollector(u64(g[REG_RDI]));
         g[REG_RSP] -= 8; // push rbp
         *reinterpret_cast<u64*>(g[REG_RSP]) = u64(g[REG_RBP]);
         g[REG_RIP] = greg_t(ImageBase + CollectorEntry + 1);
@@ -399,7 +389,7 @@ void Install(RangeCallback on_gpu_range_allocated, RangeCallback on_range_freed,
     // BB_HEAP_HOOKS=0 (bisecting): the heap's ranges are not reported.
     const char* heap_env = bb_env("BB_HEAP_HOOKS");
     const bool heap_hooks = memory_hooks && (!heap_env || heap_env[0] != '0');
-    if (memory_hooks && BbStats::enabled) {
+    if (memory_hooks && BbStats::enabled && !BbGxReclaim::CollectorInstalled()) {
         Patch(ImageBase + CollectorEntry, CollectorEntryCode, sizeof(CollectorEntryCode));
     }
     int heap_sites = 0;

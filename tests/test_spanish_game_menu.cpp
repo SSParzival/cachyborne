@@ -10,6 +10,9 @@ int main() {
     setenv("BB_VOICE_LANGUAGE", "eng", 1);
     DefineTexts();
     assert(pages.size() == 2);
+    assert(std::u16string(TextOf(exit_name)) == u"Salir al escritorio");
+    assert(std::u16string(TextOf(exit_help_world)) == u"Guarda y cierra el juego");
+    assert(std::u16string(TextOf(exit_question)) == u"¿Salir del juego y volver al escritorio?");
     assert(std::u16string(TextOf(pages[0].name)) == u"Pantalla");
     assert(std::u16string(TextOf(pages[1].name)) == u"Efectos");
     assert(std::u16string(TextOf(pages[0].rows[0].name)) == u"Relación de aspecto");

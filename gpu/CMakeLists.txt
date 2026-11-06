@@ -106,9 +106,11 @@ file(GLOB_RECURSE BB_SHADER_FINGERPRINT_SOURCES CONFIGURE_DEPENDS
     shader/*.cpp shader/*.h gcn/*.cpp gcn/*.h
     render/pipeline*.cpp render/pipeline*.h render/permutation_indices.h
     render/shader_*.cpp render/shader_*.h
-    common/types.h common/serdes.h CMakeLists.txt cmake/ShaderFingerprint.cmake)
-bb_shader_fingerprint("${CMAKE_CURRENT_SOURCE_DIR}"
-    "${SHADER_INCLUDE}/bbgpu/shader_build.h" ${BB_SHADER_FINGERPRINT_SOURCES})
+    common/*.h
+    third_party/sirit/src/*.cpp third_party/sirit/src/*.h third_party/sirit/include/*.h
+    third_party/sirit/externals/SPIRV-Headers/include/*.h
+    third_party/sirit/externals/SPIRV-Headers/include/*.hpp
+    cmake/ShaderFingerprint.cmake cmake/ShaderFingerprintDriver.cmake.in)
 set(SHADER_HEADERS "")
 function(add_shader_header SOURCE OUT_DIR SHADER_NAME)
     set(OUT ${OUT_DIR}/${SHADER_NAME}.h)
@@ -204,6 +206,7 @@ add_custom_target(host_shaders DEPENDS ${SHADER_HEADERS})
 file(GLOB_RECURSE RECOMPILER CONFIGURE_DEPENDS shader/*.cpp)
 # Own utilities (types, logging, paths, locks, containers): common/.
 file(GLOB COMMON CONFIGURE_DEPENDS common/*.cpp common/logging/*.cpp)
+# SHA-256 serves both the offline script tools and native plugin ELF identity.
 # Own system libraries (Gnm, VideoOut, AvPlayer, event queues, interrupts): platform/.
 file(GLOB_RECURSE PLATFORM_SOURCES CONFIGURE_DEPENDS platform/*.cpp)
 # platform/win32: the POSIX subset over Win32 (with its headers in platform/win32/include).
@@ -214,6 +217,10 @@ file(GLOB SHIM_SOURCES CONFIGURE_DEPENDS shim/*.cpp shim/*/*.cpp)
 file(GLOB LAYER_SOURCES CONFIGURE_DEPENDS layer/*.cpp)
 # Game profiles (what the translator knows about one game, out of its core): games/.
 file(GLOB GAME_SOURCES CONFIGURE_DEPENDS games/*.cpp games/*/*.cpp)
+# These helpers currently serve the explicit offline targets below.
+list(REMOVE_ITEM GAME_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/games/bloodborne/esd.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/games/bloodborne/rebirth_script.cpp")
 # The translator's own command processor (docs/ROADMAP.md, step 2): cp/.
 file(GLOB CP_SOURCES CONFIGURE_DEPENDS cp/*.cpp memory/*.cpp gcn/*.cpp textures/*.cpp buffers/*.cpp vulkan/*.cpp)
 # The translator's rendering pieces (labels, timestamps, occlusion, draw preparation, profiling,
@@ -242,7 +249,7 @@ target_compile_definitions(bbgpu PRIVATE IMGUI_IMPL_VULKAN_NO_PROTOTYPES
     BB_FONT_PATH="${CMAKE_CURRENT_SOURCE_DIR}/third_party/fonts/DejaVuSans.ttf")
 set_source_files_properties(shim/bbport_overlay.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/fonts/DejaVuSans.ttf")
-target_include_directories(bbgpu PRIVATE . shim layer games cp ${SHADER_INCLUDE} third_party/gcn/include third_party/half/include)
+target_include_directories(bbgpu PRIVATE . shim layer games cp "${SHADER_INCLUDE}/$<CONFIG>" ${SHADER_INCLUDE} third_party/gcn/include third_party/half/include)
 target_compile_definitions(bbgpu PRIVATE BOOST_ASIO_STANDALONE NDEBUG)
 target_compile_options(bbgpu PRIVATE -Wno-deprecated-declarations -Wno-missing-field-initializers)
 # Loaded with bb-probe at startup (DT_NEEDED, never dlopen): thread_local access without a
@@ -271,6 +278,10 @@ target_include_directories(trophy-test PRIVATE shim)
 add_executable(motion-history-test EXCLUDE_FROM_ALL ../tests/test_motion_history.cpp)
 target_compile_options(motion-history-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(motion-history-test PRIVATE ..)
+add_executable(record-chunk-test EXCLUDE_FROM_ALL ../tests/test_record_chunk.cpp)
+target_compile_options(record-chunk-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(record-chunk-test PRIVATE . shim)
+target_link_libraries(record-chunk-test PRIVATE Vulkan::Headers)
 add_executable(motion-shader-test EXCLUDE_FROM_ALL ../tests/test_motion_shaders.cpp ../tests/test_gpu_runtime_stubs.cpp)
 target_include_directories(motion-shader-test PRIVATE . shim ${SHADER_INCLUDE} third_party/gcn/include)
 target_link_libraries(motion-shader-test PRIVATE bbgpu)
@@ -416,6 +427,45 @@ target_include_directories(image-download-test PRIVATE . shim ${SHADER_INCLUDE} 
 target_compile_options(image-download-test PRIVATE -UNDEBUG -fPIC)
 target_link_libraries(image-download-test PRIVATE bbgpu)
 
+add_executable(draw-pipe-steal-test EXCLUDE_FROM_ALL ../tests/test_draw_pipe_steal.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(draw-pipe-steal-test PRIVATE . shim)
+target_compile_options(draw-pipe-steal-test PRIVATE -UNDEBUG -Wall -Wextra)
+target_link_libraries(draw-pipe-steal-test PRIVATE bbgpu)
+
+add_executable(frame-clock-hooks-test EXCLUDE_FROM_ALL ../tests/test_frame_clock_hooks.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(frame-clock-hooks-test PRIVATE . shim ../tests)
+target_compile_options(frame-clock-hooks-test PRIVATE -UNDEBUG -fPIE)
+target_link_options(frame-clock-hooks-test PRIVATE -pie)
+target_link_libraries(frame-clock-hooks-test PRIVATE bbgpu)
+
+add_executable(ragdoll-clock-test EXCLUDE_FROM_ALL ../tests/test_ragdoll_clock.cpp)
+target_include_directories(ragdoll-clock-test PRIVATE . shim ../tests)
+target_compile_options(ragdoll-clock-test PRIVATE -UNDEBUG -fPIE)
+target_link_options(ragdoll-clock-test PRIVATE -pie)
+
+add_executable(frame-clock-test EXCLUDE_FROM_ALL ../tests/test_frame_clock.cpp)
+target_include_directories(frame-clock-test PRIVATE shim)
+target_compile_options(frame-clock-test PRIVATE -UNDEBUG)
+foreach(timing_kind IN ITEMS sync replay_manipulator)
+    add_executable(chr-${timing_kind}-test EXCLUDE_FROM_ALL ../tests/test_chr_${timing_kind}.cpp)
+    target_include_directories(chr-${timing_kind}-test PRIVATE . shim ../tests)
+    target_compile_options(chr-${timing_kind}-test PRIVATE -UNDEBUG -fPIE)
+    target_link_options(chr-${timing_kind}-test PRIVATE -pie)
+endforeach()
+
+add_executable(guest-hook-replacement-test EXCLUDE_FROM_ALL ../tests/test_guest_hook_replacement.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(guest-hook-replacement-test PRIVATE . shim)
+target_compile_options(guest-hook-replacement-test PRIVATE -UNDEBUG)
+target_link_libraries(guest-hook-replacement-test PRIVATE bbgpu)
+
+add_executable(gx-job-barrier-test EXCLUDE_FROM_ALL ../tests/test_gx_job_barrier.cpp)
+target_include_directories(gx-job-barrier-test PRIVATE .)
+target_compile_options(gx-job-barrier-test PRIVATE -UNDEBUG)
+
+add_executable(menu-pointer-test EXCLUDE_FROM_ALL ../tests/test_menu_pointer.cpp)
+target_include_directories(menu-pointer-test PRIVATE games)
+target_compile_options(menu-pointer-test PRIVATE -UNDEBUG)
+
 add_executable(effect-time-test EXCLUDE_FROM_ALL ../tests/test_effect_time.cpp)
 target_include_directories(effect-time-test PRIVATE shim)
 target_compile_options(effect-time-test PRIVATE -UNDEBUG)
@@ -429,7 +479,7 @@ target_include_directories(hybrid-affinity-test PRIVATE .)
 target_compile_options(hybrid-affinity-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_link_libraries(hybrid-affinity-test PRIVATE Threads::Threads)
 
-set(CACHYBORNE_TEST_TARGETS guest-guards-test effect-time-test image-download-test image-write-baseline-test guest-image-hash-test shader-cache-invariants-test trophy-test camera-matrices-test image-spares-test spanish-game-menu-test motion-history-test motion-shader-test ui-composition-test
+set(CACHYBORNE_TEST_TARGETS draw-pipe-steal-test frame-clock-hooks-test ragdoll-clock-test frame-clock-test chr-sync-test chr-replay_manipulator-test guest-hook-replacement-test gx-job-barrier-test menu-pointer-test guest-guards-test effect-time-test image-download-test image-write-baseline-test guest-image-hash-test shader-cache-invariants-test trophy-test camera-matrices-test image-spares-test spanish-game-menu-test motion-history-test motion-shader-test ui-composition-test
     cp-decoder-test fx-init-clear-test effect-flags-test settings-test scene-resolution-test
     taa-shader-test camera-motion-test translation-memory-test upscaler-support-test
     shader-corpus-test srt-walker-fault-test)
@@ -437,6 +487,226 @@ add_executable(staging-pool-test EXCLUDE_FROM_ALL ../tests/test_staging_pool.cpp
 target_include_directories(staging-pool-test PRIVATE . shim ${SHADER_INCLUDE} third_party/gcn/include)
 target_compile_options(staging-pool-test PRIVATE -UNDEBUG -fPIC)
 target_link_libraries(staging-pool-test PRIVATE bbgpu)
+add_executable(record-data-test EXCLUDE_FROM_ALL ../tests/test_record_data.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(record-data-test PRIVATE . shim)
+target_compile_options(record-data-test PRIVATE -UNDEBUG -fPIC -Wall -Wextra -Werror)
+target_link_libraries(record-data-test PRIVATE bbgpu)
+
+add_executable(timeline-wait-test EXCLUDE_FROM_ALL ../tests/test_timeline_wait.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(timeline-wait-test PRIVATE . shim)
+target_compile_options(timeline-wait-test PRIVATE -UNDEBUG -fPIC -Wall -Wextra -Werror)
+target_link_libraries(timeline-wait-test PRIVATE bbgpu)
+list(APPEND CACHYBORNE_TEST_TARGETS timeline-wait-test)
+
+add_executable(progress-request-test EXCLUDE_FROM_ALL ../tests/test_progress_request.cpp)
+target_include_directories(progress-request-test PRIVATE .)
+target_compile_options(progress-request-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_link_libraries(progress-request-test PRIVATE Threads::Threads)
+list(APPEND CACHYBORNE_TEST_TARGETS progress-request-test)
+
+add_executable(cp-progress-test EXCLUDE_FROM_ALL ../tests/test_cp_progress.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(cp-progress-test PRIVATE . shim)
+target_compile_options(cp-progress-test PRIVATE -UNDEBUG -fPIC -Wall -Wextra -Werror)
+target_link_libraries(cp-progress-test PRIVATE bbgpu)
+list(APPEND CACHYBORNE_TEST_TARGETS cp-progress-test)
+
+add_executable(frame-capture-test EXCLUDE_FROM_ALL ../tests/test_frame_capture.cpp render/vk_frame_capture.cpp)
+target_include_directories(frame-capture-test PRIVATE .)
+target_compile_options(frame-capture-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_link_libraries(frame-capture-test PRIVATE Vulkan::Headers fmt::fmt)
+list(APPEND CACHYBORNE_TEST_TARGETS frame-capture-test)
+
+# Explicit integration harness only; never preloaded by a normal launch.
+add_library(gpu-progress-preload MODULE EXCLUDE_FROM_ALL ../tests/gpu_progress_preload.cpp)
+target_include_directories(gpu-progress-preload PRIVATE . shim)
+target_compile_options(gpu-progress-preload PRIVATE -Wall -Wextra -Werror)
+target_link_libraries(gpu-progress-preload PRIVATE bbgpu ${CMAKE_DL_LIBS})
+
+add_executable(copy-filter-test EXCLUDE_FROM_ALL ../tests/test_copy_filter.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(copy-filter-test PRIVATE . shim)
+target_compile_options(copy-filter-test PRIVATE -UNDEBUG -fPIC -Wall -Wextra -Werror)
+target_link_libraries(copy-filter-test PRIVATE bbgpu)
+
+add_executable(write-ticks-lifetime-test EXCLUDE_FROM_ALL ../tests/test_write_ticks_lifetime.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(write-ticks-lifetime-test PRIVATE . shim)
+target_compile_options(write-ticks-lifetime-test PRIVATE -UNDEBUG -fPIC -Wall -Wextra -Werror)
+target_link_libraries(write-ticks-lifetime-test PRIVATE bbgpu)
+list(APPEND CACHYBORNE_TEST_TARGETS write-ticks-lifetime-test)
+
+add_executable(interrupt-lifetime-test EXCLUDE_FROM_ALL ../tests/test_interrupt_lifetime.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(interrupt-lifetime-test PRIVATE . shim)
+target_compile_options(interrupt-lifetime-test PRIVATE -UNDEBUG -fPIC -Wall -Wextra -Werror)
+target_link_libraries(interrupt-lifetime-test PRIVATE bbgpu)
+list(APPEND CACHYBORNE_TEST_TARGETS interrupt-lifetime-test)
+
+add_executable(params-test EXCLUDE_FROM_ALL ../tests/test_params.cpp games/bloodborne/params.cpp)
+target_include_directories(params-test PRIVATE .)
+target_compile_options(params-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+list(APPEND CACHYBORNE_TEST_TARGETS params-test)
+
+add_executable(blob-store-test EXCLUDE_FROM_ALL ../tests/test_blob_store.cpp
+    ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(blob-store-test PRIVATE . shim)
+target_compile_options(blob-store-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_link_libraries(blob-store-test PRIVATE bbgpu)
+list(APPEND CACHYBORNE_TEST_TARGETS blob-store-test)
+
+# Offline talk-script preparation. Kept out of the runtime until the complete
+# altar handshake, localized messages and undo path have been validated.
+set(BB_TALK_SCRIPT_SOURCES games/bloodborne/esd.cpp games/bloodborne/rebirth_script.cpp common/sha256.cpp)
+add_executable(esd-test EXCLUDE_FROM_ALL ../tests/test_esd.cpp ${BB_TALK_SCRIPT_SOURCES})
+target_include_directories(esd-test PRIVATE .)
+target_compile_options(esd-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+list(APPEND CACHYBORNE_TEST_TARGETS esd-test)
+add_executable(rebirth-script-tool EXCLUDE_FROM_ALL ../tools/rebirth_script.cpp ${BB_TALK_SCRIPT_SOURCES})
+target_include_directories(rebirth-script-tool PRIVATE .)
+target_compile_options(rebirth-script-tool PRIVATE -Wall -Wextra -Werror)
+add_dependencies(esd-test rebirth-script-tool)
+
+add_executable(rebirth-plan-test EXCLUDE_FROM_ALL ../tests/test_rebirth_plan.cpp)
+target_include_directories(rebirth-plan-test PRIVATE .)
+target_compile_options(rebirth-plan-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+add_executable(rebirth-price-test EXCLUDE_FROM_ALL ../tests/test_rebirth_price.cpp shim/bbport_guest_call.cpp)
+target_include_directories(rebirth-price-test PRIVATE . shim ../tests)
+target_compile_options(rebirth-price-test PRIVATE -UNDEBUG -fPIE -Wall -Wextra -Werror)
+target_link_options(rebirth-price-test PRIVATE -pie)
+list(APPEND CACHYBORNE_TEST_TARGETS rebirth-plan-test rebirth-price-test)
+add_executable(rebirth-session-test EXCLUDE_FROM_ALL ../tests/test_rebirth_session.cpp)
+target_include_directories(rebirth-session-test PRIVATE .)
+target_compile_options(rebirth-session-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+list(APPEND CACHYBORNE_TEST_TARGETS rebirth-session-test)
+
+foreach(water_test IN ITEMS water-gate-model sfx-schedule)
+    string(REPLACE "-" "_" water_source "${water_test}")
+    add_executable(${water_test}-test EXCLUDE_FROM_ALL ../tests/test_${water_source}.cpp)
+    target_include_directories(${water_test}-test PRIVATE .)
+    target_compile_options(${water_test}-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+    list(APPEND CACHYBORNE_TEST_TARGETS ${water_test}-test)
+endforeach()
+
+add_executable(limiter-margin-test EXCLUDE_FROM_ALL ../tests/test_limiter_margin.cpp)
+target_include_directories(limiter-margin-test PRIVATE shim)
+target_compile_options(limiter-margin-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+add_executable(limiter-hooks-test EXCLUDE_FROM_ALL ../tests/test_limiter_hooks.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(limiter-hooks-test PRIVATE . shim ../tests)
+target_compile_options(limiter-hooks-test PRIVATE -UNDEBUG -fPIE -Wall -Wextra -Werror)
+target_link_options(limiter-hooks-test PRIVATE -pie)
+target_link_libraries(limiter-hooks-test PRIVATE bbgpu)
+list(APPEND CACHYBORNE_TEST_TARGETS limiter-margin-test limiter-hooks-test)
+
+add_executable(flip-pacing-test EXCLUDE_FROM_ALL ../tests/test_flip_pacing.cpp)
+target_include_directories(flip-pacing-test PRIVATE .)
+target_compile_options(flip-pacing-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+list(APPEND CACHYBORNE_TEST_TARGETS flip-pacing-test)
+
+add_executable(sound-wake-test EXCLUDE_FROM_ALL ../tests/test_sound_wake.cpp)
+target_include_directories(sound-wake-test PRIVATE .)
+target_compile_options(sound-wake-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_link_libraries(sound-wake-test PRIVATE Threads::Threads)
+add_executable(sound-wake-hooks-test EXCLUDE_FROM_ALL ../tests/test_sound_wake_hooks.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(sound-wake-hooks-test PRIVATE . shim)
+target_compile_options(sound-wake-hooks-test PRIVATE -UNDEBUG -fPIC -Wall -Wextra -Werror)
+target_link_libraries(sound-wake-hooks-test PRIVATE bbgpu)
+list(APPEND CACHYBORNE_TEST_TARGETS sound-wake-test sound-wake-hooks-test)
+
+foreach(feature_test IN ITEMS plugin-cleanup guest-patch plugin-image plugin-callbacks-frame guest-call bloodletter water-gate guest-hook-conditional frame-tasks menu-steps appearance rebirth fmod-project-init sf-text-layout gx-rename-retail gx-reclaim save-quit occlusion-fresh)
+    string(REPLACE "-" "_" feature_source "${feature_test}")
+    add_executable(${feature_test}-test EXCLUDE_FROM_ALL ../tests/test_${feature_source}.cpp ../tests/test_gpu_runtime_stubs.cpp)
+    target_include_directories(${feature_test}-test PRIVATE . shim)
+    target_compile_options(${feature_test}-test PRIVATE -UNDEBUG -fPIC -Wall -Wextra -Werror)
+    if(feature_test STREQUAL "guest-hook-conditional")
+        target_compile_options(${feature_test}-test PRIVATE -mno-red-zone)
+    endif()
+    target_link_libraries(${feature_test}-test PRIVATE bbgpu)
+    list(APPEND CACHYBORNE_TEST_TARGETS ${feature_test}-test)
+endforeach()
+
+add_library(plugin-callback-module MODULE EXCLUDE_FROM_ALL ../tests/plugin_callback_module.c)
+add_executable(plugin-callbacks-test EXCLUDE_FROM_ALL ../tests/test_plugin_callbacks.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(plugin-callbacks-test PRIVATE . shim)
+target_compile_options(plugin-callbacks-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_link_libraries(plugin-callbacks-test PRIVATE bbgpu ${CMAKE_DL_LIBS})
+add_dependencies(plugin-callbacks-test plugin-callback-module)
+list(APPEND CACHYBORNE_TEST_TARGETS plugin-callbacks-test)
+
+add_library(plugin-module-fixture MODULE EXCLUDE_FROM_ALL ../tests/plugin_module_fixture.cpp)
+target_include_directories(plugin-module-fixture PRIVATE shim)
+add_executable(plugin-module-test EXCLUDE_FROM_ALL ../tests/test_plugin_module.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(plugin-module-test PRIVATE . shim)
+target_compile_options(plugin-module-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_link_libraries(plugin-module-test PRIVATE bbgpu ${CMAKE_DL_LIBS})
+add_dependencies(plugin-module-test plugin-module-fixture plugin-callback-module)
+list(APPEND CACHYBORNE_TEST_TARGETS plugin-module-test)
+add_library(plugin-host-fixture MODULE EXCLUDE_FROM_ALL ../tests/plugin_host_fixture.cpp)
+target_include_directories(plugin-host-fixture PRIVATE shim)
+target_compile_options(plugin-host-fixture PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+add_library(plugin-host-retail MODULE EXCLUDE_FROM_ALL ../tests/plugin_host_retail.cpp)
+target_include_directories(plugin-host-retail PRIVATE shim)
+target_compile_options(plugin-host-retail PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+add_library(plugin-host-preload MODULE EXCLUDE_FROM_ALL ../tests/plugin_host_preload.cpp)
+target_include_directories(plugin-host-preload PRIVATE . shim)
+target_compile_options(plugin-host-preload PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_link_libraries(plugin-host-preload PRIVATE bbgpu ${CMAKE_DL_LIBS})
+add_executable(plugin-host-test EXCLUDE_FROM_ALL ../tests/test_plugin_host.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(plugin-host-test PRIVATE . shim)
+target_compile_options(plugin-host-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_link_libraries(plugin-host-test PRIVATE bbgpu ${CMAKE_DL_LIBS})
+add_dependencies(plugin-host-test plugin-host-fixture plugin-module-fixture plugin-host-retail plugin-host-preload)
+list(APPEND CACHYBORNE_TEST_TARGETS plugin-host-test)
+foreach(host_case IN ITEMS init-fail init-throw image-fail image-throw unknown-image version hook-throw service-close self-close)
+    add_test(NAME plugin-host-${host_case} COMMAND plugin-host-test
+        $<TARGET_FILE:plugin-host-fixture> $<TARGET_FILE:plugin-module-fixture> ${host_case})
+    set_tests_properties(plugin-host-${host_case} PROPERTIES LABELS cachyborne TIMEOUT 30 SKIP_RETURN_CODE 77)
+endforeach()
+add_library(plugin-hook-fixture MODULE EXCLUDE_FROM_ALL ../tests/plugin_hook_fixture.cpp)
+target_include_directories(plugin-hook-fixture PRIVATE shim)
+target_compile_options(plugin-hook-fixture PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+add_executable(plugin-hooks-test EXCLUDE_FROM_ALL ../tests/test_plugin_hooks.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(plugin-hooks-test PRIVATE . shim)
+target_compile_options(plugin-hooks-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_link_libraries(plugin-hooks-test PRIVATE bbgpu ${CMAKE_DL_LIBS})
+add_dependencies(plugin-hooks-test plugin-hook-fixture)
+list(APPEND CACHYBORNE_TEST_TARGETS plugin-hooks-test)
+add_library(plugin-hle-integration MODULE EXCLUDE_FROM_ALL ../tests/plugin_hle_integration.cpp)
+target_include_directories(plugin-hle-integration PRIVATE . shim)
+target_compile_options(plugin-hle-integration PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_link_libraries(plugin-hle-integration PRIVATE bbgpu)
+add_dependencies(plugin-module-test plugin-hle-integration)
+foreach(hle_case IN ITEMS hle-init-fail hle-image-fail hle-success hle-frame-throw)
+    add_test(NAME plugin-native-${hle_case} COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tests/run_plugin_hle_integration.py
+        ${CMAKE_BINARY_DIR}/../runtime-test $<TARGET_FILE:plugin-hle-integration> $<TARGET_FILE:plugin-module-fixture> ${hle_case})
+    set_tests_properties(plugin-native-${hle_case} PROPERTIES LABELS cachyborne TIMEOUT 30 SKIP_RETURN_CODE 77)
+endforeach()
+
+foreach(host_hle_case IN ITEMS host-hle-success host-hle-init-fail)
+    add_test(NAME plugin-native-${host_hle_case} COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tests/run_plugin_hle_integration.py
+        ${CMAKE_BINARY_DIR}/../runtime-test $<TARGET_FILE:plugin-hle-integration> $<TARGET_FILE:plugin-host-fixture> ${host_hle_case})
+    set_tests_properties(plugin-native-${host_hle_case} PROPERTIES LABELS cachyborne TIMEOUT 30 SKIP_RETURN_CODE 77)
+endforeach()
+
+add_executable(reserved-formats-test EXCLUDE_FROM_ALL ../tests/test_reserved_formats.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(reserved-formats-test PRIVATE . shim ${SHADER_INCLUDE} third_party/gcn/include)
+target_compile_options(reserved-formats-test PRIVATE -UNDEBUG -fPIC -Wall -Wextra -Werror
+    -Wno-reorder-ctor -Wno-unused-parameter) # Existing shader/info.h diagnostics.
+target_link_libraries(reserved-formats-test PRIVATE bbgpu)
+
+if(TARGET bbnet20)
+    add_executable(thd-datagrams-test EXCLUDE_FROM_ALL ../tests/test_thd_datagrams.cpp ../tests/test_gpu_runtime_stubs.cpp)
+    target_include_directories(thd-datagrams-test PRIVATE .)
+    target_compile_options(thd-datagrams-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+    target_link_options(thd-datagrams-test PRIVATE -Wl,--export-dynamic)
+    # Match bb-probe: bbgpu's initial-exec TLS must exist at process startup,
+    # even though the socket test only reaches it through dlopen(bbnet20).
+    target_link_libraries(thd-datagrams-test PRIVATE "-Wl,--no-as-needed" bbgpu
+        "-Wl,--as-needed" ${CMAKE_DL_LIBS})
+    add_dependencies(thd-datagrams-test bbnet20)
+    list(APPEND CACHYBORNE_TEST_TARGETS thd-datagrams-test)
+endif()
+
+add_executable(guest-memory-retirement-test EXCLUDE_FROM_ALL ../tests/test_guest_memory_retirement.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(guest-memory-retirement-test PRIVATE . shim layer ${SHADER_INCLUDE} third_party/gcn/include)
+target_compile_options(guest-memory-retirement-test PRIVATE -UNDEBUG -fPIC -Wall -Wextra -Werror)
+target_link_libraries(guest-memory-retirement-test PRIVATE bbgpu)
 
 find_package(ZLIB REQUIRED)
 add_executable(guest-deflate-test EXCLUDE_FROM_ALL ../tests/test_guest_deflate.cpp games/bloodborne/guest_deflate.cpp)
@@ -454,7 +724,7 @@ target_include_directories(latency-test PRIVATE . shim ${SHADER_INCLUDE} third_p
 target_compile_options(latency-test PRIVATE -UNDEBUG -fPIC)
 target_link_libraries(latency-test PRIVATE bbgpu)
 
-list(APPEND CACHYBORNE_TEST_TARGETS hybrid-affinity-test staging-pool-test guest-deflate-test contact-shadows-test latency-test)
+list(APPEND CACHYBORNE_TEST_TARGETS record-data-test record-chunk-test hybrid-affinity-test staging-pool-test copy-filter-test reserved-formats-test guest-memory-retirement-test guest-deflate-test contact-shadows-test latency-test)
 add_custom_target(cachyborne-tests DEPENDS ${CACHYBORNE_TEST_TARGETS})
 foreach(test_target IN LISTS CACHYBORNE_TEST_TARGETS)
     target_compile_options(${test_target} PRIVATE -UNDEBUG)
@@ -462,6 +732,16 @@ foreach(test_target IN LISTS CACHYBORNE_TEST_TARGETS)
     if(test_target STREQUAL "shader-corpus-test")
         # No recorded corpus is required for the deterministic auxiliary hash regression.
         add_test(NAME ${test_target} COMMAND ${test_target} --aux)
+    elseif(test_target STREQUAL "thd-datagrams-test")
+        add_test(NAME ${test_target} COMMAND ${test_target} $<TARGET_FILE:bbnet20>)
+    elseif(test_target STREQUAL "plugin-callbacks-test")
+        add_test(NAME ${test_target} COMMAND ${test_target} $<TARGET_FILE:plugin-callback-module>)
+    elseif(test_target STREQUAL "plugin-module-test")
+        add_test(NAME ${test_target} COMMAND ${test_target} $<TARGET_FILE:plugin-module-fixture> $<TARGET_FILE:plugin-callback-module>)
+    elseif(test_target STREQUAL "plugin-host-test")
+        add_test(NAME ${test_target} COMMAND ${test_target} $<TARGET_FILE:plugin-host-fixture> $<TARGET_FILE:plugin-module-fixture> success)
+    elseif(test_target STREQUAL "plugin-hooks-test")
+        add_test(NAME ${test_target} COMMAND ${test_target} $<TARGET_FILE:plugin-hook-fixture>)
     else()
         add_test(NAME ${test_target} COMMAND ${test_target})
     endif()
@@ -469,3 +749,60 @@ foreach(test_target IN LISTS CACHYBORNE_TEST_TARGETS)
         LABELS cachyborne TIMEOUT 120
         WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/test-output/${test_target}")
 endforeach()
+
+set_tests_properties(gx-job-barrier-test chr-sync-test chr-replay_manipulator-test ragdoll-clock-test frame-clock-hooks-test PROPERTIES SKIP_RETURN_CODE 77)
+set_tests_properties(guest-memory-retirement-test PROPERTIES SKIP_RETURN_CODE 77)
+set_tests_properties(limiter-hooks-test PROPERTIES SKIP_RETURN_CODE 77)
+set_tests_properties(rebirth-price-test PROPERTIES SKIP_RETURN_CODE 77)
+set_tests_properties(plugin-callbacks-frame-test PROPERTIES SKIP_RETURN_CODE 77)
+set_tests_properties(plugin-image-test PROPERTIES SKIP_RETURN_CODE 77)
+set_tests_properties(plugin-hooks-test PROPERTIES SKIP_RETURN_CODE 77)
+foreach(margin IN ITEMS 0 2000 5000)
+    add_test(NAME limiter-fixed-${margin}-test COMMAND limiter-hooks-test ${margin})
+    set_tests_properties(limiter-fixed-${margin}-test PROPERTIES LABELS cachyborne TIMEOUT 120 SKIP_RETURN_CODE 77)
+endforeach()
+add_test(NAME limiter-core-hooks-test COMMAND limiter-hooks-test -1 --core)
+set_tests_properties(limiter-core-hooks-test PROPERTIES LABELS cachyborne TIMEOUT 120 SKIP_RETURN_CODE 77)
+foreach(site RANGE 0 7)
+    add_test(NAME limiter-mismatch-${site}-test COMMAND limiter-hooks-test mismatch ${site})
+    set_tests_properties(limiter-mismatch-${site}-test PROPERTIES LABELS cachyborne TIMEOUT 120 SKIP_RETURN_CODE 77)
+endforeach()
+set_tests_properties(sound-wake-hooks-test PROPERTIES SKIP_RETURN_CODE 77)
+if(TARGET bbnet20)
+    # These tests use only loopback, no game dump, account or session server.
+    foreach(mode IN ITEMS whole legacy)
+        add_test(NAME thd-datagrams-${mode}-test COMMAND thd-datagrams-test $<TARGET_FILE:bbnet20>)
+        set_tests_properties(thd-datagrams-${mode}-test PROPERTIES LABELS cachyborne TIMEOUT 30)
+    endforeach()
+    set_tests_properties(thd-datagrams-test PROPERTIES ENVIRONMENT "BB_NET_LARGE_DATAGRAMS=1;BB_NET_SPLIT_DATAGRAMS=1")
+    set_tests_properties(thd-datagrams-whole-test PROPERTIES ENVIRONMENT "BB_NET_LARGE_DATAGRAMS=1;BB_NET_SPLIT_DATAGRAMS=0")
+    set_tests_properties(thd-datagrams-legacy-test PROPERTIES ENVIRONMENT "BB_NET_LARGE_DATAGRAMS=0;BB_NET_SPLIT_DATAGRAMS=1")
+endif()
+set_tests_properties(occlusion-fresh-test PROPERTIES SKIP_RETURN_CODE 77)
+foreach(site RANGE 0 3)
+    add_test(NAME occlusion-fresh-mismatch-${site}-test COMMAND occlusion-fresh-test ${site})
+    set_tests_properties(occlusion-fresh-mismatch-${site}-test PROPERTIES LABELS cachyborne TIMEOUT 120 SKIP_RETURN_CODE 77)
+endforeach()
+set_tests_properties(frame-tasks-test menu-steps-test appearance-test rebirth-test fmod-project-init-test sf-text-layout-test gx-rename-retail-test gx-reclaim-test save-quit-test PROPERTIES SKIP_RETURN_CODE 77)
+add_test(NAME gx-reclaim-off-test COMMAND gx-reclaim-test --off)
+set_tests_properties(gx-reclaim-off-test PROPERTIES LABELS cachyborne TIMEOUT 120 SKIP_RETURN_CODE 77)
+set_tests_properties(gx-reclaim-test gx-reclaim-off-test PROPERTIES ENVIRONMENT "BB_FRAME_STATS=1")
+
+add_test(NAME frame-clock-hooks-off-test COMMAND frame-clock-hooks-test --off)
+set_tests_properties(frame-clock-hooks-off-test PROPERTIES LABELS cachyborne TIMEOUT 120 SKIP_RETURN_CODE 77)
+add_test(NAME wind-pace-off-test COMMAND frame-clock-hooks-test --off --wind-off)
+set_tests_properties(wind-pace-off-test PROPERTIES LABELS cachyborne TIMEOUT 120 SKIP_RETURN_CODE 77)
+add_test(NAME wind-pace-mismatch-test COMMAND frame-clock-hooks-test --off --wind-off --wind-mismatch)
+set_tests_properties(wind-pace-mismatch-test PROPERTIES LABELS cachyborne TIMEOUT 120 SKIP_RETURN_CODE 77)
+
+set_tests_properties(water-gate-test PROPERTIES SKIP_RETURN_CODE 77)
+foreach(site IN ITEMS 0 1)
+    add_test(NAME water-gate-mismatch-${site}-test COMMAND water-gate-test ${site})
+    set_tests_properties(water-gate-mismatch-${site}-test PROPERTIES LABELS cachyborne TIMEOUT 120 SKIP_RETURN_CODE 77)
+endforeach()
+
+# Capture final target/directory settings, excluding the text of unrelated test
+# declarations. Each configuration gets its own generated identity header.
+bb_target_shader_fingerprint(bbgpu "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${SHADER_INCLUDE}/$<CONFIG>/bbgpu/shader_build.h"
+    SOURCES ${BB_SHADER_FINGERPRINT_SOURCES} DEPENDENCY_TARGETS sirit)

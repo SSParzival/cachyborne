@@ -34,6 +34,12 @@ int runtime_pad_prompt_device(void) {
     return __atomic_load_n(&prompt_device,__ATOMIC_RELAXED);
 }
 unsigned runtime_pad_prompt_generation(void) {
+    /* Keycap textures are cached by generation. Rebuild on menu transitions so
+     * the HUD keeps combat prompts and menus show their dedicated assignments. */
+    static atomic_int was_menu;
+    const int menu=bbgpu_pointer_wanted()!=0;
+    if (atomic_exchange_explicit(&was_menu,menu,memory_order_relaxed)!=menu)
+        __atomic_add_fetch(&prompt_generation,1,__ATOMIC_RELAXED);
     return __atomic_load_n(&prompt_generation,__ATOMIC_RELAXED);
 }
 /* Mouse look on (bbport.ini mouse_look): the right stick's prompt is the mouse. */
@@ -73,7 +79,21 @@ int runtime_pad_prompt(const char *name, int prefer_mouse, char *label, int size
     const int device=prompt_device;
     const Binding b=bindings[input];
     /* Circle has no key of its own: the way back in a game menu is Escape (Options' key). */
-    const Binding keyboard_b=input==IN_CIRCLE && bindings[input].key_count==0 ? bindings[IN_OPTIONS] : bindings[input];
+    int keyboard_input=input;
+    if (device==2 && bbgpu_pointer_wanted()) {
+        switch (input) {
+        case IN_CROSS: keyboard_input=IN_MENU_CONFIRM; break;
+        case IN_SQUARE: keyboard_input=IN_MENU_DISPLAY; break;
+        case IN_TRIANGLE: keyboard_input=IN_MENU_STATUS; break;
+        case IN_L1: keyboard_input=IN_MENU_PREV; break;
+        case IN_R1: keyboard_input=IN_MENU_NEXT; break;
+        case IN_L2: keyboard_input=IN_MENU_STORAGE; break;
+        case IN_R2: keyboard_input=IN_MENU_INVENTORY; break;
+        default: break;
+        }
+    }
+    const Binding keyboard_b=keyboard_input==IN_CIRCLE && bindings[input].key_count==0 ?
+                             bindings[IN_OPTIONS] : bindings[keyboard_input];
     const int look=mouse_look;
     const SDL_GamepadType type=prompt_pad_type;
     pthread_mutex_unlock(&lock);

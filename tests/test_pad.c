@@ -3,9 +3,17 @@
 #define _GNU_SOURCE
 #include <assert.h>
 #include <unistd.h>
+#include <SDL3/SDL.h>
+static unsigned gamepad_scan_calls;
+static SDL_JoystickID *observed_gamepad_scan(int *count) {
+    ++gamepad_scan_calls;
+    return SDL_GetGamepads(count);
+}
+#define SDL_GetGamepads observed_gamepad_scan
 #include "../src/runtime_pad.c"
+#undef SDL_GetGamepads
 
-static int capture;
+static int capture, pointer_wanted;
 int bbgpu_latency_enabled;
 void bbgpu_latency_input_sample(void) {}
 int bbgpu_overlay_captures_input(void) { return capture; }
@@ -15,7 +23,7 @@ void bbgpu_mouse_look_enable(int enabled) { (void)enabled; }
 void bbgpu_mouse_capture(void) {}
 int bbgpu_camera_look(float yaw, float pitch) { (void)yaw; (void)pitch; return 0; }
 void bbgpu_filter_pad(uint32_t *buttons, const uint8_t *sticks) { (void)buttons; (void)sticks; }
-int bbgpu_pointer_wanted(void) { return 0; }
+int bbgpu_pointer_wanted(void) { return pointer_wanted; }
 /* The game's image is not mapped here: the mouse's auto-rotation hold leaves its code alone. */
 int runtime_memory_low_info(uintptr_t address, int *prot, uintptr_t *end) { (void)address; (void)prot; (void)end; return 0; }
 int bbgpu_video_active(void) { return 0; }
@@ -63,6 +71,119 @@ int main(void) {
     assert(bindings[IN_OPTIONS].keys[0]==SDL_SCANCODE_ESCAPE && bindings[IN_OPTIONS].mods[0]<0);
     assert(bindings[IN_R2].keys[0]==MOUSE_KEY+SDL_BUTTON_LEFT && bindings[IN_R2].mods[0]==SDL_SCANCODE_LSHIFT);
     assert(bindings[IN_R1].keys[0]==MOUSE_KEY+SDL_BUTTON_LEFT && bindings[IN_R1].mods[0]<0);
+    /* Dedicated menu actions must not leak combat shortcuts or Enter into play. */
+    {
+        bool keys[SDL_SCANCODE_COUNT]={0};
+        PadData m={.timestamp=1000000,.left_x=128,.left_y=128,.right_x=128,.right_y=128};
+        bindings[IN_CROSS].keys[bindings[IN_CROSS].key_count]=SDL_SCANCODE_RETURN;
+        bindings[IN_CROSS].mods[bindings[IN_CROSS].key_count++]=-1; /* pre-port profile */
+        keys[SDL_SCANCODE_RETURN]=true;
+        apply_keyboard(&m,keys);
+        assert(!m.buttons);
+        pointer_wanted=1;
+        apply_keyboard(&m,keys);
+        assert(m.buttons==BTN_CROSS);
+        memset(keys,0,sizeof keys);
+        keys[SDL_SCANCODE_F]=true;
+        m.buttons=0;
+        apply_keyboard(&m,keys);
+        assert(m.buttons==BTN_SQUARE); /* F does not confirm too. */
+        memset(keys,0,sizeof keys);
+        keys[SDL_SCANCODE_E]=keys[SDL_SCANCODE_Q]=keys[SDL_SCANCODE_TAB]=true;
+        m.buttons=BTN_R1; /* controller buttons survive */
+        apply_keyboard(&m,keys);
+        assert(m.buttons==BTN_R1);
+        memset(keys,0,sizeof keys);
+        keys[SDL_SCANCODE_HOME]=keys[SDL_SCANCODE_END]=true;
+        keys[SDL_SCANCODE_PAGEUP]=keys[SDL_SCANCODE_PAGEDOWN]=true;
+        keys[SDL_SCANCODE_R]=true;
+        m.buttons=0;
+        apply_keyboard(&m,keys);
+        assert(m.buttons==(BTN_L2|BTN_R2|BTN_L1|BTN_R1|BTN_TRIANGLE));
+        assert(m.l2==255 && m.r2==255);
+        bindings_ready=1;
+        prompt_device=2;
+        char label[32];
+        const unsigned generation=runtime_pad_prompt_generation();
+        assert(runtime_pad_prompt("r1",1,label,sizeof label)=='K' && !strcmp(label,"PgDn"));
+        assert(runtime_pad_prompt("cross",0,label,sizeof label)=='K' && !strcmp(label,"Enter"));
+        pointer_wanted=0;
+        assert(runtime_pad_prompt_generation()!=generation);
+        assert(runtime_pad_prompt("r1",1,label,sizeof label)=='M' && !strcmp(label,"Left"));
+        bindings_ready=0;
+    }
+    /* Sprint turns keep full reach at 30/60/120 Hz; a one-axis reversal flips. */
+    for (int rate=30;rate<=120;rate*=2) {
+        KeyStick st={0};
+        uint64_t now=1000000, step=1000000/rate;
+        uint8_t x=128,y=128;
+        for (int i=0;i<rate;++i,now+=step)
+            key_stick(&st,now,1,0,1,0,1,1,&x,&y);
+        assert(st.mag==1.0f);
+        const float before=st.angle;
+        key_stick(&st,now,0,1,1,0,1,1,&x,&y);
+        assert(st.mag==1.0f && fabsf(st.angle-before)<(float)M_PI/2);
+        now+=step;
+        x=y=128;
+        assert(!key_stick(&st,now,0,0,0,0,1,1,&x,&y));
+        assert(x==128 && y==128 && st.mag==1.0f);
+        now+=step;
+        key_stick(&st,now,1,0,0,0,1,1,&x,&y);
+        now+=step;
+        key_stick(&st,now,0,1,0,0,1,1,&x,&y);
+        assert(x==255 && y==128 && st.mag==1.0f);
+        now+=200000;
+        key_stick(&st,now,0,0,0,0,1,1,&x,&y);
+        assert(st.mag==0.0f);
+        now+=step;
+        key_stick(&st,now,0,0,1,0,1,1,&x,&y);
+        assert(st.mag>0.0f && st.mag<1.0f);
+    }
+    /* A chord on the keyboard: C alone is R3, Ctrl+C is L3 and not R3 too. */
+    /* Last-input priority is optional, and must keep BBHOST's full-magnitude
+     * sprint reversals instead of importing the fork's acceleration reset. */
+    assert(key_opposites_last==0);
+    key_opposites_last=1;
+    for (int rate=30;rate<=120;rate*=2) {
+        KeyStick st={0};
+        uint64_t now=1000000,step=1000000/rate;
+        uint8_t x=128,y=128;
+        for (int i=0;i<12;++i,now+=step)
+            key_stick(&st,now,1,0,0,0,1,1,&x,&y);
+        assert(x==1 && y==128 && st.mag==1);
+        key_stick(&st,now,1,1,0,0,1,1,&x,&y);
+        assert(x==255 && y==128 && st.mag==1);
+        now+=step;
+        key_stick(&st,now,1,0,0,0,1,1,&x,&y);
+        assert(x==1 && y==128 && st.mag==1);
+        /* Poll ties and fresh presses after a complete release are neutral. */
+        st=(KeyStick){0};x=y=128;
+        assert(!key_stick(&st,now,1,1,1,1,1,1,&x,&y));
+        assert(x==128 && y==128);
+        /* Horizontal and vertical edges are independent. */
+        assert(key_axis(&st,0,1,0)==-1);
+        assert(key_axis(&st,1,0,1)==1);
+        assert(key_axis(&st,0,1,1)==1);
+        assert(key_axis(&st,1,1,1)==-1);
+        assert(key_axis(&st,0,1,0)==-1);
+        assert(key_axis(&st,1,0,1)==1);
+        /* Camera keeps its own neutral opposing-key policy. */
+        st=(KeyStick){0};
+        for (int i=0;i<12;++i,now+=step)
+            key_stick(&st,now,1,0,0,0,0,0,&x,&y);
+        assert(st.mag==1);
+        key_stick(&st,now,1,1,0,0,0,0,&x,&y);
+        assert(st.mag<1);
+    }
+    /* Configuration survives normal binding loads, but unknown values must
+     * not accidentally enable a different input policy. */
+    FILE *policy=fopen(config,"a");assert(policy);
+    fputs("key_opposites=last\n",policy);fclose(policy);
+    load_bindings();assert(key_opposites_last==1);
+    policy=fopen(config,"a");assert(policy);
+    fputs("key_opposites=last_typo\n",policy);fclose(policy);
+    load_bindings();assert(key_opposites_last==0);
+
     /* A chord on the keyboard: C alone is R3, Ctrl+C is L3 and not R3 too. */
     load_bindings();
     assert(bindings[IN_L3].key_count==2 && bindings[IN_L3].keys[0]==SDL_SCANCODE_C &&
@@ -87,6 +208,12 @@ int main(void) {
     inject(path,"");
     assert(pad_read_state(1,&data)==0 && data.buttons==0 && data.touch_count==0);
 
+    /* With no controller, repeated game reads must not enumerate every time.
+     * Hotplug discovery below must still succeed within the promised second. */
+    assert(!gamepad);
+    gamepad_scan_calls=0;
+    for (int i=0;i<1000;++i) assert(pad_read_state(1,&data)==0);
+    assert(gamepad_scan_calls<=1);
     SDL_VirtualJoystickTouchpadDesc touch={.nfingers=2};
     SDL_VirtualJoystickDesc desc;
     SDL_INIT_INTERFACE(&desc);
@@ -109,7 +236,10 @@ int main(void) {
     assert(SDL_SetJoystickVirtualButton(joystick,SDL_GAMEPAD_BUTTON_TOUCHPAD,true));
     SDL_UpdateJoysticks();
     SDL_UpdateGamepads();
-    assert(pad_read_state(1,&data)==0);
+    for (int i=0;i<120 && !gamepad;++i) {
+        assert(pad_read_state(1,&data)==0);
+        if (!gamepad) SDL_Delay(10);
+    }
     assert(gamepad && data.touch_count==2 && (data.buttons & BTN_TOUCHPAD));
     assert(data.touches[0].x==1439 && data.touches[0].y==471 && data.touches[0].id==2);
     assert(data.touches[1].x==480 && data.touches[1].y==942 && data.touches[1].id==3);

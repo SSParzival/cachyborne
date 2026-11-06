@@ -25,7 +25,7 @@ class VoiceLanguageTests(unittest.TestCase):
             self.assertEqual(env['BB_VK_RECORD_THREADS'], '3')
             self.assertEqual(env['BB_ASYNC_SUBMIT'], '1')
             self.assertEqual(env['BB_LAYER_MEMORY'], '1')
-            self.assertEqual(env['BB_DMEM_MB'], '5056')
+            self.assertEqual(env['BB_DMEM_MB'], '5936')
             self.assertEqual(env['MESA_SHADER_CACHE_DIR'], '/cache/mesa')
 
     def test_invalid_voice_rejected(self):

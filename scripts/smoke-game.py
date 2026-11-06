@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import time
+from isolated_game import headless_command, isolate_profile, stop_group, MemoryWatch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "launcher"))
 import cachyborne as core
@@ -20,7 +21,7 @@ import cachyborne as core
 
 def check_rendered_output(log, directory):
     if re.search(
-        r"STOP:|ErrorDeviceLost|Device lost while|Assertion Failed|Host fault|Guest fault",
+        r"STOP:|ErrorDeviceLost|Device lost while|Assertion Failed|Host fault|Guest fault|Fault \(signal \d+\)",
         log,
     ):
         raise RuntimeError("El juego registró un fallo; revisa game.log.")
@@ -54,6 +55,8 @@ def main():
     if args.seconds < 15:
         parser.error("--seconds must be at least 15")
     profile = copy.deepcopy(core.load_profile(args.profile))
+    isolate_profile(profile)
+    memory_watch = MemoryWatch(core.available_memory)
     core.check_runtime_requirements(profile)
     out = (
         args.out or core.ROOT / "out" / ("smoke-" + time.strftime("%Y%m%d-%H%M%S"))
@@ -71,6 +74,8 @@ def main():
     )
     if args.replay:
         env["BB_PAD_REPLAY"] = str(args.replay.resolve())
+    command, env = headless_command(command, env, profile['settings']['output_res'],
+                                    profile['settings'].get('fps_limit') or 60)
     logpath = out / "game.log"
     print(f"Prueba real con guardados aislados: {out}", flush=True)
     with logpath.open("w") as log:
@@ -87,6 +92,7 @@ def main():
         capture_times = sorted({15, args.seconds // 2, args.seconds - 2})
         try:
             while time.monotonic() < deadline:
+                memory_watch.check()
                 if process.poll() is not None:
                     raise RuntimeError(
                         f"El juego terminó antes de tiempo ({process.returncode})."
@@ -97,13 +103,7 @@ def main():
                 time.sleep(1)
             samples = check_rendered_output(logpath.read_text(errors="replace"), frames)
         finally:
-            if process.poll() is None:
-                process.terminate()
-                try:
-                    process.wait(timeout=10)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    process.wait()
+            stop_group(process)
     print(
         f"PASS: {args.seconds}s, imagen GPU visible, {len(samples)} muestras FPS; última {samples[-1]:.1f}."
     )

@@ -252,7 +252,7 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         self.entry(cpu, 'e_cpus', 'E-Cores', 'CPU 12–19 en la topología de tu equipo')
         memory = self.group(page, 'Memoria con límites claros')
         memory.add(Adw.ActionRow(title='256 MiB de caché de recursos · 2 compiladores',
-                                 subtitle='5056 MiB de memoria directa hasta 1080p interno; 9152 MiB por encima.'))
+                                 subtitle='Pool dimensionado por resolución: 5056 MiB a 1080p; 5936 MiB a 1440p nativo.'))
         self.switch(memory, 'ramdisk', 'Precargar el juego completo en RAM', 'Desactivado para 16 GB: el dump ocupa unos 30 GB.')
         self.switch(memory, 'radv', 'Perfil AMD RADV / ACO', 'Caché persistente de 4G en disco y SAM gestionado por el driver.')
         self.switch(memory, 'gamemode', 'GameMode', 'Requiere gamemoderun instalado.')
@@ -270,6 +270,8 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         display = self.group(page, 'Pantalla y escalado')
         self.combo(display, 'fps', 'FPS objetivo', ['30','60','90','120','144','165','uncap'], ['30','60','90','120','144','165','Desbloqueado'])
         self.spin(display, 'fps_limit', 'Límite personalizado (0 usa el objetivo)', 0, 1000)
+        self.switch(display, 'ini.frame_clock', 'Reloj de cuadros nativo (experimental)',
+                    'Adapta efectos y ragdolls al tiempo medido de cada cuadro. Requiere reiniciar.')
         self.combo(display, 'upscaler', 'Escalador', ['off','taa','fsr3','fsr4','fsr411','dlss','fsr1'], ['Sin escalado','TAA nativo','FSR 3.1','FSR 4','FSR 4.1.1 / 4.1.2','DLSS (NVIDIA)','FSR 1 (espacial)'])
         self.combo(display, 'ini.preset', 'Calidad del escalador', ['0','1','2','3','4'], ['Native AA','Quality','Balanced','Performance','Ultra Performance'])
         self.switch(display, 'output_auto', 'Usar resolución del monitor', 'Se detecta al preparar; vuelve a preparar si cambias de monitor.')

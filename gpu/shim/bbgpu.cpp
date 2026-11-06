@@ -5,6 +5,13 @@
 #include "shim/bb_env.h"
 #include "bbport_write_log.h"
 #include "bbport_frame_rate.h"
+#include "games/bloodborne/appearance.h"
+#include "games/bloodborne/fmod_project_init.h"
+#include "games/bloodborne/occlusion_fresh.h"
+#include "games/bloodborne/water_gate.h"
+#include "games/bloodborne/bloodletter.h"
+#include "games/bloodborne/rebirth.h"
+#include "games/bloodborne/sf_text_layout.h"
 #include "bbport_game_menu.h"
 #include "bbport_gnm_hooks.h"
 // bbport: glue between the C loader and the vendored shadPS4 video core.
@@ -21,6 +28,7 @@
 #include <condition_variable>
 #include "common/polyfill_thread.h"
 #include <cstring>
+#include <cstdlib>
 #include <mutex>
 #include <string>
 #include <chrono>
@@ -366,9 +374,34 @@ extern "C" int bbgpu_handle_fault(void* ucontext, void* address) {
 }
 
 extern "C" void bbgpu_patch_image(unsigned char* image, uint64_t size) {
+    // Before optional libGnm census entry patches; the query writer stays retail.
+    if (bb_env_on("BB_OCCLUSION_FRESH") && !BbOcclusionFresh::Install(image,size))
+        std::puts("Occlusion fresh (opt-in): retail signature unavailable; original query writer retained");
+    else if (bb_env_on("BB_OCCLUSION_FRESH"))
+        std::puts("Occlusion fresh (opt-in): accepted begins clear stale CPU results");
+    if (bb_env_on("BB_WATER_GATE")) {
+        if (BbWaterGate::Install(image,size))
+            std::puts("Water gate (opt-in): 30 Hz wave steps with camera-grid compensation");
+        else
+            std::puts("Water gate (opt-in): retail signature or hook unavailable; original cadence retained");
+    }
     BbGnmHooks::PatchImage(image, size);
     BbGameMenu::PatchImage(image, size);
     BbFrameRate::PatchImage(image, size);
+    if (BbFrameRate::Unlocked() && bb_env_on("BB_BLOODLETTER_SELF_HIT")) {
+        if (!BbBloodletter::Install(image,size))
+            std::puts("Bloodletter self-hit: parameter observer unavailable; original radius retained");
+    }
+    if (bb_env_on("BB_CHANGE_APPEARANCE") && !BbAppearance::Install(image,size)) {
+        std::puts("Appearance: requested preview controller unavailable (unexpected retail code or hook conflict)");
+    }
+    if (bb_env_on("BB_REBIRTH") && !BbRebirth::Install(image,size))
+        std::puts("Rebirth: requested offline altar service unavailable (online mode, retail signature or hook conflict)");
+    if (!BbFmodProjectInit::Install(image,size)) {
+        std::fputs("FMOD project initialization: requested constructor hook unavailable; stopping\n",stderr);
+        std::abort();
+    }
+    BbSfTextLayout::Install(image, size);
 }
 
 extern "C" unsigned bbgpu_symbol_count(void) {
