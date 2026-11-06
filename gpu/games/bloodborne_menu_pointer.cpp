@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: Copyright 2026 bbport contributors
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later AND GPL-3.0-or-later
 // Bloodborne (1.09): the mouse as a pointer in the game's Scaleform menus.
 //
 // Reverse engineering (addresses are offsets in the 1.09 executable, image at 0x800000000; the
@@ -25,6 +25,7 @@
 //    blocked), 0x5562878 another input block (+0x2e4), 0x5128948 the region (5: Japan, circle
 //    confirms), 0x557fc60 the menu sound request (+8 its label: 0x49344e4 the cursor's move).
 #include "bloodborne_menu_pointer.h"
+#include "bloodborne_menu_hover.h"
 #include "shim/bb_env.h"
 
 #include <algorithm>
@@ -475,6 +476,7 @@ struct Seen {
     float x = 0.0f, y = 0.0f;
     std::int64_t ms = 0;
 };
+WheelHover wheel_hover;
 Seen seen[32];
 unsigned seen_next = 0;
 
@@ -493,6 +495,37 @@ bool PointerMoved(const std::uint8_t* list, float x, float y) {
     return false;
 }
 
+// bbhost 215dc86 uses Binary Ninja addresses with a 0x400000 base. These
+// are image offsets, confirmed in the local 1.09 constructor at 0x1b9e110.
+constexpr Addr StorageVtable = 0x539bd80;
+bool storage_layout_verified = false;
+bool StorageTabs(std::uint8_t* component, float x, float y, bool moved, bool clicked) {
+    if (!storage_layout_verified) return false;
+    const Addr dialog = reinterpret_cast<Addr>(component) - 0xae0;
+    const Addr vt = Get<Addr>(dialog);
+    if (vt != At(StorageVtable) && vt != At(StorageVtable) + 0x10) return false;
+    const auto type = Get<std::uint32_t>(dialog + 0x14d8);
+    const Addr data = Get<Addr>(dialog + 0x14e0);
+    const Addr object = (type & 0x8f) == 10 && data ? Get<Addr>(data + 0x88) : 0;
+    Rect bounds{};
+    if (!object || !Shown(object) || !Contains(object, x, y, &bounds)) return false;
+    const Addr shown = Get<Addr>(dialog + 0x1490);
+    const bool box = shown == dialog + 0x1410;
+    if (!box && shown != dialog + 0x1390) return true;
+    if (clicked) click.store(false, std::memory_order_relaxed);
+    static Addr pressed_from = 0;
+    static std::int64_t pressed_ms = 0;
+    const bool want_box = x >= bounds.CenterX();
+    const auto now = NowMs();
+    if ((moved || clicked) && want_box != box &&
+        !(pressed_from == shown && now - pressed_ms < 500)) {
+        presses.fetch_or(want_box ? 0x200u : 0x100u, std::memory_order_relaxed);
+        pressed_from = shown;
+        pressed_ms = now;
+    }
+    return true;
+}
+
 /// The game's list update (0x1acff30) is about to run for `component`.
 void PS4_SYSV_ABI OnListUpdate(std::uint64_t, const Core::GuestRegisterSnapshot* registers) {
     auto* component = reinterpret_cast<std::uint8_t*>(registers->rdi);
@@ -509,6 +542,10 @@ void PS4_SYSV_ABI OnListUpdate(std::uint64_t, const Core::GuestRegisterSnapshot*
     const bool moved = PointerMoved(component, x, y);
     const bool clicked = TakeClick();
     List list{component};
+
+    if (moved && !clicked && wheel_hover.Holds(x, y)) return;
+
+    if (StorageTabs(component, x, y, moved, clicked)) return;
 
     if (list.IsSpinner()) {
         // One value shown: a click on its left half goes left, on the right half right.
@@ -629,6 +666,8 @@ int OnEvent(const void* sdl_event, void* sdl_window) {
         const float notches =
             event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.y : event.wheel.y;
         if (notches != 0.0f) {
+            wheel_hover.Scroll(pointer_x.load(std::memory_order_relaxed),
+                               pointer_y.load(std::memory_order_relaxed));
             presses.fetch_or(notches > 0.0f ? Up : Down, std::memory_order_relaxed);
         }
         return 1;
@@ -671,6 +710,7 @@ void ReadTestFile() {
     } else if (!std::strcmp(action, "right")) {
         presses.fetch_or(BackButton(), std::memory_order_relaxed);
     } else if (!std::strcmp(action, "up") || !std::strcmp(action, "down")) {
+        wheel_hover.Scroll(x, y);
         presses.fetch_or(action[0] == 'u' ? Up : Down, std::memory_order_relaxed);
     }
     std::printf("Menu pointer: test %.0f %.0f %s (in a menu: %d)\n", x, y, action, InMenu() ? 1 : 0);
@@ -725,6 +765,12 @@ void Install() {
         std::printf("Menu pointer: the game's list update differs (another build): off\n");
         return;
     }
+    // Constructor's vtable store and selected-inventory/tabs field setup.
+    constexpr std::uint8_t vtable_setup[] = {0x48,0x8d,0x05,0x3c,0xdc,0x7f,0x03,0x49,0x89,0x45,0x00};
+    constexpr std::uint8_t tabs_setup[] = {0x49,0x89,0x85,0x90,0x14,0x00,0x00,0x49,0x8d,0x9d,0x98,0x14,0x00,0x00};
+    storage_layout_verified =
+        std::memcmp(reinterpret_cast<const void*>(At(0x1b9e13d)), vtable_setup, sizeof(vtable_setup)) == 0 &&
+        std::memcmp(reinterpret_cast<const void*>(At(0x1b9e1bc)), tabs_setup, sizeof(tabs_setup)) == 0;
     bbgpu_add_event_filter(OnEvent);
     bbgpu_add_pointer_query(PointerWanted);
     bbgpu_add_pad_filter(OnPad);

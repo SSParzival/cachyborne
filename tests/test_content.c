@@ -17,16 +17,19 @@ typedef int32_t (ABI *Module)(uint16_t);
 typedef int32_t (ABI *Init)(const void *,void *);
 typedef int32_t (ABI *Param)(uint32_t,int32_t *);
 typedef int32_t (ABI *List)(uint32_t,void *,uint32_t,uint32_t *);
+typedef int32_t (ABI *Info)(uint32_t,const char *,void *);
 #define GET(t,n) ((t)runtime_content_resolve(n))
 int main(int argc,char **argv) {
     assert(mkdtemp(user_dir));
+    unsetenv("BB_MESSENGER_GIFTS");
     Module load=GET(Module,"g8cM39EUZ6o#M#N");
     Module loaded=GET(Module,"fMP5NHUOaMk#M#N");
     Module unload=GET(Module,"eR2bZFAAU0Q#M#N");
     Init init=GET(Init,"R9lA82OraNs#c#d");
     Param param=GET(Param,"99b82IKXpH4#c#d");
     List list=GET(List,"xnd8BJzAxmk#c#d");
-    assert(load && loaded && unload && init && param && list);
+    Info info=GET(Info,"m47juOmH0VE#c#d");
+    assert(load && loaded && unload && init && param && list && info);
     assert(runtime_content_resolve("g8cM39EUZ6o#I#J")); /* any library letters (runtime_nid_is) */
     if (argc>1 && !strcmp(argv[1],"--missing")) { load(0xb4); return 99; }
     const uint32_t profile[]={1,13,0x80000000,0,7};
@@ -76,6 +79,21 @@ int main(int argc,char **argv) {
     assert(!strcmp((const char *)entries,"SPEXPANSIONDLC03"));
     uint32_t status; memcpy(&status,entries+20,4); assert(status==4);
     for (unsigned i=24;i<sizeof(entries);++i) assert(entries[i]==0xaa);
+    /* BB_MESSENGER_GIFTS=1 (BBHOST PR #203): reports BBHOSTADDON00..02 unless already on disk. */
+    assert((uint32_t)info(0,"BBHOSTADDON00",entries)==0x80d90005);
+    setenv("BB_MESSENGER_GIFTS","1",1);
+    assert(list(0,NULL,0,&h.hits)==0 && h.hits==4);
+    unsigned char gift_entries[24*5]; memset(gift_entries,0xaa,sizeof(gift_entries));
+    assert(list(0,gift_entries,5,&h.hits)==0 && h.hits==4);
+    assert(!strcmp((const char *)gift_entries,"SPEXPANSIONDLC03"));
+    assert(!strcmp((const char *)(gift_entries+24),"BBHOSTADDON00"));
+    assert(!strcmp((const char *)(gift_entries+48),"BBHOSTADDON01"));
+    assert(!strcmp((const char *)(gift_entries+72),"BBHOSTADDON02"));
+    for (unsigned i=96;i<sizeof(gift_entries);++i) assert(gift_entries[i]==0xaa);
+    memset(entries,0,24);
+    assert(info(0,"BBHOSTADDON01",entries)==0 && !strcmp((const char *)entries,"BBHOSTADDON01"));
+    memcpy(&status,entries+20,4); assert(status==4);
+    unsetenv("BB_MESSENGER_GIFTS");
     rmdir(path);
     snprintf(path,sizeof(path),"%s/addcont/CUSA00900",user_dir); rmdir(path);
     snprintf(path,sizeof(path),"%s/addcont",user_dir); rmdir(path);

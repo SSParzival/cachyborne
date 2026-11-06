@@ -83,17 +83,31 @@ static ABI int32_t param_int(uint32_t id,int32_t *out) {
 #define LABEL_SIZE 17
 #define ADDON_INSTALLED 4u
 typedef struct { char label[LABEL_SIZE]; char padding[3]; uint32_t status; } AddonInfo;
+static int messenger_gifts_enabled(void) {
+    const char *env=getenv("BB_MESSENGER_GIFTS");
+    return env && !strcmp(env,"1");
+}
+static int is_messenger_gift_label(const char *label) {
+    return !strcmp(label,"BBHOSTADDON00") || !strcmp(label,"BBHOSTADDON01") || !strcmp(label,"BBHOSTADDON02");
+}
+static unsigned gift_bit_for_label(const char *label,size_t n) {
+    if (n<2 || label[n-2]!='0' || label[n-1]<'0' || label[n-1]>'2') return 0;
+    return 1u<<(unsigned)(label[n-1]-'0');
+}
 /* Add-ons are the folders <user>/addcont/<title id>/<entitlement label> (shadPS4's layout),
  * each reported as installed. No add-on data is mounted: Bloodborne: The Old Hunters
- * (SPEXPANSIONDLC03) needs only the entitlement, its data ships with patch 1.09. Without a list
- * the count is returned, with one at most capacity entries are written. Never touch unused list
- * slots. */
+ * (SPEXPANSIONDLC03) needs only the entitlement, its data ships with patch 1.09.
+ * When BB_MESSENGER_GIFTS=1 (BBHOST PR #203), add-ons 00..02 (BBHOSTADDON00..02) are also
+ * reported so CSDlcBackingData sets event flags 6900..6902 for the Stump Messengers' gifts.
+ * Without a list the count is returned, with one at most capacity entries are written. Never
+ * touch unused list slots. */
 static ABI int32_t addon_list(uint32_t service,void *list,uint32_t capacity,uint32_t *hits) {
     require_initialized();
     if (service) { fputs("STOP: nonzero AppContent service label unsupported\n",stderr); exit(21); }
     if ((!capacity || !list) && !hits) return PARAMETER;
     int fill=list && capacity;
     uint32_t count=0;
+    unsigned seen_gifts=0;
     char root[4096];
     snprintf(root,sizeof(root),"%s/addcont",runtime_file_user_dir());
     DIR *titles=opendir(root);
@@ -106,7 +120,9 @@ static ABI int32_t addon_list(uint32_t service,void *list,uint32_t capacity,uint
             struct stat entry;
             size_t n=strlen(l->d_name);
             if (l->d_name[0]=='.' || n>=LABEL_SIZE || fstatat(dirfd(labels),l->d_name,&entry,0) ||
-                !S_ISDIR(entry.st_mode) || (fill && count>=capacity)) continue;
+                !S_ISDIR(entry.st_mode)) continue;
+            seen_gifts|=gift_bit_for_label(l->d_name,n);
+            if (fill && count>=capacity) continue;
             if (fill) {
                 AddonInfo info;
                 memset(&info,'\0',sizeof(info)); memcpy(info.label,l->d_name,n);
@@ -118,6 +134,20 @@ static ABI int32_t addon_list(uint32_t service,void *list,uint32_t capacity,uint
         if (labels) closedir(labels);
     }
     if (titles) closedir(titles);
+    if (messenger_gifts_enabled()) {
+        for (unsigned g=0; g<3; ++g) {
+            if (seen_gifts & (1u<<g)) continue;
+            if (fill && count>=capacity) continue;
+            if (fill) {
+                AddonInfo info;
+                memset(&info,'\0',sizeof(info));
+                snprintf(info.label,sizeof(info.label),"BBHOSTADDON%02u",g);
+                info.status=ADDON_INSTALLED;
+                memcpy((unsigned char *)list+(size_t)count*sizeof(info),&info,sizeof(info));
+            }
+            ++count;
+        }
+    }
     if (hits) *hits=count;
     if (count) printf("Runtime: AppContent add-ons reported installed (%s): %u\n",root,(unsigned)count);
     ++lists; return 0;
@@ -175,7 +205,8 @@ static ABI int32_t addon_info(uint32_t service,const char *label,void *info) {
     if (!label || !info) return PARAMETER;
     char name[LABEL_SIZE+1]={0}, host[4096];
     memcpy(name,label,LABEL_SIZE);
-    if (!addon_dir(name,host,sizeof(host))) return ADDON_NOT_FOUND;
+    if (!addon_dir(name,host,sizeof(host)) &&
+        !(messenger_gifts_enabled() && is_messenger_gift_label(name))) return ADDON_NOT_FOUND;
     AddonInfo out;
     memset(&out,0,sizeof(out)); memcpy(out.label,name,strlen(name));
     out.status=ADDON_INSTALLED;
