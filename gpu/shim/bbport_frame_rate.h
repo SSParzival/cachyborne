@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: Copyright 2026 bbport contributors
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later AND GPL-3.0-or-later
 // bbport: the game's frame rate set free by hooks in its code (BB_FPS=60 by default), not by
 // patches: its frame pacer no longer waits for a 30 FPS frame, its step gets the frame's real time,
 // and what it ties to a frame (a 30 FPS frame's time, a per-frame step, smoothing and damping) reads
@@ -14,6 +14,9 @@ void PatchImage(unsigned char* image, std::uint64_t size);
 /// Whether the hooks run the game's frame rate: the video out then shows a frame as soon as the
 /// game submits it (the game's own flip rate asks for 30 FPS).
 bool Unlocked();
+/// The latest raw pacer measurement reached its target (within 2 us of the
+/// retail clock's integer-microsecond rounding). False for unpaced fast loads.
+bool PacedFrame();
 /// A frame rate limit while the game runs (30..480; 0: the launched mode and limit). The game's
 /// frame pacer waits for it itself. Lowers a running game to 30 FPS for what the unlocked rate
 /// breaks (the cinematic of Laurence, the optional boss: a hang above 30 FPS, as with the

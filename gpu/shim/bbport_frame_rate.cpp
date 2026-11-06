@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: Copyright 2026 bbport contributors
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later AND GPL-3.0-or-later
 // bbport: the game's frame rate set free by hooks in its code (bbport_frame_rate.h).
 //
 // The game's main loop (0x2018d20) runs its frame pacer (0x2034770: it waits for the frame time
@@ -20,7 +20,13 @@
 #include "shim/bb_env.h"
 #include "common/types.h"
 #include "bbport_frame_rate.h"
+#include "bbport_frame_clock.h"
+#include "bbport_clock_consumers.h"
+#include "bbport_sound_wake.h"
+#include "bbport_settings.h"
+#include "games/bloodborne/replay_time.h"
 #include "bbport_effect_time.h"
+#include "bbport_limiter.h"
 #include "render/vk_low_latency.h"
 #include "bbport_guest_code.h"
 #include "bbport_toggles.h"
@@ -43,6 +49,7 @@ using u64 = std::uint64_t;
 using u8 = std::uint8_t;
 
 std::atomic<bool> unlocked{false};
+std::atomic<bool> paced_frame{false};
 u64 image_base = 0;
 
 constexpr float Frame30 = 1.0f / 30.0f;
@@ -66,10 +73,13 @@ struct alignas(64) Live {
     float decay08 = 0.8f;             ///< 0.8 per 30 FPS frame
     float cloth = 1.0f;               ///< cloth constraints' stiffness
     float model_turn = 0.0f;          ///< the model preview's turn per 30 FPS frame (radians per stick unit)
+    float lens_rate = 30.0f;          ///< native clock: LensSimu takes reciprocal dt
     float effects_dt = Frame30;       ///< particles: complete 1/60 s steps only
+    float wind_dt = 1.0f / 60.0f;     ///< default GX mode: half the game step, as at 30 FPS
 };
 Live* live = nullptr;
 float model_turn_base = 0.0f;         ///< the game's own model_turn (its constant, read at start)
+bool native_clock = false;
 int base_rate = 0;               /// the launched mode's rate (with BB_FPS_LIMIT)
 std::atomic<int> live_limit{0};
 
@@ -79,6 +89,8 @@ void PS4_SYSV_ABI FrameStep(u64 pacer) {
     // simulation.
     Vulkan::LowLatency::Get().GameFrameStart();
     const float measured = *reinterpret_cast<const float*>(pacer + 0x264);
+    paced_frame.store(std::isfinite(measured) && measured+0.000002f>=live->shortest,
+                      std::memory_order_relaxed);
     float dt = std::clamp(std::isfinite(measured) ? measured : Frame30, live->shortest, Frame30);
     // BB_FRAME_DT_SMOOTH=a (diagnostics, 0 < a < 1): the step follows the measured frame time by
     // that fraction a frame, so frame-to-frame jitter of the measurement does not reach the
@@ -93,8 +105,11 @@ void PS4_SYSV_ABI FrameStep(u64 pacer) {
         smoothed = smoothed > 0.0f ? smoothed + smooth * (dt - smoothed) : dt;
         dt = std::clamp(smoothed, live->shortest, Frame30);
     }
+    game_clock.Publish(dt);
     const float frames = dt * 30.0f; // the frame's length in 30 FPS frames
     live->dt = dt;
+    live->wind_dt = dt * 0.5f;
+    live->lens_rate = 1.0f / dt;
     const float decay95 = std::pow(0.95f, frames);
     for (float& d : live->decay95) d = decay95;
     live->approach30 = 1.0f - std::pow(1.0f - Frame30, frames);
@@ -131,14 +146,19 @@ std::atomic<u64> cloth_calls{0}, cloth_modes{0}, cloth_types{0};
 float PS4_SYSV_ABI ClothStiffnessFactor(const u8* set, int mode, int iteration, int substeps, float a,
                                         float b) {
     const std::uint32_t type = *reinterpret_cast<const std::uint32_t*>(set + 0x18);
-    const u64 n = cloth_calls.fetch_add(1, std::memory_order_relaxed);
-    cloth_modes.fetch_or(u64(1) << (unsigned(mode) & 63), std::memory_order_relaxed);
-    cloth_types.fetch_or(u64(1) << (type & 63), std::memory_order_relaxed);
-    if (n == 20000) {
-        std::printf("Frame rate: cloth stiffness factor: modes %#llx, constraint types %#llx, "
-                    "%.0f FPS: factor x%.3f\n",
-                    (unsigned long long)cloth_modes.load(), (unsigned long long)cloth_types.load(),
-                    1.0f / live->dt, live->dt * 30.0f);
+    // The masks are only reported once. After sampling, keep locked RMWs out
+    // of every constraint solve. Concurrent late samplers are harmless; only
+    // the fetch_add winner prints, and no physics input depends on statistics.
+    if (cloth_calls.load(std::memory_order_relaxed) <= 20000) {
+        const u64 n = cloth_calls.fetch_add(1, std::memory_order_relaxed);
+        cloth_modes.fetch_or(u64(1) << (unsigned(mode) & 63), std::memory_order_relaxed);
+        cloth_types.fetch_or(u64(1) << (type & 63), std::memory_order_relaxed);
+        if (n == 20000) {
+            std::printf("Frame rate: cloth stiffness factor: modes %#llx, constraint types %#llx, "
+                        "%.0f FPS: factor x%.3f\n",
+                        (unsigned long long)cloth_modes.load(), (unsigned long long)cloth_types.load(),
+                        1.0f / live->dt, live->dt * 30.0f);
+        }
     }
     const bool adapts = mode == 2 && !(substeps == 1 && a == 1.0f && b == 1.0f);
     if (adapts && type == 8) {
@@ -318,6 +338,35 @@ bool HookPacerLate() {
     return Detour(0x2034d96, code, sizeof(code), e);
 }
 
+/// Default GX mode (+0x100 == 1): wind originally advances a fixed 1/60
+/// each 30 FPS frame. Keep that half-speed timeline at every unlocked rate.
+/// Its late force load must retain 1/60 independently of the time step; the
+/// preceding redirected task-step slot follows dt and would shrink the bend
+/// at higher rates. Byte-check both loads before changing either one.
+bool HookWindPace() {
+    constexpr u64 time_at = 0x2313d8d, force_at = 0x23149ea, force_constant = 0x4929e70;
+    constexpr u8 time_code[]{0xc5,0xfa,0x10,0x25,0xdb,0x60,0x61,0x02};
+    constexpr u8 force_code[]{0xc5,0x79,0x6f,0xb5,0x90,0xfe,0xff,0xff};
+    constexpr u32 original_force = 0x3c888889;
+    auto* time = reinterpret_cast<u8*>(image_base+time_at);
+    auto* force = reinterpret_cast<u8*>(image_base+force_at);
+    if (std::memcmp(time,time_code,sizeof time_code) ||
+        std::memcmp(force,force_code,sizeof force_code) ||
+        std::memcmp(reinterpret_cast<void*>(image_base+force_constant),&original_force,4)) return false;
+    const auto time_to = std::int64_t(reinterpret_cast<u64>(&live->wind_dt)) -
+                         std::int64_t(image_base+time_at+8);
+    const auto force_to = std::int64_t(force_constant) - std::int64_t(force_at+8);
+    if (time_to != std::int32_t(time_to) || force_to != std::int32_t(force_to)) return false;
+    const auto time_disp = std::int32_t(time_to), force_disp = std::int32_t(force_to);
+    u8 replacement[]{0xc5,0x7a,0x10,0x35,0,0,0,0}; // vmovss xmm14,[rip+1/60]
+    std::memcpy(replacement+4,&force_disp,4);
+    Writable(image_base+time_at,8);
+    Writable(image_base+force_at,8);
+    std::memcpy(time+4,&time_disp,4);
+    std::memcpy(force,replacement,8);
+    return true;
+}
+
 EffectTime effect_time;
 void PS4_SYSV_ABI AdvanceEffects() {
     live->effects_dt = effect_time.Advance(live->dt);
@@ -329,6 +378,33 @@ bool HookEffectTime() {
                                   &live->effects_dt, image_base + 0x1f77d52,
                                   image_base + 0x1f77d54);
     return Detour(0x1f77d48, code, sizeof(code), e);
+}
+
+// Experimental clock consumers, based on bbhost #199. Physics hint constants
+// remain the original 1/30 here already; no per-rate table needs undoing.
+std::uint64_t PS4_SYSV_ABI YebisStep(std::uint64_t, float value) {
+    const auto effect = *reinterpret_cast<const std::uint64_t*>(image_base + 0x5465ed0);
+    *reinterpret_cast<float*>(effect + 0x6ac) = YebisElapsed(value, game_clock.Read());
+    return 0;
+}
+std::uint64_t PS4_SYSV_ABI RagdollKeyFrame(std::uintptr_t keyframe, std::uintptr_t bodies,
+                                        std::uintptr_t palette, std::uintptr_t indices) {
+    return DriveKeyFrame(keyframe, bodies, palette, indices, game_clock.Read(),
+                         reinterpret_cast<KeyFrameStep>(image_base + 0x6e9b90));
+}
+void HookNativeClock() {
+    constexpr u8 yebis[] = {0x48,0x8b,0x05,0xc9,0x36,0x8b,0x04,0xc5,0xfa,0x11,0x80,0xac,0x06,0x00,0x00,0x31,0xc0,0xc3};
+    constexpr u8 ragdoll[] = {0xe9,0x3e,0x55,0x00,0x00};
+    Emitter yebis_stub, ragdoll_stub;
+    yebis_stub.JmpAbs(reinterpret_cast<u64>(&YebisStep));
+    ragdoll_stub.JmpAbs(reinterpret_cast<u64>(&RagdollKeyFrame));
+    const bool y = Detour(0xbb2800, yebis, sizeof(yebis), yebis_stub);
+    // Intercept only the original tail call: the game's weight/body/step tests,
+    // pose and bone-weight stores stay intact, including custom/Behavior steps.
+    const bool r = Detour(0x6e464d, ragdoll, sizeof(ragdoll), ragdoll_stub);
+    const bool lens = RedirectOperand({0xe5d6e1, 0x489f358, offsetof(Live,lens_rate)});
+    std::printf("Native frame clock (experimental): YEBIS %s, ragdoll %s, lens rate %s\n",
+                y ? "on" : "unmatched", r ? "on" : "unmatched", lens ? "on" : "unmatched");
 }
 
 /// The main loop's step (0x2018e36: `mov dword [rbp - 0x38], 1/30`, its time; rbx the pacer):
@@ -401,10 +477,11 @@ u8* MapNear(int prot) {
 }
 } // namespace
 
-void PatchImage(unsigned char* image, std::uint64_t) {
+void PatchImage(unsigned char* image, std::uint64_t size) {
     // BB_FPS (run.sh, the launcher's frame rate): 60 (default), uncap or 90 (the same, at most that
     // many frames a second), 30 (the game's own). BB_FRAME_HOOKS=0: the community's frame rate
     // patches instead (scripts/patches.py; comparisons).
+    native_clock = BbSettings::Get().frame_clock.load(std::memory_order_relaxed);
     const char* fps = bb_env("BB_FPS");
     const char* hooks = bb_env("BB_FRAME_HOOKS");
     const int mode = !fps ? 60 : std::strcmp(fps, "uncap") == 0 ? MaxRate : std::atoi(fps);
@@ -454,6 +531,34 @@ void PatchImage(unsigned char* image, std::uint64_t) {
             std::printf("Frame rate: %#llx is not the expected code, left as it is\n", (unsigned long long)r.site);
         }
     }
+    BbReplayTime::Install(image, size);
+    if (!bb_env_off("BB_WIND_PACE")) {
+        std::printf("Wind pace: %s\n", HookWindPace()
+            ? "half the simulation step, original 1/60 force (default GX mode)"
+            : "loads did not match; existing wind behavior retained");
+    }
+    if (native_clock) {
+        HookNativeClock();
+        if (!BbSoundWake::Install(image, size) && !bb_env_off("BB_SOUND_WAKE")) {
+            std::puts("Sound wake: code did not match; original sound-thread sleep retained");
+        }
+    }
+    // Enabled explicitly by the fixed-60 launcher profile, or by standalone
+    // users. Keep retail arithmetic/history; redirect only the sleep policy.
+    if (const char* setting=bb_env("BB_LIMITER_MARGIN_US"); setting && std::strcmp(setting,"off")) {
+        int fixed=-1;
+        bool valid=std::strcmp(setting,"auto")==0;
+        if (!valid) {
+            char* end=nullptr;
+            const long value=std::strtol(setting,&end,10);
+            valid=end!=setting && !*end && value>=0 && value<=5000;
+            if (valid) fixed=static_cast<int>(value);
+        }
+        const bool installed=valid && BbLimiter::Install(image,size,fixed);
+        std::printf("Frame limiter (opt-in): %s\n",installed
+            ? (fixed<0 ? "adaptive sleep margin 300..2000 us" : "fixed sleep margin")
+            : "configuration/code did not match; original wait retained");
+    }
     mprotect(stub_page, StubPageSize, PROT_READ | PROT_EXEC);
     std::printf("Frame rate: particle time %s\n", effects ? "whole 60 Hz steps" : "per-frame fallback");
     std::printf("Frame rate: the model preview turns %.5f rad per stick unit per 30 FPS frame\n",
@@ -469,6 +574,9 @@ void PatchImage(unsigned char* image, std::uint64_t) {
 
 bool Unlocked() {
     return unlocked.load(std::memory_order_relaxed);
+}
+bool PacedFrame() {
+    return paced_frame.load(std::memory_order_relaxed);
 }
 void SetLimit(int fps) {
     live_limit.store(fps, std::memory_order_relaxed);
