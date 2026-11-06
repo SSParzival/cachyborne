@@ -414,8 +414,13 @@ def setup(game, settings=None):
     subprocess.run([sys.executable, str(ROOT / 'scripts/game_check.py'), str(game)], check=True, env=setup_env)
     live = str(s.get('runtime_ini', {}).get('live_resolution', '0'))
     if live == 'auto':
-        probe = ROOT / 'out/bb-gpu-capabilities'
-        detected = subprocess.check_output([str(probe), '--live-resolution'], text=True, env=setup_env).strip()
+        from cachyborne_options import ensure_capabilities_tool
+        probe = ensure_capabilities_tool(ROOT)
+        detected = '0'
+        try:
+            detected = subprocess.check_output([str(probe), '--live-resolution'], text=True, env=setup_env).strip()
+        except (OSError, subprocess.SubprocessError):
+            detected = '1'
         s.setdefault('runtime_ini', {})['live_resolution'] = '1' if detected == '1' else '0'
     if s['upscaler'] == 'taa':
         s.setdefault('runtime_ini', {})['live_resolution'] = '1'

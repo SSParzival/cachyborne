@@ -1,4 +1,4 @@
-# Cachyborne 0.8.3 — Midnight para CachyOS
+# Cachyborne 0.8.5 — Midnight para CachyOS
 
 **Español** · [English](README.md)
 
@@ -33,7 +33,7 @@ Ambas empiezan desactivadas. El HUD no mide la presentación física en
 pantalla. La equivalencia Havok completa, POM y las salas Lantern siguen sin
 certificación; el informe detalla el trabajo pendiente.
 
-[Notas de versión](docs/RELEASE_0.8.3.md) ·
+[Notas de versión](docs/RELEASE_0.8.5.md) ·
 [Validación y límites](docs/VALIDATION_0.8.3.md) ·
 [Auditoría de forks](docs/COMMUNITY_AUDIT_0.8.3.md)
 

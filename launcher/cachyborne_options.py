@@ -1,7 +1,9 @@
 """Native Midnight configuration schema and runtime projection; no legacy GTK window."""
 
 import copy
+import os
 import shlex
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -335,16 +337,45 @@ def reconcile(settings):
     return s
 
 
+def ensure_capabilities_tool(root):
+    tool = Path(root) / "out/bb-gpu-capabilities"
+    if tool.is_file() and os.access(tool, os.X_OK):
+        return tool
+    c_source = Path(root) / "tools/gpu_capabilities.c"
+    if c_source.is_file():
+        tool.parent.mkdir(parents=True, exist_ok=True)
+        cc = os.environ.get("CC") or shutil.which("clang") or shutil.which("gcc") or shutil.which("cc")
+        if cc:
+            local_inc = Path(root) / "out/native-deps/usr/include"
+            inc_args = ["-I" + str(local_inc)] if local_inc.is_dir() else []
+            try:
+                subprocess.run(
+                    [cc, "-std=c11", "-Wall", "-Wextra", *inc_args, str(c_source), "-lvulkan", "-lSDL3", "-o", str(tool)],
+                    capture_output=True,
+                    check=True,
+                    timeout=15,
+                )
+                tool.chmod(0o755)
+                return tool
+            except Exception:
+                pass
+    return tool
+
+
 def capabilities(root, mode):
-    result = subprocess.run(
-        [str(Path(root) / "out/bb-gpu-capabilities"), mode],
-        capture_output=True,
-        text=True,
-        timeout=12,
-    )
-    if result.returncode:
-        raise ValueError(result.stderr.strip() or "No se pudo detectar hardware")
-    return [line.split("\t") for line in result.stdout.splitlines() if "\t" in line]
+    tool = ensure_capabilities_tool(root)
+    try:
+        result = subprocess.run(
+            [str(tool), mode],
+            capture_output=True,
+            text=True,
+            timeout=12,
+        )
+        if result.returncode:
+            return []
+        return [line.split("\t") for line in result.stdout.splitlines() if "\t" in line]
+    except (OSError, subprocess.SubprocessError):
+        return []
 
 
 def fsr4_problem(directory, output, preset):
@@ -498,7 +529,19 @@ def monitor_output(root, selected=""):
     rows = capabilities(root, "--displays")
     rows = [row for row in rows if len(row) == 3]
     if not rows:
-        raise ValueError("No se detectó monitor; indica una resolución de salida manual")
+        if not selected:
+            raise ValueError("No se detectó monitor; indica una resolución de salida manual")
+        cfg_path = Path.home() / ".config/cachyborne/settings.json"
+        if cfg_path.is_file():
+            try:
+                import json, re
+                cfg = json.loads(cfg_path.read_text())
+                res = cfg.get("output_res") or cfg.get("original_settings", {}).get("output_res")
+                if res and re.fullmatch(r"[0-9]+x[0-9]+", str(res)):
+                    return str(res)
+            except Exception:
+                pass
+        return "2560x1440"
     chosen = next((row for i, row in enumerate(rows, 1) if selected in (str(i), row[0])), None)
     chosen = chosen or next((row for row in rows if row[2] == "1"), rows[0])
     import re
