@@ -43,12 +43,33 @@ struct alignas(16) GuestRegisterSnapshot {
 using GuestCodeHook = void(__attribute__((sysv_abi)) *)(std::uint64_t tag,
                                                          const GuestRegisterSnapshot* registers);
 
+/// `replace` is for a complete function replacement: after the observer
+/// returns, return to the guest caller unconditionally. Unlike skip_flag (a
+/// one-shot flag cleared by the trampoline), it has no shared mutable state and
+/// permits simultaneous and recursive calls. `original`, for replacements only,
+/// receives a callable trampoline over the overwritten entry before the hook is
+/// published. The callback may write return registers in the mutable stack
+/// snapshot. Do not combine it with skip_flag.
+/// Install only while no thread can execute the site (normally before guest
+/// startup). Serialized registration does not suspend threads at patched code.
 /// Installs a hook at `address` over `expected_instructions` (checked byte for byte). False: the
 /// bytes differ (another build of the game, or a port patch there), the span is not whole
 /// position-independent instructions, it overlaps a hook, or no trampoline memory is in reach.
 bool InstallGuestCodeHook(void* address, std::span<const std::uint8_t> expected_instructions,
                           std::uint64_t tag, GuestCodeHook hook,
-                          const std::uint8_t* skip_flag = nullptr);
+                          const std::uint8_t* skip_flag = nullptr, bool replace = false, void** original = nullptr);
+
+/// Function-entry hook with a decision local to each invocation. True returns
+/// immediately using the callback's snapshot (return registers included); false
+/// restores it and runs the overwritten instructions. The callable original is
+/// available before publication, as with a replacement. No shared skip flag is
+/// read or cleared. The callback's own host return value is not the guest's.
+using ConditionalGuestCodeHook = bool(__attribute__((sysv_abi)) *)(
+    std::uint64_t tag, const GuestRegisterSnapshot* registers);
+bool InstallConditionalGuestCodeHook(void* address,
+                                     std::span<const std::uint8_t> expected_instructions,
+                                     std::uint64_t tag, ConditionalGuestCodeHook hook,
+                                     void** original = nullptr);
 
 /// The protection the game's code goes back to after the port patches it: read and execute, or
 /// read, write and execute once a game module writes its own code (BBSC's byte patches, some

@@ -7,6 +7,7 @@
 
 #include "bbport_map_near.h"
 #include "bbport_guest_code_hooks.h"
+#include "bbport_guest_patch.h"
 
 #include <algorithm>
 #include <atomic>
@@ -15,7 +16,7 @@
 #include <cstring>
 #include <memory>
 #include <mutex>
-#include <set>
+#include <map>
 #include <vector>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -36,7 +37,7 @@ constexpr std::size_t AreaSize = 4u << 20; // trampolines (~400 bytes each)
 constexpr std::int64_t JumpReach = 0x7000'0000; // inside a rel32 jump's 2 GiB
 
 std::mutex hook_mutex;
-std::set<std::uintptr_t> hooked_sites; // first bytes of installed hooks
+std::map<std::uintptr_t, std::size_t> hooked_sites; // exact overwritten instruction spans
 
 /// An executable area within reach of its code, mapped on first use.
 struct Area {
@@ -97,20 +98,6 @@ bool WholeAndAbsolute(const std::uint8_t* code, std::size_t size) {
     return true;
 }
 
-/// Writes `bytes` over the game's code (read and execute here) under a short write permission.
-void WriteCode(std::uint8_t* code, const std::uint8_t* bytes, std::size_t size) {
-    const long page = sysconf(_SC_PAGESIZE);
-    auto* first = reinterpret_cast<std::uint8_t*>(reinterpret_cast<std::uintptr_t>(code) &
-                                                  ~std::uintptr_t(page - 1));
-    const std::size_t span = (code + size) - first;
-    mprotect(first, span, PROT_READ | PROT_WRITE | PROT_EXEC);
-    // The jump's last four bytes first, its opcode last: a thread running here meanwhile meets
-    // either the old instruction or the whole jump.
-    std::memcpy(code + 1, bytes + 1, size - 1);
-    __atomic_store_n(code, bytes[0], __ATOMIC_SEQ_CST);
-    mprotect(first, span, GuestCodeProtection());
-}
-
 std::atomic<bool> code_writable{false};
 
 } // namespace
@@ -124,8 +111,9 @@ void KeepGuestCodeWritable() {
     code_writable.store(true, std::memory_order_release);
 }
 
-bool InstallGuestCodeHook(void* address, std::span<const std::uint8_t> expected, std::uint64_t tag,
-                          GuestCodeHook hook, const std::uint8_t* skip_flag) {
+static bool InstallHook(void* address, std::span<const std::uint8_t> expected, std::uint64_t tag,
+                        std::uint64_t hook, const std::uint8_t* skip_flag, bool replace,
+                        void** original, bool conditional) {
     constexpr std::size_t SnapshotOffset = 0;
     constexpr std::size_t ScratchR11Offset = sizeof(GuestRegisterSnapshot);
     constexpr std::size_t ScratchRflagsOffset = ScratchR11Offset + sizeof(std::uint64_t);
@@ -133,7 +121,7 @@ bool InstallGuestCodeHook(void* address, std::span<const std::uint8_t> expected,
         (ScratchRflagsOffset + sizeof(std::uint64_t) + GuestRedZoneBytes + 15) & ~std::size_t(15);
 
     auto* code = static_cast<std::uint8_t*>(address);
-    if (!hook || expected.size() < NearJumpBytes) {
+    if (!hook || expected.size() < NearJumpBytes || (replace && skip_flag) || (original && !replace && !conditional)) {
         return false;
     }
     std::scoped_lock lock{hook_mutex};
@@ -145,8 +133,11 @@ bool InstallGuestCodeHook(void* address, std::span<const std::uint8_t> expected,
         return false;
     }
     const auto begin = reinterpret_cast<std::uintptr_t>(code);
-    const auto overlap = hooked_sites.lower_bound(begin > 16 ? begin - 16 : 0);
-    if (overlap != hooked_sites.end() && *overlap < begin + expected.size()) {
+    const auto next = hooked_sites.lower_bound(begin);
+    const bool overlaps_next = next != hooked_sites.end() && next->first < begin + expected.size();
+    const bool overlaps_previous = next != hooked_sites.begin() &&
+        std::prev(next)->first + std::prev(next)->second > begin;
+    if (overlaps_next || overlaps_previous) {
         std::fprintf(stderr, "Guest code hook at %p overlaps another one\n", address);
         return false;
     }
@@ -157,6 +148,7 @@ bool InstallGuestCodeHook(void* address, std::span<const std::uint8_t> expected,
     }
     const std::size_t start_offset = t->getSize();
     const auto* trampoline = t->getCurr();
+    const void* original_entry = nullptr;
     const auto snapshot = [](std::size_t field) { return qword[rsp + SnapshotOffset + field]; };
     try {
         t->lea(rsp, ptr[rsp - FrameReserve]); // past the game's red zone
@@ -195,34 +187,46 @@ bool InstallGuestCodeHook(void* address, std::span<const std::uint8_t> expected,
         t->mov(r12, rsp);
         t->mov(rdi, tag);
         t->lea(rsi, ptr[r12 + SnapshotOffset]);
-        t->mov(rax, reinterpret_cast<std::uint64_t>(hook));
+        t->mov(rax, hook);
         t->call(rax);
         t->mov(rsp, r12);
-        for (int i = 0; i < 16; ++i) {
-            t->vmovdqu(Xbyak::Ymm(i),
-                       yword[rsp + SnapshotOffset + offsetof(GuestRegisterSnapshot, ymm) + i * 32]);
+        // Decide while the result is still in AL, before restoring any guest
+        // register. Each invocation branches using its own callback result;
+        // nested and simultaneous calls never share a skip flag.
+        Xbyak::Label return_from_guest;
+        if (conditional) {
+            t->test(al, al);
+            t->jnz(return_from_guest, Xbyak::CodeGenerator::LabelType::T_NEAR);
         }
-        t->ldmxcsr(dword[rsp + SnapshotOffset + offsetof(GuestRegisterSnapshot, mxcsr)]);
-        t->mov(rbx, snapshot(offsetof(GuestRegisterSnapshot, rbx)));
-        t->mov(rcx, snapshot(offsetof(GuestRegisterSnapshot, rcx)));
-        t->mov(rdx, snapshot(offsetof(GuestRegisterSnapshot, rdx)));
-        t->mov(rsi, snapshot(offsetof(GuestRegisterSnapshot, rsi)));
-        t->mov(rdi, snapshot(offsetof(GuestRegisterSnapshot, rdi)));
-        t->mov(rbp, snapshot(offsetof(GuestRegisterSnapshot, rbp)));
-        t->mov(r8, snapshot(offsetof(GuestRegisterSnapshot, r8)));
-        t->mov(r9, snapshot(offsetof(GuestRegisterSnapshot, r9)));
-        t->mov(r10, snapshot(offsetof(GuestRegisterSnapshot, r10)));
-        t->mov(r11, snapshot(offsetof(GuestRegisterSnapshot, r11)));
-        t->mov(r12, snapshot(offsetof(GuestRegisterSnapshot, r12)));
-        t->mov(r13, snapshot(offsetof(GuestRegisterSnapshot, r13)));
-        t->mov(r14, snapshot(offsetof(GuestRegisterSnapshot, r14)));
-        t->mov(r15, snapshot(offsetof(GuestRegisterSnapshot, r15)));
-        t->mov(rax, snapshot(offsetof(GuestRegisterSnapshot, rflags)));
-        t->push(rax);
-        t->popfq();
-        t->mov(rax, snapshot(offsetof(GuestRegisterSnapshot, rax)));
-        t->mov(rsp, snapshot(offsetof(GuestRegisterSnapshot, rsp)));
+        const auto restore = [&] {
+            for (int i = 0; i < 16; ++i) {
+                t->vmovdqu(Xbyak::Ymm(i),
+                           yword[rsp + SnapshotOffset + offsetof(GuestRegisterSnapshot, ymm) + i * 32]);
+            }
+            t->ldmxcsr(dword[rsp + SnapshotOffset + offsetof(GuestRegisterSnapshot, mxcsr)]);
+            t->mov(rbx, snapshot(offsetof(GuestRegisterSnapshot, rbx)));
+            t->mov(rcx, snapshot(offsetof(GuestRegisterSnapshot, rcx)));
+            t->mov(rdx, snapshot(offsetof(GuestRegisterSnapshot, rdx)));
+            t->mov(rsi, snapshot(offsetof(GuestRegisterSnapshot, rsi)));
+            t->mov(rdi, snapshot(offsetof(GuestRegisterSnapshot, rdi)));
+            t->mov(rbp, snapshot(offsetof(GuestRegisterSnapshot, rbp)));
+            t->mov(r8, snapshot(offsetof(GuestRegisterSnapshot, r8)));
+            t->mov(r9, snapshot(offsetof(GuestRegisterSnapshot, r9)));
+            t->mov(r10, snapshot(offsetof(GuestRegisterSnapshot, r10)));
+            t->mov(r11, snapshot(offsetof(GuestRegisterSnapshot, r11)));
+            t->mov(r12, snapshot(offsetof(GuestRegisterSnapshot, r12)));
+            t->mov(r13, snapshot(offsetof(GuestRegisterSnapshot, r13)));
+            t->mov(r14, snapshot(offsetof(GuestRegisterSnapshot, r14)));
+            t->mov(r15, snapshot(offsetof(GuestRegisterSnapshot, r15)));
+            t->mov(rax, snapshot(offsetof(GuestRegisterSnapshot, rflags)));
+            t->push(rax);
+            t->popfq();
+            t->mov(rax, snapshot(offsetof(GuestRegisterSnapshot, rax)));
+            t->mov(rsp, snapshot(offsetof(GuestRegisterSnapshot, rsp)));
+        };
+        restore();
         Xbyak::Label run_original;
+        if (replace) t->ret();
         if (skip_flag) {
             // Function entries only: [rsp] is the return address, flags are not live across a
             // call; a set flag (cleared here) returns from the game's function at once.
@@ -235,9 +239,15 @@ bool InstallGuestCodeHook(void* address, std::span<const std::uint8_t> expected,
             t->ret();
         }
         t->L(run_original);
+        original_entry = t->getCurr();
         t->db(expected.data(), expected.size());
         t->jmp(reinterpret_cast<const void*>(code + expected.size()),
                Xbyak::CodeGenerator::LabelType::T_NEAR);
+        if (conditional) {
+            t->L(return_from_guest);
+            restore();
+            t->ret();
+        }
     } catch (const Xbyak::Error& error) {
         t->setSize(start_offset);
         std::fprintf(stderr, "Guest code hook at %p: trampoline failed (%s)\n", address,
@@ -251,9 +261,29 @@ bool InstallGuestCodeHook(void* address, std::span<const std::uint8_t> expected,
     patch[0] = 0xe9;
     const std::int32_t rel32 = std::int32_t(rel);
     std::memcpy(patch.data() + 1, &rel32, 4);
-    WriteCode(code, patch.data(), patch.size());
-    hooked_sites.insert(begin);
+    if (original) *original = const_cast<void*>(original_entry);
+    const auto result=BbGuestPatch::Write(begin,patch,expected,GuestCodeProtection(),true);
+    if (result!=BbGuestPatch::Result::Applied && result!=BbGuestPatch::Result::AlreadyApplied) {
+        if (original) *original=nullptr;
+        t->setSize(start_offset);
+        return false;
+    }
+    hooked_sites.emplace(begin, expected.size());
     return true;
+}
+
+bool InstallGuestCodeHook(void* address, std::span<const std::uint8_t> expected,
+                          std::uint64_t tag, GuestCodeHook hook,
+                          const std::uint8_t* skip_flag, bool replace, void** original) {
+    return InstallHook(address, expected, tag, reinterpret_cast<std::uint64_t>(hook),
+                       skip_flag, replace, original, false);
+}
+
+bool InstallConditionalGuestCodeHook(void* address, std::span<const std::uint8_t> expected,
+                                     std::uint64_t tag, ConditionalGuestCodeHook hook,
+                                     void** original) {
+    return InstallHook(address, expected, tag, reinterpret_cast<std::uint64_t>(hook),
+                       nullptr, false, original, true);
 }
 
 } // namespace Core

@@ -15,6 +15,8 @@ void runtime_restart(void) { abort(); }
 #include <pthread.h>
 #include <stdatomic.h>
 #include <time.h>
+#include <dlfcn.h>
+#include "plugin_hle_integration.h"
 
 typedef int (ABI *Register)(GuestCallback);
 typedef int (ABI *RegisterCxa)(void (ABI *)(void *), void *, void *);
@@ -411,6 +413,7 @@ static void rw_timeouts(void) {
     assert(rw_unlock(&f.lock)==0);
     fixture_destroy(&f);
 }
+#include "test_plugin_hle_runtime.h"
 int main(int argc,char **argv) {
     runtime_start(0); assert(runtime_resolve("bzQExy189ZI#q#q",0)==0);
     runtime_start(1);
@@ -437,8 +440,17 @@ int main(int argc,char **argv) {
     if (argc>1 && !strcmp(argv[1],"--rwlock-lifecycle")) { rw_lifecycle(); return 0; }
     if (argc>1 && !strcmp(argv[1],"--rwlock-concurrency")) { rw_concurrency(); return 0; }
     if (argc>1 && !strcmp(argv[1],"--rwlock-timeouts")) { rw_timeouts(); return 0; }
+    if (argc==5 && !strcmp(argv[1],"--plugin-hle-module")) {
+        void *module=dlopen(argv[2],RTLD_NOW|RTLD_LOCAL);assert(module);
+        HleNativeCase run=(HleNativeCase)dlsym(module,"cachyborne_test_native_hle");assert(run);
+        const HleNativeBackend backend={runtime_plugin_hle_register,runtime_plugin_hle_retire,
+            runtime_plugin_hle_seal,runtime_resolve};
+        int result=run(argv[3],argv[4],&backend);
+        assert(!dlclose(module));return result;
+    }
     libc_support(); posix_mutexes(); wall_time(); exit_handlers(); guards(); mutexes(); direct_memory(); write_traps(); memory_primitives();
     rw_lifecycle(); rw_concurrency(); rw_timeouts();
+    test_plugin_hle_runtime();
     puts("PASS: callback lifecycle, guard ABI, mutex errors, shared direct memory, memory primitives, resolver scope");
     return 0;
 }

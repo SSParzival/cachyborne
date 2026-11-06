@@ -5,6 +5,15 @@ Copyright 2026 bbport contributors (the authors of this repository's commits and
 requests). Licensed under the GNU General Public License, version 2 or (at your option) any later
 version: see LICENSE. No game code or data is part of this project.
 
+
+Cachyborne also incorporates adaptations from BBHOST by droogie and its
+contributors (https://github.com/droogie/bbhost), licensed GPL-3.0-or-later.
+The combined Cachyborne build containing these adaptations is distributed
+under GPL version 3 or later; see LICENSES/GPL-3.0-or-later.txt. The original
+bbport code retains its GPL-2.0-or-later grant and notices in this file and
+LICENSE. Third-party components retain their own licenses. The reviewed
+adaptations and source revisions are listed in docs/BBHOST_LICENSE_AUDIT.json.
+
 Files of this project carry, in their first lines,
     SPDX-FileCopyrightText: Copyright 2026 bbport contributors
     SPDX-License-Identifier: GPL-2.0-or-later
@@ -34,3 +43,200 @@ GPL-2.0-or-later source file contact_shadow.comp in Lantern Engine by Awaken
 (https://github.com/Awakenchan/LanternEngine), revision e6b943dd. The host integration
 and validation are changed for Cachyborne's renderer. This is not an official
 Lantern Engine release; Lantern's name, logos and branding are not used for this port.
+
+GX barrier assistance and keyboard/menu fixes (bbhost v0.2.24):
+Adapted from https://github.com/droogie/bbhost at
+b0098e04b889e2e70b4af84be1ce809d7af3ff95 (GPL-3.0-or-later).
+Sources include src/decomp/gx/job_barrier.cpp and its differential test,
+src/host/bindings.cpp, and src/engine/menu_pointer.cpp. Cachyborne uses
+its own runtime, byte-checked hooks and Vulkan recording pipeline.
+
+Game-time clock, replay/sync and native frame-clock consumers:
+Adapted from the same bbhost v0.2.24 revision, engine/frame_clock.h,
+decomp/chr/chr_sync.cpp, decomp/chr/replay_manipulator.cpp,
+decomp/physics/ragdoll_drive.cpp, decomp/yebis/ppfx_setters.cpp and their
+retail differential test fixtures (GPL-3.0-or-later). Cachyborne uses its
+own packed clock publication and byte-checked guest trampolines.
+Frame-driven MagicOrchestra sound-thread wake: adapted from the same revision,
+src/engine/sound_wake.{h,cpp} (GPL-3.0-or-later).
+Wind timeline and force at unlocked frame rates: adapted from the same revision,
+src/engine/wind_pace.h and frame_rate.cpp (GPL-3.0-or-later).
+
+Optional last-input priority for opposing movement keys: inspired by
+Mrsuss60/bloodborne_pc_windows_port commit
+8ea9aa3744c6e59ada2ed041c65e524c0a2837bb, src/runtime_pad.c (GPL-2.0-or-later).
+Cachyborne keeps BBHOST's sprint momentum and independent camera smoothing.
+
+Hunter's Dream mirror world-layout generator: adapted from bbhost v0.2.24,
+src/engine/dream_mirror_layout.{h,cpp} (GPL-3.0-or-later), commit
+b0098e04b889e2e70b4af84be1ce809d7af3ff95. No game bytes are included.
+Menu-step observation and reference ownership: adapted from the same revision,
+src/engine/menu_steps.{h,cpp} (GPL-3.0-or-later), with checked atomic reference
+operations and a shared frame-task observer for host features.
+Experimental appearance-preview window controller: adapted from the same revision,
+src/engine/change_appearance.cpp (GPL-3.0-or-later). Cachyborne holds the list's
+reference before guest window allocation and closes the preview on world teardown.
+
+Reserved GCN descriptor encodings:
+Adapted from bloodborne-native/bloodborne-runtime commit
+e207326050a31ccd9e09d5d56bd1cc275816cbd8 (GPL-2.0-or-later),
+https://github.com/bloodborne-native/bloodborne-runtime . Cachyborne also
+skips invalid vertex formats in both regular and prepared input paths.
+
+Deferred recording data lifetime: informed by the chunk-overflow fix in
+Mrsuss60/bloodborne_pc_windows_port commit
+3e600386439130a981259b84076a21a7bb31c3f6 (GPL-2.0-or-later).
+Cachyborne uses its own chunk-owned aligned overflow and batch boundaries;
+pipeline serialization and malformed-packet suppression are not imported.
+
+Resident shader-specialization ownership and profile publication before recipe
+import: informed by Mrsuss60/bloodborne_pc_windows_port commits
+ce83b806b9975185b801355d73fb5ea50aa5b314 and
+432d2ddbf1547f6f24e87d27295a168355242a1b (GPL-2.0-or-later).
+Cachyborne rebases specialization ownership at Program insertion and uses its
+own sequence-based BlobStore visibility barrier with write-failure reporting;
+foreign metadata layouts and cache-version migrations are not imported.
+
+Optional FMOD project language-count initialization: adapted from BBHOST PR #104,
+https://github.com/droogie/bbhost/pull/104 (GPL-3.0-or-later).
+Cachyborne observes the byte-checked constructor entry and preserves the entire
+retail constructor; its regression executes that constructor from a local dump.
+
+Bounded GX upload-block reclaim and discard-copy recovery:
+Adapted from droogie/bbhost commit 7dbe6f60f33fff45ea1bcbf6c6e61a6b35466e13,
+src/decomp/gx/block_reclaim.cpp and rename_wait.cpp (GPL-3.0-or-later).
+Cachyborne retries the exact failed copy allocation inside the retail function;
+its Vulkan bridge preserves producer ownership and waits for CPU labels too.
+
+Save before exit to desktop:
+Adapted from ayozetr/bloodborne_linux commit
+1d0bbec9785843eca8661f481f3a7f47de126829 (GPL-2.0-or-later),
+gpu/shim/bbport_game_menu.cpp and src/runtime_services.c/runtime_savedata.c.
+Cachyborne arms only from the original affirmative callback, follows retail
+functor clones across threads, and gates closure on title plus all save unmounts.
+
+Offline named parameter inspection:
+scripts/param_tables.py adapts tools/bbparam.py and src/engine/paramdef.cpp
+from droogie/bbhost revision bdc5cdf8be5f37188da9c2368e92be444fdc04cb
+(https://github.com/droogie/bbhost, GPL-3.0-or-later). Cachyborne adds bounded
+archive, definition and row validation and reuses its DCX decoder. This tool
+does not include the upstream live table modification or plugin service.
+
+Read-only loaded parameter repository access:
+gpu/games/bloodborne/params.{h,cpp} adapts src/engine/params.cpp from the same
+BBHOST bdc5cdf8be5f37188da9c2368e92be444fdc04cb revision. Cachyborne uses a
+bounded injectable reader and resolves current resources on demand, without
+adding default frame polling, cached guest pointers or a mutation service.
+
+Online/offline title choice:
+Adapted from bloodborne-native/bloodborne-runtime commit
+cf57dc0e0ebdb1562fa43ad002d0202a1d1fc480 (GPL-2.0-or-later), scripts/patches.py.
+Cachyborne also projects the online choice into its native launcher settings;
+an explicit extra-environment override remains available.
+
+Optional adaptive frame limiter:
+gpu/shim/bbport_limiter.{h,cpp} adapts the sleep-margin policy from
+droogie/bbhost revision bdc5cdf8be5f37188da9c2368e92be444fdc04cb,
+src/engine/frame_rate.cpp (GPL-3.0-or-later). Cachyborne retains the retail
+pacer, checks its instruction bytes, and learns a bounded wake margin.
+
+Optional fresh occlusion results:
+gpu/games/bloodborne/occlusion_fresh.cpp adapts the CPU-side clear from
+droogie/bbhost commit bcdd8ff0eeffdcf9df1955dc9b143d620a628fb3,
+src/decomp/gx/query_token.cpp (GPL-3.0-or-later). Cachyborne observes the
+accepted retail writer before its final pointer update and keeps its PM4.
+
+The Hunter's Dream large UDP datagrams:
+gpu/bbnet20/thd/thd_net.cpp and tests/test_thd_datagrams.cpp adapt
+droogie/bbhost commit bdc5cdf8be5f37188da9c2368e92be444fdc04cb,
+src/hle/net.cpp and tests/net_p2p_test.cpp (GPL-3.0-or-later).
+The existing THD module remains GPL-3.0-or-later. Cachyborne keeps its own
+shadNet transport unchanged and bounds guest lengths before payload inspection.
+
+Offline Altar of Despair talk-script preparation:
+gpu/games/bloodborne/{esd,rebirth_script}.{h,cpp} and
+gpu/common/sha256.{h,cpp} adapt droogie/bbhost revision
+bdc5cdf8be5f37188da9c2368e92be444fdc04cb (GPL-3.0-or-later),
+src/engine/{esd,rebirth_script}.{h,cpp} and src/core/sha256.{h,cpp}.
+Cachyborne adds bounded offsets/work, malformed-file and local-corpus tests,
+and preserves conditions referenced only by unreferenced pointer lists.
+The offline helper does not enable the unfinished runtime altar transaction.
+
+gpu/games/bloodborne/rebirth_plan.h adapts the origin/refund calculation from
+BBHOST engine/rebirth.cpp at the same revision. Cachyborne bounds values,
+checks the echo cap before writes, and preserves the retail price operation
+and rounding order. tests/test_rebirth_price.cpp adapts the retail price
+threshold oracle from BBHOST tests/decomp/player_data_test.cpp.
+
+Bounded archive and altar message generation:
+scripts/bnd4.py, scripts/fmg.py and scripts/rebirth_assets.py adapt BBHOST
+src/gcn/container.cpp and src/engine/menu_assets.cpp at
+bdc5cdf8be5f37188da9c2368e92be444fdc04cb (GPL-3.0-or-later). Cachyborne
+shares its BND4 reader with named parameter mods, preserves absolute payload
+alignment, adds bounded format validation and publishes whole generated
+layers without modifying source dumps. New altar messages include Spanish.
+
+Runtime Altar of Despair rebirth:
+gpu/games/bloodborne/rebirth.cpp, rebirth_session.h and player_data.{h,cpp}
+adapt BBHOST engine/rebirth.cpp and engine/player_data.cpp at
+bdc5cdf8be5f37188da9c2368e92be444fdc04cb (GPL-3.0-or-later).
+Cachyborne uses its retail observer/menu infrastructure, validates writes
+before applying a build, restores via the retail stat function, heals after
+vitality changes, and tracks menu timeouts in elapsed time. Shared event
+entry points in event_flags.cpp also replace duplicate kit-restoration calls.
+
+Water interaction and effects schedule:
+gpu/games/bloodborne/{water_gate.cpp,water_gate_model.h,sfx_schedule.h} and
+tests/test_{water_gate_model,sfx_schedule}.cpp adapt droogie/bbhost
+(src/decomp/gx/water_gate.*, src/engine/sfx_schedule.h and corresponding tests)
+at bdc5cdf8be5f37188da9c2368e92be444fdc04cb, GPL-3.0-or-later.
+The native adapter uses checked retail entries and callable-original hooks;
+it is experimental, opt-in and disabled by default.
+
+The copied-save-only tests/water_ui_preload.cpp fixture uses the verified
+retail world-warp call/layout described in BBHOST engine/world_chr.cpp at
+bdc5cdf8be5f37188da9c2368e92be444fdc04cb, GPL-3.0-or-later.
+
+Bloodletter self-hit correction:
+gpu/games/bloodborne/bloodletter.{h,cpp} and the test-only offline oracle
+tests/bloodletter_assets_fixture.py adapt frame_rate_atk_params_loaded from
+BBHOST src/engine/frame_rate.cpp at bdc5cdf8be5f37188da9c2368e92be444fdc04cb,
+GPL-3.0-or-later. Only the original radius word is eligible; custom values
+remain intact and the native adapter resolves fresh repository data.
+
+The copied-save-only tests/bloodletter_ui_preload.cpp fixture adapts the
+retail weapon-instance creation call documented in BBHOST plugins/boss_rush.cpp
+at bdc5cdf8be5f37188da9c2368e92be444fdc04cb, GPL-3.0-or-later.
+
+Native scalar guest-call bridge:
+gpu/shim/bbport_guest_call.{h,cpp} adapts the register-frame layout and
+hle_call_guest_regs assembly from BBHOST src/core/thunk.{h,cpp} at
+bdc5cdf8be5f37188da9c2368e92be444fdc04cb, GPL-3.0-or-later.
+The native runtime retains host FS and uses GS for guest TLS; this bridge
+therefore omits BBHOST's FS switching.
+
+
+Plugin module ABI and lifecycle:
+gpu/shim/plugins/bbhost_plugin.h preserves BBHOST's public C API at
+bdc5cdf8be5f37188da9c2368e92be444fdc04cb (GPL-3.0-or-later).
+The native module loader uses that ABI with owner-scoped callback retirement;
+it does not yet provide the complete host service table or auto-load plugins.
+
+Native version-1 host service prefix:
+gpu/shim/bbport_plugin_host.{h,cpp} adapts the first twelve public services
+described by BBHOST src/host/plugins.cpp at
+bdc5cdf8be5f37188da9c2368e92be444fdc04cb (GPL-3.0-or-later).
+It reuses native owner retirement, image identity, import and hook primitives;
+image publication and API-call draining belong to the native implementation.
+Live image writes share the native patch writer, preserve page permissions,
+and require writable, non-executable ELF data and mappings. Code changes are
+restricted to quiescent image phases. Normal-launch plugin discovery, remaining
+API services and configuration ingestion are not yet integrated.
+
+
+Owned hook ABI adapter:
+gpu/shim/bbport_plugin_hooks.{h,cpp} implements BBHOST's BbHookFrame/BbHookCtx
+contracts described by src/host/plugins.cpp at
+bdc5cdf8be5f37188da9c2368e92be444fdc04cb, GPL-3.0-or-later.
+It reuses Cachyborne's conditional native hook generator and adds shared
+owner admission/drain rather than BBHOST's unowned global callback lists.

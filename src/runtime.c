@@ -3,6 +3,7 @@
 /* Narrow, explicit PS4 libc contracts. No automatic success stubs. */
 #define _CRT_RAND_S
 #include "runtime.h"
+#include "runtime_plugin_hle.h"
 #include "gpu/bbgpu.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -204,7 +205,7 @@ static ABI __attribute__((noreturn)) void guest_libc_exit(int status) {
     exit(status);
 }
 uintptr_t runtime_libc_base;
-uintptr_t runtime_resolve(const char *name, int is_data) {
+static uintptr_t runtime_resolve_base(const char *name, int is_data) {
     if (!(capabilities & 1)) return 0;
     if (is_data) {
         static int32_t need_libc_internal = 1; /* SDK marker variable referenced by Fios2 */
@@ -273,6 +274,17 @@ static const struct { const char *nid, *symbol; } import_names[]={
 #include "import_names.inc"
 #include "import_names_extra.inc"
 };
+int runtime_function_name_known(const char *symbol) {
+    if (!symbol) return 0;
+    for (size_t i=0;i<sizeof(import_names)/sizeof(*import_names);++i)
+        if (!strcmp(symbol,import_names[i].symbol)) return 1;
+    return 0;
+}
+uintptr_t runtime_resolve(const char *name,int is_data) {
+    uintptr_t original=runtime_resolve_base(name,is_data);
+    if (!(capabilities&1) || is_data || !runtime_plugin_hle_enabled()) return original;
+    return runtime_plugin_hle_resolve(runtime_symbol(name),original);
+}
 /* Symbol name for an import (NID, with or without its library/module suffix), or NULL when it is
  * not known. The NID alone decides: it is the hash of the symbol's name, whatever library a game
  * imports it from. */

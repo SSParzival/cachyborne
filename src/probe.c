@@ -12,6 +12,7 @@
 #include "runtime.h"
 #include "runtime_trophy.h"
 #include "gpu/bbgpu.h"
+#include "runtime_plugin_hle.h"
 #if !defined(__x86_64__) || !defined(__GNUC__)
 #error This prototype requires x86-64 GCC or Clang (including MinGW).
 #endif
@@ -608,6 +609,8 @@ int main(int argc, char **argv) {
         runtime_net_configure(app0,serial,title,version);
         trophy_store_configure(serial);
     }
+    if (bbgpu_plugin_hle_backend_install(runtime_plugin_hle_register,runtime_plugin_hle_retire))
+        fail("cannot install native plugin HLE backend");
     bbgpu_register_kernel();
     page_size = (size_t)sysconf(_SC_PAGESIZE);
     struct sigaction sa = {0}; sa.sa_sigaction = fault; sa.sa_flags = SA_SIGINFO;
@@ -631,6 +634,7 @@ int main(int argc, char **argv) {
     uint64_t capabilities = memcmp(magic, "BBPROBE1", 8) ? read64(f) : 0;
     if (capabilities & ~UINT64_C(1)) fail("unknown runtime capabilities");
     runtime_start(strict_imports ? 0 : capabilities);
+    runtime_plugin_hle_seal();
     if (!size || size > 512*1024*1024 || entry >= size || !ns || ns > 64 || nr > 1000000 || import_count > 100000)
         fail("boot file limits exceeded");
     int multi=!memcmp(magic,"BBPROBE5",8);
