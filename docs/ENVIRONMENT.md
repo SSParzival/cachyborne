@@ -7,7 +7,7 @@ at its start (`Environment:` in the log) and warns about `BB_*` names it does no
 `=1: ...` / `=0: ...` / `=N: ...` say what that value does; `set: ...` means any value
 turns it on (even `0`).
 
-## Settings (86)
+## Settings (90)
 
 What players and the launchers set. The menu, bbport.ini and the launcher write most of them; set one by hand to override them.
 
@@ -19,6 +19,7 @@ What players and the launchers set. The menu, bbport.ini and the launcher write 
 | `BB_BBSC` | =1: seamless co-op (BBSC), the launcher's co-op switch |
 | `BB_BBSC_LOCAL_SERVER` | =1 / auto (default) / 0: the BBSC game server on this PC (scripts/bbsc_gameserver) |
 | `BB_BUTTON_PROMPTS` | =0: the game's PlayStation button icons always |
+| `BB_CHANGE_APPEARANCE` | =1: Hunter's Dream mirror appearance editor and preview; setup must prepare the restored layout (default off) |
 | `BB_COMMUNITY_SERVER` | URL of the online pool server (default: the community server) |
 | `BB_CONFIG` | =path: the controls file (default bbport.ini) |
 | `BB_CPU_PINNING` | =1 / 0: enable / disable Cachyborne thread affinity by role. |
@@ -36,6 +37,7 @@ What players and the launchers set. The menu, bbport.ini and the launcher write 
 | `BB_FFX_VERSION` | =<part of a name>: the upscaler AMD's FSR DLLs run, from those the log lists (default: theirs) |
 | `BB_FPS` | =60 (default) / 90 / uncap / 30: the frame rate (the launcher's) |
 | `BB_FPS_LIMIT` | =N: frame rate limit (the launcher's) |
+| `BB_FRAME_CLOCK` | =1: experimental native frame-clock consumers (YEBIS, ragdoll step, lens rate and sound wake); default off, restart required |
 | `BB_FRAME_GEN` | =fsr3 / dlss / fsr_amd (1: fsr3): frame generation |
 | `BB_FRAME_GEN_MULTIPLIER` | =2..4: frames shown per rendered one with frame generation |
 | `BB_FRAME_STATS` | set: frame statistics in the log every 5 s and slow frames (the launcher's statistics switch) |
@@ -55,14 +57,15 @@ What players and the launchers set. The menu, bbport.ini and the launcher write 
 | `BB_JITTER` | =0 / 1: upscaler camera jitter (the menu's) |
 | `BB_JUMP_GAP_MS` | =N (default 70): pause around a keyboard jump while running |
 | `BB_JUMP_TAP_MS` | =N (default 70): press length of a keyboard jump while running |
-| `BB_KEY_FALL_MS` | =N (default 45): keyboard stick release time |
+| `BB_KEY_FALL_MS` | =N (default 45): look-key stick release time; movement releases immediately and retains push for 150 ms |
 | `BB_KEY_RISE_MS` | =N (default 70): keyboard stick rise time |
-| `BB_KEY_TURN_DPS` | =N (default 1100): keyboard stick turn speed in degrees a second |
+| `BB_KEY_TURN_DPS` | =N: keyboard stick turn speed in degrees a second (movement 1285.7 while sprinting; look 1100) |
 | `BB_LANGUAGE` | =N: the game's language, PS4 numeric ID (1 = English; selected by the launcher) |
 | `BB_LAYER_MEMORY` | =1 / 0: the layer's memory module (default on non-AMD GPUs) |
 | `BB_LOW_LATENCY` | =off / on / boost: NVIDIA Reflex / AMD Anti-Lag (the menu's) |
 | `BB_MENU_LANGUAGE` | =es / en: the port's menu language (default: the launcher's, else the system's) |
 | `BB_MENU_POINTER` | =0: no mouse pointer in the game's menus |
+| `BB_MESSENGER_GIFTS` | =1 / 0: unlock the three pre-order Messenger hat gifts in Hunter's Dream (default off) |
 | `BB_MODS_ENABLED` | =0: no mods |
 | `BB_MOUSE_AUTO_ROTATE` | =1: the game's camera auto rotation also with the mouse |
 | `BB_MOUSE_DEADZONE` | =N (default 16 of 127): mouse look dead zone |
@@ -80,6 +83,7 @@ What players and the launchers set. The menu, bbport.ini and the launcher write 
 | `BB_REACTIVE_MAX` | reactive mask maximum (the menu's) |
 | `BB_REACTIVE_SCALE` | reactive mask scale (the menu's) |
 | `BB_REACTIVE_THRESHOLD` | reactive mask threshold (the menu's) |
+| `BB_REBIRTH` | =1: offline Altar of Despair rebirth service; setup must prepare its script/message layer; requires Yharnam Stone (default off) |
 | `BB_RENDER_RES` | =WxH: render resolution through the startup patch (compatibility) |
 | `BB_SAVE_LOG` | =1: the log and frame statistics also kept in logs/ |
 | `BB_SHADER_PROGRESS` | =0: no shader compilation progress on screen |
@@ -100,7 +104,7 @@ What players and the launchers set. The menu, bbport.ini and the launcher write 
 | `BB_USER_NAME` | the PS4 user name (default Hunter) |
 | `BB_VOICE_LANGUAGE` | Independent retail voice-bank language (eng, esa, ese, ded, frf, iti, jaj, ptb). |
 
-## Tuning (235)
+## Tuning (256)
 
 Defaults to change on a machine where they misbehave, workarounds, and switches that turn a fix off for comparison.
 
@@ -112,10 +116,13 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_ASYNC_PIPELINE_THREADS` | =N: threads compiling pipelines in the background |
 | `BB_ASYNC_SUBMIT` | =0: the presenter submits the frame itself instead of a submit thread |
 | `BB_AUDIO` | =none: no audio device (headless runs) |
+| `BB_AUDIO_DEVICE` | =name: exact SDL playback-device name; explicit selection follows this device instead of the changing system default (missing/ambiguous stays silent) |
 | `BB_AVPLAYER_ASYNC_READY` | =1: movie StateReady on the controller thread, as before (crashed at 200+ FPS) |
 | `BB_BDA_DEDICATED_MB` | =N: buffers with GPU addresses get dedicated memory from N MiB |
 | `BB_BIND_MEMO` | =0: every resource binding takes the full path (no memo) |
+| `BB_BLOODLETTER_SELF_HIT` | =1: opt-in Bloodletter L2 original-radius correction (0.4 to 0.6 m); native60 control already activates the aura at 0.4 m, so default remains unchanged |
 | `BB_BREADCRUMBS` | =0: no GPU breadcrumbs (what the GPU was drawing at a hang) |
+| `BB_CHR_SYNC_STEP` | =0: leave the character-sync countdown frame-based instead of game-time 6 Hz |
 | `BB_CHUNK_TEXTURES` | =0: texture data copied instead of read in place from guest memory chunks |
 | `BB_CHUNK_UPLOADS` | =0: uploads through CPU staging instead of binding guest memory in place |
 | `BB_COMMIT_IMPORT_LOCKED` | =1: guest memory commits import under the lock |
@@ -154,6 +161,7 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_FIX_PLAY_TIME` | =0: without the play time fix at high frame rates |
 | `BB_FLIP_AHEAD` | =N (default 1, 0 off): the buffer shown before a flip goes back to the game that many flips early |
 | `BB_FLIP_RATE` | =N: the flip rate the game asks for replaced (0: every vblank; games without frame rate hooks) |
+| `BB_FMOD_PROJECT_INIT` | =1 exactly: initialize the FMOD project language count before its original constructor; default off while failed-bank loading is tested; requested hook failure stops startup |
 | `BB_FRAMES_AHEAD` | =N (default 1): guest frames the command processor may run ahead of the GPU |
 | `BB_FRAME_HOOKS` | =0: the community's frame rate patches instead of the port's hooks |
 | `BB_FSR3_FP32` | =1: FSR 3.1 without its FP16 shader variants (#85) |
@@ -180,10 +188,12 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_GUEST_LAZY` | =1: lazy guest memory with the layer's memory module (off: broke buffers) |
 | `BB_GUEST_MEMORY` | =dmabuf / host / private: how guest memory is shared with the GPU (default per vendor) |
 | `BB_GUEST_UNCACHED` | =1: guest memory only in memory types the GPU reads past its caches |
-| `BB_GUEST_VRAM` | =1 (experiment): direct memory in VRAM mapped through the PCI BAR |
-| `BB_GUEST_VRAM_RANGES` | =lo-hi,...: physical ranges for BB_GUEST_VRAM (default: the graphics heaps) |
+| `BB_GUEST_VRAM` | =graphics / graphics-private (experiment): both graphics heaps / only GraphicsPrivate in BAR VRAM; launcher verifies split budgets and prepared heap sizes. =1: all direct memory (slow CPU reads). Placement failure stops instead of silently using GTT |
+| `BB_GUEST_VRAM_RANGES` | =lo-hi,...: physical ranges for BB_GUEST_VRAM; launcher derives graphics ranges from the prepared resolution (raw backend default: retail 1080p heaps) |
+| `BB_GX_BARRIER_STEAL` | =0: disable GX job-barrier assistance and ordered DrawPipe producer assistance |
 | `BB_GX_COMMAND_HEAP` | =0: without the larger GX command heap patch (patches.py) |
 | `BB_GX_QUERY_GUARD` | =0: without the GX query creation guard |
+| `BB_GX_RENAME_WAIT` | =0: count GX allocation failures without bounded GPU catch-up (default on) |
 | `BB_HEAP_GROW` | =0: the graphics heap whole from the start instead of growing on demand |
 | `BB_HEAP_GROW_AHEAD` | =N (default 2, 0 off): heap pieces made ahead |
 | `BB_HEAP_GROW_INITIAL_MB` | =N (default 512): heap memory backed from the start |
@@ -236,7 +246,9 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_LAYER_WRITE_TRAPS` | =0: no write traps on layer blocks |
 | `BB_LIGHT_GRID_HOOK` | =0: without the light grid hook |
 | `BB_LIGHT_GRID_OPT` | =1 / 0: light grid optimization on / off, over the setting (tests) |
+| `BB_LIMITER_MARGIN_US` | =auto or 0..5000: opt-in retail limiter sleep margin; auto learns 300..2000 us; =off/unset retains original wait |
 | `BB_LIVE_HYBRID` | =1: the startup resolution patch with live presets over it |
+| `BB_MATCHING_REGION` | =0 / local / game: keep retail Local network matching region default (default Worldwide) |
 | `BB_MEMORY_WILLNEED` | =1: advise committed allocation pages for prefetch; default off for 16 GB. |
 | `BB_MEM_SEMAPHORE_ORDER` | =0: memory semaphores without ordering |
 | `BB_MIRROR_ALLOC_PERCENT` | =N (0 off): a mirror that would take device memory past N percent is refused |
@@ -252,18 +264,23 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_MIRROR_VRAM_ONLY` | =1: mirrors in VRAM or not at all |
 | `BB_MOTION_VERTICES_MI` | =N (1-8): object motion vertex buffer in Mi vertices |
 | `BB_NATIVE_DEFLATE` | =0: disable native libdeflate for verified initial complete zlib 1.2.3 streams; unsupported streams use original guest inflate |
+| `BB_NATIVE_FLIP_PACING` | =1: opt-in native game pacing handoff; paced frames use a 480 FPS safety ceiling, unpaced loads retain configured cap |
+| `BB_NET_LARGE_DATAGRAMS` | =0: retain the old 2 KiB limit in The Hunter's Dream UDP backend (default allows full UDP payloads) |
 | `BB_NET_MODULE` | =path: the online module to load (default gpu/libbbnet20.so beside bb-probe) |
+| `BB_NET_SPLIT_DATAGRAMS` | =0: send whole game datagrams in The Hunter's Dream backend; default splits at complete chunk boundaries |
 | `BB_NP_COUNTRY` | =code: the online user's country (default us) |
 | `BB_NP_LANGUAGE` | =code: the online user's language (default en) |
 | `BB_NVIDIA_EGL` | =0: the launcher leaves the EGL vendor files as they are (#107) |
 | `BB_NVIDIA_LIB_DIR` | =dir: extra folder with NVIDIA's libraries for the package |
 | `BB_NVIDIA_MAILBOX` | set: keep Mailbox presentation on NVIDIA Windows instead of FIFO |
 | `BB_NV_POWER` | =0: leave the NVIDIA driver profile of bb-probe.exe alone (Windows; by default its power management mode is set to prefer maximum performance unless the user chose one) |
+| `BB_OCCLUSION_FRESH` | =1: experimental CPU clear of accepted retail query begins, preventing stale results before GPU reset |
 | `BB_OCCLUSION_INTERVALS` | =0: occlusion samples counted all the time, not only while a query is open |
 | `BB_OCCLUSION_LABEL_ORDER` | =0: occlusion labels may go ahead |
 | `BB_OCCLUSION_QUERIES` | =0: a fixed occlusion result sequence instead of real queries |
 | `BB_OF_FAST` | =1: optical flow without a search on the finest level |
 | `BB_PACE_CATCHUP` | =1: frame pacing catches up after a late frame |
+| `BB_PACE_STABLE` | =1: opt-in phase pacing; ordinary wake delay does not accumulate, large stalls reset the deadline; BB_PACE_CATCHUP=1 takes priority |
 | `BB_PAD_CENTER` | =lx,ly,rx,ry: the sticks' neutral position |
 | `BB_PAD_CENTER_CAL` | =0: no measurement of the sticks' neutral position |
 | `BB_PAD_WORLD_DRAWS` | =N (default 150): a frame with this many draws counts as the world for pad timing |
@@ -291,16 +308,21 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_RENDER_RESOURCE_CACHE_MB` | =N (160: the game's own): the game's render resource cache size |
 | `BB_REPAIRED_DRAWS` | =1: repaired command buffers still draw |
 | `BB_REPAIRED_WAIT_MS` | =N (default 500): waits of repaired command buffers give up after this |
+| `BB_REPLAY_STEP` | =0: leave bloodstain replay samples and moves frame-based instead of game-time |
 | `BB_RESOLVE_WORKERS` | =N (0-4): threads that check and copy draw resources (stage 2) |
 | `BB_RING_DEDUP` | =0: off (default on): constants already in the constant ring with the same bytes bound there again, not copied over the bus once more |
+| `BB_SCENE_BOTH_SIDES` | =0: keep retail GXSceneContext::Initialize display-buffer size equality checks (default checks both width and height) |
 | `BB_SCENE_DEPTH_PROXIES` | =0: depth images read at the native size, not as reduced proxies |
 | `BB_SCENE_STENCIL_ZERO` | =0: no depth proxies where stencil export is missing, the scene stays native |
 | `BB_SCENE_UPSIZE` | =0: a scene larger than native drawn at the native size |
 | `BB_SCENE_WITHOUT_UI` | =0: cinematics without a UI pass are not finished as scenes |
+| `BB_SF_TEXT_GUARD` | =0: disable Scaleform TreeCacheText::UpdateTransform null Text::Layout* crash guard and deferred re-queue (default on) |
 | `BB_SHADOWS` | =1: shadow copies of written buffers on discrete GPUs |
+| `BB_SIGN_TIMEOUT` | =seconds: override retail 180s SOS bell sign timeout |
 | `BB_SKIP_EMPTY_DRAWS` | =1 (experiment): draws that write nothing are left out |
 | `BB_SKIP_NOOP_DRAWS` | =1: draws without effect left out (#352, no gain measured) |
 | `BB_SOUND_HACK` | =0: saves left untouched (no sound settings fix) |
+| `BB_SOUND_WAKE` | =0: keep original sound-thread sleep with the experimental frame clock; default wakes MagicOrchestra before each simulation limiter wait |
 | `BB_SPEC_MATCH` | =0: shader specializations always built and compared |
 | `BB_STAGE_PRIORITY` | =0 (default) / 1 / 2: draw stage thread priority off / above normal / highest |
 | `BB_STAGING_HOST_IDLE_MS` | =N (default 30000; 0: frames only): host staging idle timeout in milliseconds; in-flight and held buffers remain protected |
@@ -340,15 +362,18 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_VRAM_PRESSURE_IDLE_SECONDS` | =N (default 10): under pressure, VRAM groups unused this long go |
 | `BB_VRAM_PROMOTE_PERCENT` | =N (default 90): no new VRAM copies past this share of the budget |
 | `BB_VULKANINFO` | path of vulkaninfo for the launcher |
+| `BB_WATER_GATE` | =1: experimental 30 Hz water-wave updates with camera-grid compensation; default off pending native visual validation |
+| `BB_WATER_WAVE_FULL` | =1: use full display resolution for GXSceneContext water wave render target instead of half resolution |
+| `BB_WIND_PACE` | =0: leave wind timing unchanged; default keeps original 30 FPS pace and bend in the default GX mode at unlocked rates |
 | `BB_WORK_RETIRED` | =0: the recording thread and fences do not wait for retired work |
 
-## Diagnostics (282)
+## Diagnostics (283)
 
 Logs, dumps, traces, probes and experiments, for finding bugs. Most cost frame time; none is meant for playing.
 
 | Variable | What it does |
 |---|---|
-| `BB_ACCEPTANCE_COMMAND` | =path: offline acceptance commands (sequence list / sequence warp lamp); verified guest functions only |
+| `BB_ACCEPTANCE_COMMAND` | =path: offline commands: sequence list / warp lamp / param table row byte-offset (read u32); verified guest functions only |
 | `BB_ACCEPTANCE_POSES` | =new CSV path: offline guest update pose samples through a bounded background writer |
 | `BB_ARENA_VRAM_ONLY` | =1 (tests): the arena in VRAM only, as NVIDIA's sparse buffers |
 | `BB_AUDIO_DUMP` | =dir: raw converted PCM per audio port |
@@ -519,7 +544,7 @@ Logs, dumps, traces, probes and experiments, for finding bugs. Most cost frame t
 | `BB_PAD_RECORD` | =file: F9 starts and stops recording the pad state into it |
 | `BB_PAD_REPLAY` | =file: plays a BB_PAD_RECORD recording |
 | `BB_PAD_TAP_TEST` | =ms: the right stick fully right for that long (#325) |
-| `BB_PAD_TRACE` | =1 / 2: gamepad buttons and touches as read (2: every sample) |
+| `BB_PAD_TRACE` | =1 / 2: gamepad buttons/touches and enumeration over 2 ms (2: every sample) |
 | `BB_PAGED_COPY_CROSSING` | =0 (tests): copy programs paged for size alone are not paged |
 | `BB_PAGED_VERIFY` | =1: verify every block a paged binding reads |
 | `BB_PARTIAL_TRACE` | set: partial image refreshes |
@@ -584,6 +609,7 @@ Logs, dumps, traces, probes and experiments, for finding bugs. Most cost frame t
 | `BB_SHADER_CAPTURE` | =dir: shader inputs captured there |
 | `BB_SKIP_PS` | =hash,...: draws with these pixel shaders left out |
 | `BB_SLOW_BIND_LOG` | =microseconds: image memory binds slower than this |
+| `BB_SOUND_WAKE_LOG` | =1: cumulative simulation frames, sound passes and timeout counts every 300 simulation frames |
 | `BB_SPEC_MATCH_CHECK` | set: the built specialization must find the same one |
 | `BB_STAGING_STATS` | =1: report per-pool host/device staging capacity and Vulkan usage/budget once a second |
 | `BB_STALL_REPORT` | =0: no report when the queues stop making progress |
@@ -667,7 +693,7 @@ Passed between the launchers, run.py / run.sh and the game. Not meant to be set 
 | `BB_PREUPLOAD` | Retired preupload selector; removed during profile migration. |
 | `BB_SHADER_GAME_DIR` | the game's files the shader recipes' programs come from (set by run.py) |
 | `BB_SHADER_RECIPES` | the shader recipes pack (set by run.py) |
-| `BB_SKIP_NETWORK_CHOICE` | =1: no online choice at start (the launcher's) |
+| `BB_SKIP_NETWORK_CHOICE` | =0: show title online/offline choice; =1: skip; default shown online, skipped offline |
 | `BB_STALL_THREADS_DONE` | set by the port once all threads were reported |
 | `BB_UFFD` | Retired memory selector; removed during profile migration. |
 | `BB_USER_DIR` | the user folder (saves, settings; set by run.py) |

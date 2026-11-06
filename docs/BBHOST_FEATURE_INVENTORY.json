@@ -1,0 +1,219 @@
+{
+  "status": "in_progress",
+  "source_commit": "b0098e04b889e2e70b4af84be1ce809d7af3ff95",
+  "scope": "Initial public snapshot and later v0.2.x utility; this is a feature inventory, not a claim that every source line or commit is certified.",
+  "features": [
+    {
+      "id": "frame_timing",
+      "upstream": "src/engine/frame_rate.cpp; src/engine/wind_pace.h; src/engine/sfx_schedule.h",
+      "local": "gpu/shim/bbport_frame_rate.cpp; gpu/shim/bbport_effect_time.h; gpu/games/bloodborne/{water_gate,water_gate_model,sfx_schedule}.*",
+      "status": "partial_with_optin_native_water_activity_and_short_lake_movement_verified",
+      "remaining": "Wind correction integrated. Water 30 Hz model and native callable-original adapter pass model mutation/sanitizer and retail-entry ABI tests; physical performance passed; a separate copied-save lake test verifies live activity, grid restoration, short movement and inspected captures. Controlled temporal equivalence and actual impulse preservation remain pending; default off. Native adapter uses game-time bank, not the upstream shared 30 Hz effect schedule. The schedule helper is ported and tested but not wired to native effect updates. Smooth effects, class/emission/ribbon rules, all count handovers and VRR remain under comparison. Bloodletter correction is opt-in only. Three natural transformed-L2 aura activations each pass at stock30, native60, and native60 with the experimental clock, all at original 0.4 m. Automatic enlargement has no demonstrated need in these controls. Earlier enabled-correction loaded-field performance and custom 0.8 m preservation evidence remain build-specific.",
+      "evidence": [
+        "out/water-model-tests.log",
+        "out/water-model-asan.log",
+        "out/water-native-tests.log",
+        "out/water-native-asan.log",
+        "out/water-native-check-all-fixed.log",
+        "out/native-physical-water-byrgenwerth-120/manifest.json",
+        "out/water-ui-owned-lake-1/reviewed-evidence.json",
+        "out/bloodletter-check-all.log",
+        "out/bloodletter-asan.log",
+        "out/native-physical-bloodletter-120/manifest.json",
+        "out/native-bloodletter-controls/manifest.json"
+      ]
+    },
+    {
+      "id": "sound_producer",
+      "upstream": "src/engine/sound_wake.cpp",
+      "local": "gpu/shim/bbport_sound_wake.cpp",
+      "status": "implemented_route_verified",
+      "remaining": "Long-session audio, attack events and physical device quality pending."
+    },
+    {
+      "id": "replays_and_sync",
+      "upstream": "src/decomp/chr/replay_manipulator.cpp; src/decomp/chr/chr_sync.cpp",
+      "local": "gpu/games/bloodborne/replay_time.cpp",
+      "status": "implemented_retail_tested",
+      "remaining": "Online recording/playback and full session acceptance pending."
+    },
+    {
+      "id": "controls_and_pointer",
+      "upstream": "src/host/bindings.cpp; src/engine/menu_pointer.cpp",
+      "local": "src/runtime_pad/bindings.c; gpu/games/bloodborne_menu_pointer.cpp",
+      "status": "partial",
+      "remaining": "Runtime keyboard/controller, storage and wheel interaction coverage remains to complete."
+    },
+    {
+      "id": "gx_and_draw_work",
+      "upstream": "src/decomp/gx/job_barrier.cpp; src/host/gxvk_vk.cpp",
+      "local": "gpu/games/bloodborne/gx_job_barrier.cpp; gpu/render/vk_draw_pipe.h",
+      "status": "partial",
+      "remaining": "Guest barrier assist and ordered draw assistance implemented; architecture-specific draw bypass and area-specific benefit still require comparison. Latest BBHOST 6d2b7ea itself keeps constant-buffer homes/segment workers off at <=60 FPS because their threads cost CPU without improving a capped rate; do not add those workers to this 60-FPS profile without local evidence."
+    },
+    {
+      "id": "image_copy_elision",
+      "upstream": "src/host/copy_elide.h; src/host/full_write.h; src/host/copy_compare.cpp",
+      "local": "gpu/textures; gpu/render",
+      "status": "pending_with_ordered_transfer_diagnostics",
+      "remaining": "Deferred image materialization and source redirection are not implemented. Ordered actual-transfer capture and profiler labels added for measurement. Full write/read/retire coverage, texture memo invalidation, backing ownership and GPU-content equivalence remain prerequisites. BBHost itself defaults this off on discrete GPUs.",
+      "audit": "docs/BBHOST_IMAGE_COPY_AUDIT.md"
+    },
+    {
+      "id": "memory_imports",
+      "upstream": "src/host/render.cpp; src/host/heap_place.h",
+      "local": "gpu/shim/bbport_guest_memory_chunks.cpp; gpu/buffers/buffer_maintain.cpp",
+      "status": "partial",
+      "remaining": "16 MiB retirement has active GPU read tests and an accepted 15-cycle native wind-build soak; later build acceptance and broader areas remain separate."
+    },
+    {
+      "id": "appearance_mirror",
+      "upstream": "src/engine/change_appearance.cpp; src/engine/dream_mirror_layout.cpp; src/engine/menu_steps.cpp",
+      "local": "scripts/world_assets.py; gpu/games/bloodborne/{menu_steps,appearance}.cpp; launcher/cachyborne.py and cachyborne_panels.py",
+      "status": "implemented_prepared_gui_and_copied_save_gameplay_verified",
+      "remaining": "Broader face/preset combinations, regions and long sessions remain separate; default off and user map mods keep priority.",
+      "evidence": [
+        "out/appearance-feature-check-all.log",
+        "out/appearance-mirror-session/result.json",
+        "out/appearance-prepared-session/result.json"
+      ]
+    },
+    {
+      "id": "rebirth_altar",
+      "upstream": "src/engine/rebirth.cpp; src/engine/rebirth_script.cpp; src/engine/esd.cpp; src/engine/event_flags.cpp",
+      "local": "gpu/games/bloodborne/{esd,rebirth_script}.{h,cpp}; tools/rebirth_script.cpp; gpu/games/bloodborne/rebirth_plan.h; scripts/{rebirth_assets,bnd4,fmg}.py; gpu/games/bloodborne/{rebirth,rebirth_session,event_flags,player_data}.*; launcher/cachyborne.py; launcher/cachyborne_panels.py; scripts/world_assets.py",
+      "status": "implemented_prepared_gui_full_copied_save_ui_and_restart_verified",
+      "remaining": "Full offline native UI and restart persistence are verified: Spanish labels, no-stone refusal, native level purchase, menu return, exact undo, accept, map transition and separate-process reload. Actual setup produces the feature layer with selected user mods; launcher/CLI controls and normal helper build are wired. Default remains off. The current default-off build also passes a physical 600-second native capture. Broader feature qualification and final release remain separate.",
+      "evidence": [
+        "out/esd-corpus-asan-final.log",
+        "out/rebirth-plan-retail-asan-fixed.log",
+        "out/rebirth-price-retail-fixed.log",
+        "out/rebirth-script-cli.json",
+        "out/altar-assets-check-all.log",
+        "out/talk-message-assets-roundtrip.json",
+        "out/rebirth-assets-generated-manifest.json",
+        "out/rebirth-assets-tests.log",
+        "out/rebirth-runtime-check-all-fixed.log",
+        "out/rebirth-runtime-asan.log",
+        "out/rebirth-session-asan.log",
+        "out/rebirth-live-functional/manifest.json",
+        "out/rebirth-live-standard/manifest.json",
+        "out/rebirth-altar-ui-session/result.json",
+        "out/rebirth-live-standard-primed/manifest.json",
+        "out/rebirth-snapshot-python.log",
+        "out/rebirth-ui-owned-dialogue/result.json",
+        "out/rebirth-ui-owned-dialogue/ui-evidence.json",
+        "out/rebirth-ui-boss-event.json",
+        "out/rebirth-prepared-fixed-validation/asset-verification.json",
+        "out/rebirth-integrated-check-all.log",
+        "out/rebirth-gui-settings-tests.log",
+        "out/rebirth-prepared-persistence/manifest.json",
+        "out/fixed-native-publication.json",
+        "out/native-physical-fixed-600/manifest.json"
+      ]
+    },
+    {
+      "id": "param_field_mods",
+      "upstream": "src/engine/params.cpp; src/engine/paramdef.cpp",
+      "local": "scripts/param_tables.py; scripts/world_assets.py",
+      "status": "offline_named_mods_readonly_live_repository_and_row_ids_verified",
+      "remaining": "Generated TOML mods and read-only live repository are verified. Shared native metadata traversal batches bounded reads, preserving duplicate/unsorted ID semantics. Native ordered row-ID enumeration (count-only/prefix/full) matches the loaded retail tables in a copied-save physical capture. A narrowly guarded Bloodletter radius writer exists; general named-field live overrides and the public plugin service table remain pending.",
+      "evidence": [
+        "out/param-tables-differential.json",
+        "out/param-mod-live/manifest.json",
+        "out/param-read-check-all.log",
+        "out/phase-pacing-check-all.log",
+        "out/params-batch-check-all.log",
+        "out/params-query-bench-manifest.json",
+        "out/native-physical-bloodletter-120/manifest.json",
+        "out/param-ids-check-all.log",
+        "out/params-ids-asan.log",
+        "out/native-physical-param-ids-120/manifest.json"
+      ]
+    },
+    {
+      "id": "native_plugins",
+      "upstream": "src/host/plugins.cpp; include/bbhost; plugins/randomizer; plugins/boss_rush; plugins/debug_menu; plugins/mutators",
+      "local": "gpu/shim/bbport_plugin_{host,module,image,hooks,callbacks}.*; src/runtime_plugin_hle.*",
+      "status": "native_v1_prefix_components_hle_sanitizers_and_guarded_actual_game_boot_verified",
+      "remaining": "A truthful 12-service version-1 prefix now passes real DSO, native import fallback, lifetime, publication and API-drain tests, plus ASan/UBSan and targeted TSan. A guarded actual-game pre-bind/pre-entry adapter passed a physical 120-second FSR4.1 native capture on copied saves, with checked image-phase and process-context data write/read/restore. Normal-launch discovery/configuration/ELF/VMA wiring and all services beyond that prefix remain pending; no complete API16 compatibility is advertised.",
+      "evidence": [
+        "docs/BBHOST_PLUGIN_SERVICES_AUDIT.json",
+        "out/plugin-conditional-check-all.log",
+        "docs/BBHOST_PLUGIN_HOST_V1_AUDIT.json",
+        "out/plugin-host-retail-check-all.log",
+        "out/plugin-host-asan.log",
+        "out/plugin-host-tsan.log",
+        "out/native-physical-plugin-host-v1-120-r2/manifest.json"
+      ]
+    },
+    {
+      "id": "online_services",
+      "upstream": "src/engine/sos_signs.cpp; src/engine/summon_invite.cpp; src/engine/np_test.cpp; docs/online.md",
+      "local": "gpu/bbnet20; scripts/bbsc_gameserver",
+      "status": "partial_thd_datagram_integrity_and_split_loopback_verified",
+      "remaining": "THD large datagrams and chunk-boundary splitting are integrated and tested through actual guest imports, including ASan/UBSan-instrumented THD code. Vendor shadNet has different transport and stays unchanged. Relay, protocol/server utility and two-player end-to-end feature comparisons remain pending.",
+      "evidence": [
+        "out/native-60-defaults-check-all-fixed.log",
+        "out/thd-datagrams-asan-split.log",
+        "out/thd-datagrams-asan-whole.log",
+        "out/thd-datagrams-asan-legacy.log"
+      ]
+    },
+    {
+      "id": "render_and_shaders",
+      "upstream": "src/host/render.cpp; src/engine/yebis.cpp; docs/rendering.md",
+      "local": "gpu/render; gpu/shader; gpu/upscale",
+      "status": "comparison_pending",
+      "remaining": "Different engine/Vulkan architecture. Compare native tessellation, shader lifting, YEBIS resource identity and measured costs; FSR 4.1 native is implemented locally but does not certify the remaining renderer utility."
+    },
+    {
+      "id": "gx_discard_recovery",
+      "upstream": "src/decomp/gx/block_reclaim.cpp; src/decomp/gx/rename_wait.cpp @ 7dbe6f6",
+      "local": "gpu/games/bloodborne/gx_reclaim.cpp; gpu/render/{presenter,raster_signals}.cpp; gpu/cp/command_processor.cpp",
+      "status": "implemented_retail_real_cp_and_in_game_cpu_label_flush_tested",
+      "remaining": "Live CPU-label flush probe and current native-default 120-second route passed. Stage 0 had no outstanding tick: pending GPU step under load, heavy-area real exhaustion and broad soak remain separate."
+    },
+    {
+      "id": "save_before_desktop_exit",
+      "upstream": "ayozetr/bloodborne_linux@1d0bbec; save-and-quit utility",
+      "local": "gpu/games/bloodborne/save_quit.cpp; gpu/shim/bbport_game_menu.cpp; src/runtime_quit.c",
+      "status": "implemented_retail_and_three_copied_save_sessions_verified",
+      "remaining": "Broader regions/save slots and long-session acceptance remain separate. Affirmative callback arms exit; title and all savedata unmounts gate shutdown.",
+      "evidence": [
+        "out/save-quit-cancel-session/result.json",
+        "out/save-quit-confirm-session/result.json",
+        "out/save-quit-title-session/result.json"
+      ]
+    },
+    {
+      "id": "occlusion_fresh_results",
+      "upstream": "src/decomp/gx/query_token.cpp @ bcdd8ff0eeffdcf9df1955dc9b143d620a628fb3",
+      "local": "gpu/games/bloodborne/occlusion_fresh.cpp",
+      "status": "optin_native_route_and_sanitizer_tested",
+      "remaining": "Mensis 120-second native 1440p FSR 4.1 capture passes all gates (7200 frames, worst 16.75 ms), hook marker present and screenshot visually inspected. Delayed-GPU and broader visual verification remain pending; default stays off.",
+      "evidence": [
+        "out/occlusion-fresh-asan-fixed.log",
+        "out/occlusion-fresh-check-all-fixed.log",
+        "out/native-occlusion-fresh-live/acceptance.json",
+        "out/native-occlusion-fresh-live/manifest.json"
+      ]
+    },
+    {
+      "id": "messenger_gifts",
+      "upstream": "droogie/bbhost PR #203 (b10d9dd7599db64850bc93d9fc863ce9db8decba)",
+      "local": "src/runtime_content.c; launcher/cachyborne.py; launcher/cachyborne_panels.py; tests/test_content.c",
+      "status": "implemented_retail_and_launcher_tested",
+      "remaining": "Default off; appends synthetic BBHOSTADDON00..02 when enabled and skips any slot already covered by a mounted add-on."
+    },
+    {
+      "id": "scaleform_and_scene_fixes",
+      "upstream": "src/engine/sf_text_layout.cpp; src/engine/scene_context.cpp; src/engine/network_qol.cpp",
+      "local": "gpu/games/bloodborne/sf_text_layout.{h,cpp}; gpu/shim/bbgpu.cpp; tests/test_sf_text_layout.cpp",
+      "status": "implemented_retail_abi_and_live_120s_verified",
+      "remaining": "Uses verified retail 1.09 System V registers (rdx in UpdateTransform, edx in HandleChanges) and TreeCacheNode offsets (pRoot +0x18, UpdateFlags +0x44, pNextUpdate +0x48)."
+    }
+  ],
+  "latest_inspected_commit": "bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+  "latest_followup": "docs/BBHOST_FOLLOWUP_2026-11-06.json"
+}

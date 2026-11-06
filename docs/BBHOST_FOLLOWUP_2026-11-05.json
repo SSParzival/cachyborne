@@ -1,0 +1,186 @@
+{
+  "inspected_on": "2026-11-05",
+  "status": "in_progress",
+  "bbhost": {
+    "baseline": "b0098e04b889e2e70b4af84be1ce809d7af3ff95",
+    "latest_head": "bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+    "commits_since_baseline": 45,
+    "open_pull_requests": [
+      {
+        "number": 203,
+        "title": "enhancements: Messenger gifts - the pre-order and edition bonuses, as…",
+        "url": "https://github.com/droogie/bbhost/pull/203",
+        "head": "b10d9dd7599db64850bc93d9fc863ce9db8decba",
+        "draft": false
+      },
+      {
+        "number": 180,
+        "title": "options: mark Frame rate \"(requires restart)\" in the F10 menu",
+        "url": "https://github.com/droogie/bbhost/pull/180",
+        "head": "2bc6f481038a49d1889c3afe1ce07803090e8e3e",
+        "draft": false
+      },
+      {
+        "number": 161,
+        "title": "net: add Discord Rich Presence for character and area",
+        "url": "https://github.com/droogie/bbhost/pull/161",
+        "head": "85bf162b18d9e3f21bc0d3f3a2583e6578405b1e",
+        "draft": false
+      },
+      {
+        "number": 157,
+        "title": "macos: bbhost on Apple Silicon (Rosetta 2 + MoltenVK), playable at ~30 fps",
+        "url": "https://github.com/droogie/bbhost/pull/157",
+        "head": "5e92cd19142ac87b109acc74d7fd6cbc7c7c14f2",
+        "draft": false
+      },
+      {
+        "number": 141,
+        "title": "perf/flip-timeline after #139: command processor 82 -> 121 fps in a CPU-bound area, compute buffers, shader trims (CI build)",
+        "url": "https://github.com/droogie/bbhost/pull/141",
+        "head": "90ca92b69616df50eabb2a09330c73b332b1a18d",
+        "draft": true
+      },
+      {
+        "number": 126,
+        "title": "gx trace: emit records the command processor never takes go after 600 flips",
+        "url": "https://github.com/droogie/bbhost/pull/126",
+        "head": "30581d7f4aa88a478bcb56513225bccc82260f63",
+        "draft": false
+      },
+      {
+        "number": 122,
+        "title": "kyo pc settings perf",
+        "url": "https://github.com/droogie/bbhost/pull/122",
+        "head": "d66deac4f4dc099516f31df215cdbe83b3c6026a",
+        "draft": false
+      },
+      {
+        "number": 119,
+        "title": "Test build of master 566184a (do not merge)",
+        "url": "https://github.com/droogie/bbhost/pull/119",
+        "head": "2f5a18d1ac0575398a4ac6aff3ca29d35bef1498",
+        "draft": true
+      },
+      {
+        "number": 117,
+        "title": "Stop dispatch trace records growing with tracing disabled",
+        "url": "https://github.com/droogie/bbhost/pull/117",
+        "head": "0b0ea897469b2efe783cc749b8c5bd9541448502",
+        "draft": false
+      },
+      {
+        "number": 108,
+        "title": "present: FIFO where the driver presents through DXGI",
+        "url": "https://github.com/droogie/bbhost/pull/108",
+        "head": "e53bdd8acb17d2ef3132a839ab37e9b7f1d9995b",
+        "draft": false
+      },
+      {
+        "number": 105,
+        "title": "diagnostics: preserve Windows crash evidence with an external dump collector",
+        "url": "https://github.com/droogie/bbhost/pull/105",
+        "head": "dad785bf1dec59db85d33c54cd3b3553f76c5697",
+        "draft": false
+      },
+      {
+        "number": 104,
+        "title": "audio: initialize FMOD project language count before failed-load cleanup",
+        "url": "https://github.com/droogie/bbhost/pull/104",
+        "head": "d230787b2ab84d23981f7f7edfaf063e753e4a17",
+        "draft": false
+      },
+      {
+        "number": 100,
+        "title": "Optimize rendering and fix Windows stack and effect handling",
+        "url": "https://github.com/droogie/bbhost/pull/100",
+        "head": "7817a4231f8cb978db3fda5156188850748e65ff",
+        "draft": false
+      },
+      {
+        "number": 74,
+        "title": "Fix Windows certificate trust in portable curl builds",
+        "url": "https://github.com/droogie/bbhost/pull/74",
+        "head": "82c58b4a805db07cf05849f84e0bf055e9027d27",
+        "draft": false
+      },
+      {
+        "number": 73,
+        "title": "Add DLSS/FSR upscaling, paced frame generation, motion vectors and Reflex",
+        "url": "https://github.com/droogie/bbhost/pull/73",
+        "head": "539d45f41e1692379a130d69ff79dca3a900513d",
+        "draft": false
+      },
+      {
+        "number": 70,
+        "title": "Fix chromatic aberration disabling on Windows",
+        "url": "https://github.com/droogie/bbhost/pull/70",
+        "head": "94db37124edf851f8d8272dcc9b194057ed30224",
+        "draft": false
+      }
+    ],
+    "decisions": [
+      {
+        "commit": "6d2b7eaa573aac547e6aa9c95b58026f37eb20d0",
+        "utility": "Extra constant-buffer homes and segment preparation workers",
+        "status": "not_enabled_for_60_fps",
+        "reason": "Upstream excludes <=60 fps from automatic activation due to CPU cost; architecture-specific renderer work still needs comparison."
+      },
+      {
+        "commit": "bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+        "utility": "Large P2P datagrams and game-chunk splitting",
+        "status": "comparison_pending",
+        "reason": "Local BBNet uses a distinct codec/transport with dynamic packet vectors and 65536-byte receive storage. Do not import BBHOST-specific wire framing blindly."
+      },
+      {
+        "source": "tools/bbparam.py; src/engine/paramdef.cpp",
+        "utility": "Offline field-name table reader",
+        "status": "implemented_retail_differential_passed",
+        "tables": 65,
+        "definitions": 63,
+        "rows": 79759,
+        "evidence": "out/param-tables-differential.json",
+        "remaining": "Live overrides and plugin services are not included."
+      }
+    ]
+  },
+  "native_fork_heads": [
+    {
+      "repository": "deadinside28/bloodborne_pc",
+      "commit": "0fc2921c45f8ff3900f6bfa43a299e9a4f532af4",
+      "subject": "0.7: native Windows build with online and mods, one memory model, faster heavy views, cloth and shadow fixes",
+      "date": "2026-10-28T23:55:53Z"
+    },
+    {
+      "repository": "Mrsuss60/bloodborne_pc_windows_port",
+      "commit": "3e600386439130a981259b84076a21a7bb31c3f6",
+      "subject": "gpu, probe: fix random exit 139, 140 and 23 crashes in long sessions",
+      "date": "2026-11-04T14:16:05Z"
+    },
+    {
+      "repository": "bloodborne-native/bloodborne-runtime",
+      "commit": "cf57dc0e0ebdb1562fa43ad002d0202a1d1fc480",
+      "subject": "Online mode shows the title's Online/Offline choice (#15)",
+      "date": "2026-11-04T21:30:24Z"
+    },
+    {
+      "repository": "ayozetr/bloodborne_linux",
+      "commit": "1d0bbec9785843eca8661f481f3a7f47de126829",
+      "subject": "Launcher: version 0.70-linux.2",
+      "date": "2026-11-04T11:11:38Z"
+    },
+    {
+      "repository": "SrShadowy/bloodborne_pc",
+      "commit": "0b96acfc505ae53b09227e7bb40e758fad86c31d",
+      "subject": "today is a new day huh",
+      "date": "2026-10-27T02:35:36Z"
+    },
+    {
+      "repository": "Supermedo/bloodborne_pc",
+      "commit": "b48052617a919fc4d6b10ae3395e209c9e94e17a",
+      "subject": "Update README.md",
+      "date": "2026-10-30T20:41:05Z"
+    }
+  ],
+  "scope": "Discovery and explicitly listed comparisons only; does not certify review or integration of every source line, fork or pull request."
+}

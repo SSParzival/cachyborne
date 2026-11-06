@@ -1,0 +1,133 @@
+{
+  "status": "native_prefix_components_hle_sanitizers_guarded_real_boot_and_normal_default_movement_passed_normal_activation_API16_pending",
+  "upstream": "https://github.com/droogie/bbhost/blob/bdc5cdf8be5f37188da9c2368e92be444fdc04cb/src/host/plugins.cpp",
+  "advertised_api_version": 1,
+  "advertised_api_size": "offsetof(BbHostApi,on_frame)",
+  "implemented_prefix": [
+    "log",
+    "config",
+    "data_dir",
+    "mods_dir",
+    "register_hle",
+    "eboot_sha256",
+    "eboot_is_109",
+    "guest_addr",
+    "read",
+    "write",
+    "patch",
+    "hook"
+  ],
+  "full_upstream_api_version": 16,
+  "full_upstream_service_count": 54,
+  "scope": "A native programmatic host prefix, not complete API16 compatibility or normal-launch discovery.",
+  "contracts": [
+    "One game/host per process after a load attempt; DSOs, API strings and guest image lifetime remain process-bound.",
+    "Init precedes native import binding; image phases precede guest execution. Code patches/hooks require the owned image phase.",
+    "Process services also admit raw HLE/plugin worker callers; active calls drain at Close. Registered callback admission uses the existing owner registry.",
+    "Close redirects HLE imports but does not claim to join plugin-created threads or raw HLE bodies; borrowed guest pointers require the process-lifetime image.",
+    "Original-ELF SHA and normalized 1.09 identity retain distinct meanings.",
+    "Live write accepts BN addresses in original writable/non-executable data segments and writable/non-executable mappings. Code/image mutations before guest start share the existing transactional writer and restore protections.",
+    "The image/hooks pair publishes atomically before image callbacks. Configuration is immutable caller-supplied text; launcher/TOML ingestion remains pending."
+  ],
+  "evidence": {
+    "full_suite": "out/plugin-host-retail-check-all.log",
+    "cpp_tests": 123,
+    "cpp_skipped": 0,
+    "python_tests": 333,
+    "component_cases": "out/plugin-host-publication-tests.log",
+    "native_hle_cases": [
+      "plugin-native-host-hle-success",
+      "plugin-native-host-hle-init-fail"
+    ],
+    "asan_ubsan": "out/plugin-host-asan.log",
+    "tsan": "out/plugin-host-tsan.log",
+    "data_patch_sanitizer": "out/plugin-data-patch-asan.log",
+    "image_write_sanitizer": "out/plugin-data-image-asan.log"
+  },
+  "real_game": {
+    "status": "passed",
+    "capture": "out/native-physical-plugin-host-v1-120-r2/manifest.json",
+    "scope": "Test-only guarded pre-bind/pre-entry adapter, copied offline saves, actual data write/read/restore. No installed guest hook, HLE replacement or task in this game capture.",
+    "failed_attempt": {
+      "path": "out/native-physical-plugin-host-v1-120/manifest.json",
+      "reason": "The test preload depended on bbGPU and was applied to stdbuf, which lacks runtime exports. The game was not entered. Retried by applying the preload only when executing bb-probe."
+    },
+    "plugin_host_verified": true,
+    "fixture_binaries_unchanged": true,
+    "binary_sha256": {
+      "/home/ssparzival/Proyectos/GitHub/cachyborne/out/bb-probe": "737377b739831f578d3e29b511be8652cf52b37dd4fdebe591dcee71e12b724c",
+      "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbgpu.so": "4c2cd2c3e1b7a9afbe77db92e4614b931165a89168f0510616dde66187011ae0",
+      "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbnet20.so": "9ea12daba9ba7ebb1b40e2b8b5f329a969351ac7c754ad5298265024c982d177"
+    },
+    "fixture_binary_sha256": {
+      "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libplugin-host-preload.so": "a8c33ded9995333b4e52632816e6317506fe097f0b14997cbcefc8c8e6e629b2",
+      "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libplugin-host-retail.so": "5ca4d25c80fd9422bcfabe7bae72c5f466c07941e935c1e0b88d7a4e697636aa",
+      "/home/ssparzival/Proyectos/GitHub/cachyborne/out/native-physical-plugin-host-v1-120-r2/probe-with-fixture": "e5b3632418b05b986f6e1a3fc1b19340dba2dbd6c236f18e5f35908fe35813ce"
+    },
+    "proof": [
+      "init\t1\t104\t/home/ssparzival/Proyectos/GitHub/cachyborne/out/native-physical-plugin-host-v1-120-r2/capture/60/user",
+      "image\tcec1b276e7f9e4db978e57f524f41fbaac594530a3437b002e23f3fab14b4f86\t34393507696\t64\t16909124\t16909124\t64",
+      "live\t64\t270544896\t270544896\t64"
+    ],
+    "performance": {
+      "frames": 7200,
+      "measured_fps": 59.99309579455897,
+      "p99_ms": 16.71,
+      "worst_ms": 17.09,
+      "backend": "FP8 t2160_m0"
+    },
+    "original_saves_unchanged": true,
+    "source_configuration_unchanged": true
+  },
+  "remaining": [
+    "Native runtime/launcher discovery, immutable configuration ingestion and original-ELF/VMA adapters in normal launches.",
+    "Services beyond the version-1 prefix, including callbacks, named live params and the rest of API16.",
+    "Populated official plugins and full gameplay/online/UI lifecycle qualification."
+  ],
+  "source_sha256": {
+    "gpu/shim/bbport_guest_patch.h": "971d3d2fedaf1290066a2d5432d789df3637772fd0415bc3dff3bb226a9533a9",
+    "gpu/shim/bbport_guest_patch.cpp": "b41fbdc6f45821aaa6a3eac6021e498b251c3e8bb7f1b98225633a1504acbe45",
+    "gpu/shim/bbport_plugin_image.h": "516083981c792d28cda83e57326d9820b5fca1c7ec2d5b48b1863c7b68f3ac8f",
+    "gpu/shim/bbport_plugin_image.cpp": "0445b158d90a462b616c1bd4d15ebe36e19b3426ca1da90fdc1ec9d764ad0e31",
+    "gpu/shim/bbport_plugin_host.h": "fa29587c86cd2b9597ba5e760e430bd1021ad56fa40719a9b524576475ecf1d4",
+    "gpu/shim/bbport_plugin_host.cpp": "c85dbab512f7e2f818e5ecc8389c053f1ef93acd8c49697de8223066c71698e7",
+    "tests/test_guest_patch.cpp": "1f9e8efd9895e8cc58d32d5be2e7109a5d8ef85c6db7e2dc3c7a5a68d39cc6ff",
+    "tests/test_plugin_image.cpp": "9685c38eaf07ac7d927f9e39b40ef4fa554789859c8ab5e70f4a236abd4d9bcc",
+    "tests/test_plugin_host.cpp": "839188e412ff10febee944de4e5f2dbb383414abaf53817bb8dc1e7da9bcd1e5",
+    "tests/plugin_host_fixture.cpp": "02b4ddb2b4f09ed5d58a6077333b5c118b98f8b48dc55dd2d823903732d2aec1",
+    "tests/plugin_host_retail.cpp": "36e68d3b8cf54b55fbe8ba332359b18a9cde0fdc81ddb02cf756584272a3488a",
+    "tests/plugin_host_preload.cpp": "8ddcc221d613ff2d65dcc27e0cc3b43517d12e9a5e6bc65dd44061355aa30ffa",
+    "tests/plugin_hle_integration.cpp": "90016cf5f67d3b29d0d694be21219d30cb3aa2a6df79ab081b1b9668e9db266b",
+    "gpu/CMakeLists.txt": "a5d8ba4211dd868ec7bbcbebb42eedaf9b7155ad58e4fcb79a4654b09891a0f5"
+  },
+  "normal_default_verification": {
+    "status": "passed",
+    "manifest": "out/native-physical-plugin-host-default-120/manifest.json",
+    "binary_sha256": {
+      "/home/ssparzival/Proyectos/GitHub/cachyborne/out/bb-probe": "737377b739831f578d3e29b511be8652cf52b37dd4fdebe591dcee71e12b724c",
+      "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbgpu.so": "4c2cd2c3e1b7a9afbe77db92e4614b931165a89168f0510616dde66187011ae0",
+      "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbnet20.so": "9ea12daba9ba7ebb1b40e2b8b5f329a969351ac7c754ad5298265024c982d177"
+    },
+    "performance": {
+      "frames": 7200,
+      "measured_fps": 59.995085402587435,
+      "p99_ms": 16.71,
+      "worst_ms": 16.98,
+      "backend": "FP8 t2160_m0"
+    },
+    "normal_launch_no_fixture": true,
+    "physical_audio_routed": true,
+    "audio_no_starvation": true,
+    "original_saves_unchanged": true,
+    "source_configuration_unchanged": true
+  },
+  "normal_movement_verification": {
+    "manifest": "out/native-dream-movement-host-v1-120/manifest.json",
+    "passed": true,
+    "frames": 7200,
+    "fps": 59.99196107721564,
+    "p99_ms": 16.71,
+    "worst_ms": 16.86,
+    "path_m": 13.62789901549861
+  }
+}

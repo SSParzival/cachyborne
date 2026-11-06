@@ -44,7 +44,7 @@ and null online-event guards. [Source review](docs/COMMUNITY_AUDIT_0.8.3.md).
 | GPU | Radeon RX 9070 XT, RDNA4/GFX1201, Mesa RADV |
 | CPU | i5-14600KF; P CPUs 0–11, E CPUs 12–19, verified on this PC |
 | Memory | 16 GB system RAM; disk assets/caches; no full game in tmpfs |
-| Image | FSR 4.1 Quality, 1706×960 scene → 2560×1440 output |
+| Image | FSR 4.1 Native AA (1×), 2560×1440 scene and output |
 | Quality | Full textures, GT-VBAO (SSAO enabled), dynamic shadows and bloom; RCAS 0.35 |
 | Model | Capability-based automatic selection; native FP8 on this GPU |
 | Presentation | Mailbox, 60 FPS target cap; frame generation off |
@@ -52,15 +52,39 @@ and null online-event guards. [Source review](docs/COMMUNITY_AUDIT_0.8.3.md).
 
 The default cap is 60 FPS (16.667 ms); frame-time consistency must be measured in game.
 SMAA is selected in settings and runs when the upscaler is off; with FSR, temporal AA applies.
-Chromatic aberration, motion blur and DoF are off. `preset=1` means **Quality (1.5×)**,
-not native rendering (`preset=0`). Native 1440p needs a 9152 MiB guest pool and is
-rejected by the 16 GB RAM profile; the safe default keeps a 5056 MiB pool.
+Chromatic aberration, motion blur and DoF are off. The default `preset=0` means
+**Native AA (1×)**; `preset=1` selects Quality (1.5×). Resolution-sized graphics
+heaps use a 5936 MiB guest pool at native 1440p; CPU-facing guest memory stays
+cached while GPU resources and mirrors use VRAM. The local GTT budget is checked
+before preparing or launching this profile.
 Audio uses a monotonic clock, a prefilled SDL queue and P-core placement;
 `BB_AUDIO_STATS=1` exposes underruns for hardware verification.
 
 The FPS target does not guarantee that rate in every scene. CPU numbering is
 machine-specific. Foreground simulation/audio/render threads use P CPUs; named
 shader/decompression workers use E CPUs, intersected with the allowed cpuset.
+
+The fixed-60 profile uses stable flip pacing, an adaptive sleep margin and
+parked idle workers. The [ongoing BBHost audit](docs/BBHOST_0.2.24_AUDIT.md)
+records three 120-second native FSR 4.1 FP8 camera sweeps at Mensis, Old Yharnam
+and Forbidden Woods, each with 7,200 frames and 16.71 ms p99. A Cathedral ABBA
+comparison used 12.5% less CPU time with this policy. These are specific scenes
+and builds. An earlier build also passed a 600-second physical
+1440p Mensis camera sweep with USB audio: 36,000 frames, 59.993 FPS, p99
+16.72 ms, worst 16.95 ms.
+
+The November 6 build passed a 120-second physical Mensis sweep with USB audio:
+7,200 frames, 59.995 FPS, p99 16.71 ms, worst 16.98 ms. A separate 120-second
+headless capture with short character movements in Hunter's Dream and host
+telemetry measured 59.992 FPS, p99 16.71 ms, worst 16.86 ms. This build adds native
+parameter-ID enumeration and cache ownership/publication fixes; 123 retail C++
+tests pass without skips, alongside 333 Python tests. The
+[follow-up](docs/BBHOST_FOLLOWUP_2026-11-06.json) retains hashes and limitations.
+The [native plugin prefix](docs/BBHOST_PLUGIN_HOST_V1_AUDIT.json) implements all
+12 version-1 services and passes real DSO/native HLE, ASan/UBSan and targeted
+TSan tests. A test adapter verified its phases in the actual game; normal-launch
+activation and the remaining API16 services are still pending.
+Broader gameplay, complete BBHost integration and the final release remain in progress.
 
 ## Install
 
@@ -131,3 +155,11 @@ report and detaches without killing the process by default.
 [Upscaling](docs/upscaler.md) · [Mods](docs/MODS.md) · [Co-op](docs/BBSC.md) ·
 [Environment](docs/ENVIRONMENT.md) · [Architecture](RESEARCH_AND_ARCHITECTURE.md) ·
 [Remaining validation](docs/ROADMAP.md)
+
+## License
+
+The Cachyborne build includes BBHOST adaptations under GPL-3.0-or-later;
+see [NOTICE](NOTICE), the [GPLv3 text](LICENSES/GPL-3.0-or-later.txt), and the
+[source attribution inventory](docs/BBHOST_LICENSE_AUDIT.json). Original
+bbport code keeps its GPL-2.0-or-later grant in [LICENSE](LICENSE).
+Third-party components retain their own licenses.

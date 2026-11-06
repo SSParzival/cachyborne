@@ -44,7 +44,7 @@ certificación; el informe detalla el trabajo pendiente.
 | GPU | Radeon RX 9070 XT, RDNA4/GFX1201, Mesa RADV |
 | CPU | i5-14600KF; P-Cores 0–11, E-Cores 12–19, verificados en este equipo |
 | RAM | 16 GB; assets/cachés en disco, sin precarga completa en tmpfs |
-| Imagen | FSR 4.1 Quality; escena 1706×960, salida 2560×1440 |
+| Imagen | FSR 4.1 Native AA (1×); escena y salida 2560×1440 |
 | Modelo | Automático por capacidades Vulkan; FP8 nativo en este equipo |
 | Calidad | Texturas full, GT-VBAO (SSAO activado), sombras dinámicas, bloom y RCAS 0.35 |
 | Presentación | Mailbox, objetivo 60 FPS, generación de cuadros desactivada |
@@ -52,9 +52,11 @@ certificación; el informe detalla el trabajo pendiente.
 
 El límite predeterminado es 60 FPS (16,667 ms); la estabilidad se mide en juego.
 SMAA queda seleccionado y se ejecuta sin escalador; FSR utiliza antialiasing temporal.
-Aberración cromática, motion blur y DoF quedan desactivados. `preset=1` significa
-**Quality (1,5×)**; el modo nativo es `preset=0`. El perfil de 16 GB rechaza
-1440p internos porque exige un pool de 9152 MiB; el predeterminado conserva 5056 MiB.
+Aberración cromática, motion blur y DoF quedan desactivados. El predeterminado
+`preset=0` significa **Native AA (1×)**; `preset=1` selecciona Quality (1,5×).
+Los heaps gráficos dimensionados por resolución usan un pool guest de 5936 MiB
+a 1440p nativo. Los datos usados por CPU conservan caché; los recursos y mirrors
+GPU usan VRAM. Se comprueba el presupuesto GTT local antes de preparar y lanzar.
 El audio usa reloj monotónico, cola SDL precargada y P-Cores. Activa
 `BB_AUDIO_STATS=1` para medir vaciados de cola en hardware.
 
@@ -62,6 +64,29 @@ El audio usa reloj monotónico, cola SDL precargada y P-Cores. Activa
 no es universal: revisa las máscaras al cambiar de máquina. Los hilos principales,
 físicas, audio y render usan P-Cores; compilación/descompresión nombradas usan
 E-Cores, respetando el cpuset permitido.
+
+El perfil de 60 FPS usa cadencia estable, margen de sueño adaptativo y workers
+que duermen cuando están ociosos. La [auditoría de BBHost](docs/BBHOST_0.2.24_AUDIT.md)
+registra tres barridos de cámara de 120 segundos en Mensis, Viejo Yharnam y
+Bosque Prohibido, cada uno con 7.200 frames y p99 de 16,71 ms. Una comparación
+A–B–B–A en Catedral redujo el tiempo CPU un 12,5% con esta política. Son escenas
+y binarios concretos. Una compilación anterior también pasó un barrido de
+600 segundos en Mensis sobre monitor físico 1440p con audio USB: 36.000 frames,
+59,993 FPS, p99 16,72 ms y peor 16,95 ms.
+
+La compilación del 6 de noviembre pasó 120 segundos en Mensis sobre el monitor
+físico con audio USB: 7.200 frames, 59,995 FPS, p99 16,71 ms y peor 16,98 ms.
+Otra ventana de 120 segundos con movimientos cortos en el Sueño del Cazador,
+headless y con telemetría, dio 59,992 FPS, p99 16,71 ms y peor 16,86 ms.
+Incluye enumeración nativa de IDs de parámetros y correcciones de propiedad
+y publicación de caché; pasan 123 pruebas C++ retail sin omisiones y 333 Python.
+El [seguimiento](docs/BBHOST_FOLLOWUP_2026-11-06.json) conserva hashes y límites.
+El [prefijo nativo de plugins](docs/BBHOST_PLUGIN_HOST_V1_AUDIT.json) implementa
+los 12 servicios de la API 1 y pasa pruebas de DSO, HLE real, ASan/UBSan y TSan.
+Un adaptador de prueba verificó sus fases en el juego real; la activación desde
+el lanzamiento normal y los servicios restantes de la API 16 siguen pendientes.
+Siguen pendientes otras situaciones de juego, la integración completa de BBHost
+y la release final.
 
 ## Instalar y preparar
 
@@ -145,3 +170,11 @@ desconecta sin terminar el proceso por defecto. La suite y los smoke tests no
 sustituyen recorridos prolongados, pruebas de jefes o validación de todos los mods.
 
 [Arquitectura](RESEARCH_AND_ARCHITECTURE.md) · [Trabajo pendiente](docs/ROADMAP.md)
+
+## Licencia
+
+La compilación de Cachyborne incluye adaptaciones de BBHOST bajo GPL-3.0-or-later;
+consulta [NOTICE](NOTICE), el [texto GPLv3](LICENSES/GPL-3.0-or-later.txt) y el
+[inventario de atribuciones](docs/BBHOST_LICENSE_AUDIT.json). El código original
+de bbport conserva su permiso GPL-2.0-or-later en [LICENSE](LICENSE).
+Los componentes de terceros conservan sus propias licencias.

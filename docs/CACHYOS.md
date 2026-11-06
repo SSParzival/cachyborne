@@ -31,7 +31,7 @@ setup. Mod generations retain a symlink view of the source assets; keep both
 the original app0 and the selected mod files in place. They are never modified.
 Install current FSR 4.1.2 assets with `bash tools/fetch_fsr412_assets.sh`. Missing or
 corrupt assets trigger a warning and automatic FSR 3.1 preparation. The recommended
-profile reapplies Quality at 1706x960 → 2560x1440, English voices and Spanish text;
+60 FPS profile reapplies Native AA at 2560x1440 → 2560x1440, English voices and Spanish text;
 HDR, bindings and content selections are retained.
 
 FSR 4.1 replay checks its selected assets; the download helper verifies the official SDK DLL and generates native SPIR-V.
@@ -41,9 +41,9 @@ pages, including all bindings, mods/patches, online/account tools and diagnostic
 Save your settings, then run Setup; no separate editor or import step is needed.
 See [the configuration catalog](CONFIGURATION.md). The recommended 144 FPS target
 uses FSR 4.1 Quality at 1706x960 with 2560x1440 output; sustained FPS must be measured.
-The 9152 MiB native-1440p pool exceeds the GTT capacity on the 16 GB target;
-setup now rejects it. A 1916x1078 custom internal scene also fits the smaller
-pool and was tested in the real game. Spanish selection is restricted to
+The 60 FPS profile uses native 1440p and resolution-sized graphics heaps with a
+5936 MiB pool, validated against the local GTT budget. A 1916x1078 custom internal
+scene also fits a smaller pool and was tested in the real game. Spanish selection is restricted to
 complete message-archive pairs present in the chosen dump.
 
 Setup publishes a symlink to a generation containing both the JSON profile and
@@ -60,9 +60,10 @@ manually while the game is stopped, retaining the directory named in the profile
 ## Memory and CPU settings
 
 The default `16gb` profile keeps the roughly 30 GB game on disk and disables
-full RAM staging. Direct memory is 5056 MiB for internal resolutions up to 1080p;
-higher internal resolutions need the 9152 MiB pool and are rejected in this
-16 GB profile even when GTT cannot be queried. The port's extra pool and render resource cache are paired at 256 MiB
+full RAM staging. Direct memory starts at 5056 MiB and grows with the two graphics
+heaps above 1080p, reaching 5936 MiB at native 1440p. Texture packs can require the
+full 9152 MiB pool. Higher-memory profiles are refused when the GTT budget is
+insufficient or cannot be queried. The port's extra pool and render resource cache are paired at 256 MiB
 each. Two pipeline compiler workers
 limit concurrent compiler memory, and MADV_WILLNEED is disabled through the launch
 environment to avoid unnecessary sparse-pool prefetch. Huge-page advice remains

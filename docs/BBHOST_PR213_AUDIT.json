@@ -1,0 +1,68 @@
+{
+  "status": "source_review_complete_for_eight_commit_inventory_not_renderer_equivalence",
+  "pr": "https://github.com/droogie/bbhost/pull/213",
+  "state_when_reviewed": "open_draft_for_testing",
+  "base": "bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+  "head": "04aea6ddced70c9b645f130e4c9382d9f79dff83",
+  "commits": [
+    {
+      "commit": "04aea6ddced70c9b645f130e4c9382d9f79dff83",
+      "subject": "gx: a home's fill flag is stored with release and read with acquire, as stage 4's pool reads it outside the GPU mutex",
+      "status": "race_fix_requires_matching_state",
+      "decision": "Release/acquire fixes BBHOST Home::filled publication to its extra pool. There is no Home::filled equivalent in the native tree; inspect actual native publication owners rather than copying an unrelated atomic flag."
+    },
+    {
+      "commit": "8fe24917c79b45bb7b3bc91c36eec5f56bc9c99a",
+      "subject": "gx: where the homes' default holds, Windows' run commit gives way to them, and a card with 6 GiB of video memory free takes them with the pool's budget",
+      "status": "outside_selected_default",
+      "decision": "Windows run-commit give-way and >=6 GiB free small-VRAM homes are gated above 60 FPS. This fixed-60 Linux profile does not meet that rate condition."
+    },
+    {
+      "commit": "457d1aa47346de5eb629ca81ba547169e736ee84",
+      "subject": "windows: the build links SPIRV-Tools' optimizer, so the tables a no-fallback variant never reads stay out of GX's ring as on Linux",
+      "status": "platform_specific",
+      "decision": "Windows SPIRV-Tools optimizer linking fix. Current native Linux build already links its shader tooling; no Windows package is part of this PC qualification."
+    },
+    {
+      "commit": "8e4843474eb16c2e829a1a5895ce03b5147685ec",
+      "subject": "gxvk lists: a segment the walk meets past its first draw gives its draws back to their own splices",
+      "status": "architecture_specific_pending",
+      "decision": "Partial segment fallback gives draws back to original splices in BBHOST list execution; local ordered draw assistant uses published/consumed cursors and a recording gate."
+    },
+    {
+      "commit": "c25dbfb07acd3f6d3ef8fc29ee305a0721e545dd",
+      "subject": "gxvk lists: the pool's publications of targets and views keep two runs and two views a slot",
+      "status": "architecture_specific_pending",
+      "decision": "Two-run/two-view publication protects BBHOST pool target/view identity. Native image memo and timeline lifetime differ; do not reproduce only the cache shape."
+    },
+    {
+      "commit": "0d5a76e26dfec8811c2f8d63750ac1163b961c52",
+      "subject": "gxvk lists: the pool rests while a frame cap holds the frame",
+      "status": "capped_efficiency_principle_already_applied",
+      "decision": "The added pool parks/rests while the cap has slack. Native 60 profile already sets GPU/PIPE spin to zero and parks its existing workers; the BBHOST extra pool is not present. No new pool is justified by this 60 FPS target."
+    },
+    {
+      "commit": "314631bafb411f7a0e0e985c4f65b471b6fdbf78",
+      "subject": "gxvk lists: the pool's commits lose their locks and locked adds",
+      "status": "architecture_specific_pending",
+      "decision": "Lock/add removal is in the BBHOST GX list pool, absent in the local packet recording architecture. Requires semantic comparison, not direct cherry-pick."
+    },
+    {
+      "commit": "ad772e636c639329a2f1adb77d53dbec1974e10e",
+      "subject": "gxvk lists: a diagnostic of when each draw was stored, committed and met by the command processor (BBHOST_GXVK_LISTS_TIMES=1)",
+      "status": "diagnostics",
+      "decision": "Draw-store/commit/meet timing belongs to BBHOST GX list execution; local ordered-transfer capture and frame/timeline instrumentation exist. Port only if measuring equivalent native work."
+    }
+  ],
+  "local_references": [
+    "launcher/cachyborne.py:NATIVE_60_ENV",
+    "gpu/render/vk_draw_pipe.h:Run",
+    "docs/BBHOST_FEATURE_INVENTORY.json",
+    "out/native-60-defaults-check-all-fixed.log"
+  ],
+  "limitations": [
+    "Upstream performance and ThreadSanitizer figures are their reports, not local measurements.",
+    "Architecture-specific segments/homes equivalence remains pending.",
+    "This review does not certify all renderer behavior or close the full integration goal."
+  ]
+}

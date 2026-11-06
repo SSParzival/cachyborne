@@ -1,0 +1,2573 @@
+{
+  "status": "in_progress",
+  "upstream": {
+    "repository": "https://github.com/droogie/bbhost",
+    "tag": "v0.2.24",
+    "commit": "b0098e04b889e2e70b4af84be1ce809d7af3ff95",
+    "prs": [
+      199,
+      201
+    ]
+  },
+  "requirements": {
+    "native_default_1080p": {
+      "status": "pending"
+    },
+    "native_1440p_memory_and_vram": {
+      "status": "native_fsr411_route_verified",
+      "finding": "Pool follows retail 5056 MiB plus actual patched heap growth: 5936 MiB at 1440p, 8395 MiB with full heaps. Native total GTT admission 6704 MiB fits local 7.68 GiB. BAR graphics mode measured 10-11 FPS; private A only improved but still slower than CPU-cached data. Selected tested route uses about 4262 MiB VRAM and 4354 MiB GTT, with 1127 MiB RSS.",
+      "evidence": [
+        "out/fsr411-native-cached-verified/acceptance.json",
+        "out/fsr411-native-cached-verified/60/game.log",
+        "out/fsr411-native-cached-verified/manifest.json"
+      ],
+      "remaining": "Broader scenes, long sessions, active-read retirement and optional copy elision."
+    },
+    "native_ui_1_to_1": {
+      "status": "1440p_gameplay_capture_inspected",
+      "finding": "Renderer FSR inputs 2560x1440 -> 2560x1440 and native UI composition; screenshot retained in offscreen capture.",
+      "remaining": "Inventory/storage interaction and other scenes"
+    },
+    "gx_barrier_assistance": {
+      "status": "implemented_tested",
+      "evidence": [
+        "out/bbhost-024-gx-differential.log",
+        "out/bbhost-024-ctest.log"
+      ],
+      "cases": 20000,
+      "differences_off": 0,
+      "extra_sweeps_on": 8730,
+      "successful_extra_steals_on": 7176,
+      "remaining": "area-specific A/B CPU/power measurements"
+    },
+    "draw_pipe_assistance": {
+      "status": "implemented_tested",
+      "finding": "Serialized ordered recorder assistance with temporary role/TLS and raster state restoration; covers target waits, wrap, backpressure, resolver readiness, wake and teardown.",
+      "evidence": [
+        "out/bbhost-024-steal-unit.log",
+        "out/bbhost-024-steal-tsan.log",
+        "out/bbhost-024-native-ctest.log"
+      ],
+      "remaining": "Mensis/Cathedral CPU/power comparison"
+    },
+    "frame_clock_backend_gui": {
+      "status": "implemented_core_consumers_tested",
+      "evidence": [
+        "out/bbhost-024-clock-hooks.log",
+        "out/bbhost-024-timing-python.log",
+        "out/bbhost-024-ragdoll.log",
+        "out/bbhost-024-timing-gameplay-repeat/manifest.json",
+        "out/bbhost-024-timing-gameplay-repeat/analysis.json"
+      ],
+      "finding": "Experimental frame_clock INI/BB_FRAME_CLOCK and Midnight switch. The installed main-loop hook publishes measured pacer dt, clamped to [target,1/30]. Native consumers: YEBIS elapsed, ragdoll default keyframe step, LensSimu reciprocal rate. Physics hints already retain the original 1/30. Sound wake now observes the pacer before limiter wait and replaces the verified MagicOrchestra sleep call; original 33333 us timeout and 33000 us user poll retained.",
+      "remaining": "VRR acceptance, controlled physics repetition, gameplay audio/attack cadence verification and broader scene coverage."
+    },
+    "bloodstain_replay_and_6hz_sync": {
+      "status": "implemented_retail_differential_tested",
+      "evidence": [
+        "out/bbhost-024-sync.log",
+        "out/bbhost-024-replay.log",
+        "out/bbhost-024-timing-gameplay/0/game.log",
+        "out/bbhost-024-timing-gameplay-repeat/analysis.json"
+      ],
+      "cases_per_function_at_30": 100000,
+      "cases_per_function_converted": 100000,
+      "sync_cadence_runs": 36,
+      "whole_replay_runs": 18,
+      "finding": "Full 1.09 function-body hashes verified. Original code is called through callable trampolines; countdowns count canonical 30 Hz ticks, movement scales by game-time dt. Native-clock experimental toggle is independent. Both hooks confirmed installed in the attempted retail capture.",
+      "remaining": "End-to-end actual bloodstain/server verification. Basic offline gameplay with hooks installed passed in both native-clock modes."
+    },
+    "memory_windows_16mb_active_reads": {
+      "status": "gpu_retirement_implemented_device_tested",
+      "finding": "Elapsed 3 s grace does not imply GPU completion. Retired chunk views and allocations now belong to a captured batch deferred to the draw scheduler timeline. Pending unmaps/page-table writes are recorded before selecting its tick. Two real 16 MiB DMA-BUF reads on RX 9070 XT remain valid behind private host-signaled timeline gates; independent batches retire separately, with views released first and each allocation discarded exactly once. Full-index GuestChunkViews also prevents modulo-4096 aliasing between live chunks 0 and 4096; the GPU test verifies distinct stable views and exact-index extraction.",
+      "evidence": [
+        "tests/test_guest_memory_retirement.cpp",
+        "out/guest-retirement-test.log",
+        "out/guest-retirement-test-build.log",
+        "out/guest-retirement-full-build.log",
+        "gpu/buffers/guest_chunk_views.h",
+        "out/guest-retirement-final-ctest-details.log",
+        "out/guest-retirement-final-build.log"
+      ],
+      "remaining": "Explicit overlapping page-table publication/read stress, heavy-area travel and prolonged gameplay. This test proves allocation lifetime, not all memory-window hazards.",
+      "full_index_views": {
+        "source": [
+          "gpu/buffers/guest_chunk_views.h",
+          "gpu/buffers/buffer_residency.cpp",
+          "gpu/buffers/buffer_cache.h",
+          "gpu/buffers/buffer_maintain.cpp"
+        ],
+        "test": "tests/test_guest_memory_retirement.cpp",
+        "evidence": "out/guest-retirement-final-ctest-details.log",
+        "checks": [
+          "distinct stable views for actual allocation indices 0 and 4096",
+          "taking index 0 preserves index 4096",
+          "two full 16 MiB GPU reads",
+          "independent retirement ticks",
+          "views destroyed before allocation discard",
+          "exactly-once discard"
+        ]
+      }
+    },
+    "copy_elision": {
+      "status": "pending_with_ordered_transfer_diagnostics",
+      "finding": "BBHost defaults off on discrete GPUs. Local diagnostic transfer capture is implemented; deferred materialization/redirection and equivalence checks remain unimplemented.",
+      "audit": "docs/BBHOST_IMAGE_COPY_AUDIT.md"
+    },
+    "sprint_momentum_and_quick_turn": {
+      "status": "implemented_unit_tested",
+      "remaining": "real gameplay input sequence verification"
+    },
+    "storage_tabs_pointer": {
+      "status": "implemented_retail_layout_verified",
+      "remaining": "real inventory/storage pointer interaction verification"
+    },
+    "wheel_hover_hold": {
+      "status": "implemented_unit_tested",
+      "remaining": "real menu wheel interaction verification"
+    },
+    "dedicated_menu_keys_and_prompts": {
+      "status": "implemented_unit_tested",
+      "remaining": "real menu interaction verification"
+    },
+    "all_v02_improvements_inventory": {
+      "status": "in_progress",
+      "evidence": [
+        "out/bbhost-024-commits.txt",
+        "out/bbhost-pr-199.json",
+        "out/bbhost-pr-201.json"
+      ],
+      "finding": "Public history through v0.2.24 has 885 commits; first public tag is v0.2.12. Older-cycle features need classification from the initial source snapshot as well as later commits.",
+      "fork_matrix": "docs/NATIVE_FORKS_AUDIT.json",
+      "feature_matrix": "docs/BBHOST_FEATURE_INVENTORY.json",
+      "remaining": "Feature-level comparison includes engine/shader architecture, image-copy elision, mirror appearance editor, altar rebirth, param editing, plugins and online services; these are not certified by the current renderer/input tests."
+    },
+    "full_build_tests_and_report": {
+      "status": "in_progress",
+      "evidence": [
+        "out/bbhost-024-build.log",
+        "out/bbhost-024-python.log",
+        "out/bbhost-024-ctest.log",
+        "out/bbhost-024-check-all.log",
+        "out/guest-retirement-check-all.log",
+        "out/guest-retirement-check-exit.txt",
+        "out/guest-retirement-pytest.log",
+        "out/guest-retirement-pytest-exit.txt",
+        "out/guest-retirement-final-check-all.log",
+        "out/guest-retirement-final-check-exit.txt"
+      ]
+    },
+    "native_60fps_heavy_areas_power": {
+      "status": "pending",
+      "diagnostic_soak": {
+        "evidence": "out/guest-retirement-warp-diagnostic/result.json",
+        "cycles": 2,
+        "transitions": 5,
+        "growth_mib": {
+          "rss": 5.129,
+          "vram": 142.262,
+          "staging": 0
+        },
+        "saves_unchanged": true,
+        "accepted": false,
+        "limitation": "15 cycles still required; run predates full-index cache correction; heavy areas and power measurements pending."
+      }
+    },
+    "native_default_1440p": {
+      "status": "published_fixed_native_profile_physical_600_passed",
+      "finding": "Recommended 60 FPS explicitly sets output_auto=false. Published generation 7df11393e8944db5b122a0f41701d926 has 2560x1440 render/output, FSR 4.1 preset 0, frame generation off. Verified on physical MSI display and USB audio.",
+      "remaining": "Remaining BBHOST integration, broader gameplay acceptance and final release."
+    }
+  },
+  "preserved": [
+    "GTK4/Libadwaita Midnight architecture",
+    "P-core 0-11 / E-core 12-19 settings",
+    "allocator / gpu shims / src runtime module boundaries"
+  ],
+  "notes": [
+    "No full-goal acceptance claimed. All unverified requirements remain open.",
+    "build.sh applies the existing repository patches to gpu/third_party/fsr-vulkan."
+  ],
+  "validation": {
+    "python": {
+      "passed": 275,
+      "subtests": 1361,
+      "log": "out/fsr411-native-python-isolated.log",
+      "display": "private Gamescope, real GTK included",
+      "child_exit_code_file": "out/fsr411-final-pytest-exit.txt"
+    },
+    "ctest": {
+      "passed": 39,
+      "skipped": 0,
+      "log": "out/fsr411-native-final-ctest.log"
+    },
+    "full_build": "passed",
+    "vulkan_smoke": "passed",
+    "retail_smoke": {
+      "seconds": 60,
+      "location": "title_screen",
+      "last_fps": 59.8,
+      "log": "out/bbhost-024-smoke.log"
+    },
+    "full_check": {
+      "status": "passed_before_native_defaults_change",
+      "log": "out/fsr411-native-check-all.log",
+      "note": "C/C++ unchanged afterward; all 275 Python tests rerun after final defaults change."
+    },
+    "timing_gameplay_attempt": {
+      "status": "failed_timeout",
+      "runs_completed": 0,
+      "original_saves_unchanged": true,
+      "log": "out/bbhost-024-timing-gameplay.log",
+      "manifest": "out/bbhost-024-timing-gameplay/manifest.json",
+      "limitation": "Very low FPS during loading and recent host memory/I/O pressure. Concurrent unrelated rustc process observed at about 4.4 GiB RSS. No gameplay performance acceptance inferred."
+    },
+    "timing_gameplay_repeat": {
+      "status": "basic_gameplay_passed_both_modes",
+      "runs_completed": 2,
+      "original_saves_unchanged": true,
+      "manifest": "out/bbhost-024-timing-gameplay-repeat/manifest.json",
+      "analysis": "out/bbhost-024-timing-gameplay-repeat/analysis.json",
+      "frame_clock_modes": [
+        1,
+        0
+      ],
+      "pose_samples_each": 491,
+      "map": 402718720,
+      "runtime_faults": false,
+      "limitation": "FSR/profile existing, not native-resolution acceptance. Horizontal route equivalence at the 0.1% threshold did not pass (0.2429%); requires repeated controls before attributing the difference to the feature."
+    },
+    "native_title_smoke": {
+      "seconds": 25,
+      "last_fps": 59.6,
+      "worst_frame_last_window_ms": 32.6,
+      "internal": "2560x1440",
+      "output": "2560x1440",
+      "upscaler": "off",
+      "preset": 0,
+      "vram_mib_last": 3193,
+      "gtt_mib_last": 586,
+      "log": "out/bbhost-024-native-vram-smoke/game.log",
+      "limitation": "Title screen, no stable gameplay acceptance inferred"
+    },
+    "native_gameplay_attempts": {
+      "completed": 0,
+      "original_saves_unchanged": true,
+      "directories": [
+        "out/bbhost-024-native-vram-gameplay",
+        "out/bbhost-024-native-vram-gameplay-repeat",
+        "out/bbhost-024-native-vram-gameplay-controlled"
+      ],
+      "termination": [
+        "manual due to pressure",
+        "full PSI >25%",
+        "MemAvailable <2 GiB"
+      ],
+      "remaining": "Complete controlled gameplay capture, native stability and default-profile acceptance. Do not attribute all loading delay solely to the external compiler without controls."
+    },
+    "native_fsr411_route": {
+      "passed": true,
+      "gates": {
+        "native_configuration": true,
+        "actual_fsr411_native_backend": true,
+        "original_saves_unchanged": true,
+        "complete_frame_window": true,
+        "valid_gameplay_window": true,
+        "average_fps": true,
+        "p99_frame_time": true,
+        "worst_frame_time": true,
+        "runtime_faults_absent": true,
+        "replay_finished": true
+      },
+      "frames": 1795,
+      "pose_samples": 1794,
+      "measured_fps": 59.82404066568326,
+      "p99_ms": 16.73,
+      "worst_ms": 16.8,
+      "backend": "FP8 t2160_m0",
+      "truncated_record_after_window": true,
+      "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+      "manifest": "out/fsr411-native-cached-verified/manifest.json",
+      "settings_profile": "out/fsr411-native-cached-profile.json",
+      "screenshot": "out/fsr411-native-cached-verified/60/final.png"
+    },
+    "native_fsr411_gpu_bench": {
+      "frames": 300,
+      "gpu_ms_per_frame": 0.652,
+      "input": "2560x1440",
+      "output": "2560x1440",
+      "model": "FP8 t2160_m0",
+      "log": "out/fsr411-native-fp8-bench-300.log",
+      "limitation": "Standalone synthetic input; game performance is checked separately."
+    }
+  },
+  "shutdown_lifetime_validation": {
+    "status": "regressions_passed_gameplay_pending",
+    "copy_filter": "Rasterizer-owned jthread; stop changes atomic wait value and joins before jobs/history destruction",
+    "write_ticks": "Process-wide directories and precise granules retained through exit; allocated once, not per frame/map",
+    "regression": "tests/test_write_ticks_lifetime.cpp: late atexit callback queries actual tables on a recording-side thread",
+    "before": "out/write-ticks-before-asan.log: AddressSanitizer heap-use-after-free with HEAD header",
+    "after": "out/write-ticks-after-asan.log: ASan/UBSan pass",
+    "check_log": "out/write-ticks-check-all.log",
+    "check_exit": 0,
+    "ctest_passed": 43,
+    "python_tests_passed": 276,
+    "binary_hashes": "out/write-ticks-build-sha256.txt",
+    "latest_gameplay_attempt": {
+      "directory": "out/copy-filter-native-verified",
+      "passed": false,
+      "original_saves_unchanged": true,
+      "stop_reason": "MemAvailable <2 GiB",
+      "shutdown_fault": "NewestGpuWrite in draw-recording thread; directory lifetime fixed after this attempt",
+      "current_binary_gameplay": "Not yet captured; previous route results do not certify this build"
+    },
+    "acceptance_checker": "Rejects Host fault, Guest fault, Assertion Failed and ErrorDeviceLost even after harness shutdown marker; expected surface loss alone remains allowed"
+  },
+  "sound_wake_integration": {
+    "status": "implemented_retail_and_native_route_verified",
+    "source": "https://github.com/droogie/bbhost/blob/v0.2.24/src/engine/sound_wake.cpp",
+    "activation": "BB_FRAME_CLOCK=1; BB_SOUND_WAKE=0 disables only the wake",
+    "hooks": {
+      "sound_setup": "0x2801373",
+      "sound_call": "0x280137d",
+      "original_target": "0x208bac0",
+      "pacer_observer": "0x2034776"
+    },
+    "upstream_period_preserved_us": 33333,
+    "user_poll_preserved_us": 33000,
+    "tests": [
+      "tests/test_sound_wake.cpp",
+      "tests/test_sound_wake_hooks.cpp",
+      "tests/test_frame_clock_hooks.cpp",
+      "tests/test_guest_hook_replacement.cpp",
+      "tests/test_bbhost_024_offsets.py"
+    ],
+    "retail_log": "out/sound-wake-targeted.log",
+    "tsan": "out/sound-wake-tsan.log",
+    "asan_ubsan": "out/sound-wake-asan.log",
+    "check_log": "out/sound-wake-check-all.log",
+    "check_exit": 0,
+    "ctest_passed": 45,
+    "python_tests_passed": 277,
+    "check_scope": "45 CTest and 277 Python before final Python-only isolation/fault-gate changes; targeted Python checks passed afterward.",
+    "remaining": "Runtime dummy audio/PCM and native route acceptance, long sessions, actual audible quality and missed-event comparison.",
+    "runtime": {
+      "acceptance": "out/sound-wake-native-dummy-verified/acceptance.json",
+      "manifest": "out/sound-wake-native-dummy-verified/manifest.json",
+      "audio_analysis": "out/sound-wake-native-dummy-verified/audio-analysis.json",
+      "screenshot": "out/sound-wake-native-dummy-verified/60/final.png",
+      "measured_frames": 1795,
+      "measured_fps": 59.82386122197319,
+      "p99_ms": 16.73,
+      "worst_ms": 16.77,
+      "observed_audio_backend": "dummy",
+      "observed_route_frames_between_reports": 1500,
+      "observed_route_sound_passes_between_reports": 1500,
+      "observed_route_timeout_delta": 0,
+      "pcm_samples": 28549120,
+      "pcm_nonfinite": 0,
+      "shutdown_faults_absent": true,
+      "original_saves_unchanged": true,
+      "limitation": "One Central Yharnam route. Full-run PCM is non-silent, not a proof of every attack event or physical audio-device quality."
+    },
+    "rejected_attempt": {
+      "directory": "out/sound-wake-native-verified",
+      "reason": "gamescope rewrote audio hints to PipeWire; stopped deliberately, not accepted",
+      "original_saves_unchanged": true
+    },
+    "dummy_audio_isolation": "Set both SDL3 and legacy audio hints in the command after gamescope rewrites its environment; reject non-dummy runtime backend.",
+    "soak": {
+      "directory": "out/sound-wake-native-warp-15",
+      "requested_cycles": 15,
+      "profile": "out/sound-wake-native-soak-profile.json",
+      "state": "finished_not_accepted",
+      "passed": false,
+      "note": "Do not restart from this state entry; inspect process/session and result.json.",
+      "completed_cycles": 1,
+      "transitions": 4,
+      "elapsed_seconds": 194.1,
+      "error": "MemAvailable <2 GiB",
+      "runtime_faults_absent": true,
+      "shutdown_faults_absent": true,
+      "original_saves_unchanged": true
+    }
+  },
+  "opposing_key_priority": {
+    "status": "implemented_optional_runtime_and_gui_tested",
+    "source": "https://github.com/Mrsuss60/bloodborne_pc_windows_port/commit/8ea9aa3744c6e59ada2ed041c65e524c0a2837bb",
+    "ini": "key_opposites=neutral|last",
+    "default": "neutral",
+    "behavior": "Last newly pressed direction wins, release resumes the older held key, simultaneous poll ties stay neutral; axes independent; camera retains neutral policy; sprint magnitude and quick-turn remain intact.",
+    "tests": [
+      "tests/test_pad.c",
+      "tests/test_run_settings.py",
+      "tests/test_midnight_settings.py"
+    ],
+    "full_gate": {
+      "ctest": 45,
+      "python": 279,
+      "exit": 0,
+      "log": "out/key-opposites-check-all.log"
+    },
+    "last_gui_verification": {
+      "tests": 10,
+      "exit": 0,
+      "log": "out/key-opposites-gui-all.log"
+    },
+    "hashes": "out/key-opposites-build-sha256.txt",
+    "gameplay_of_new_binary": "Not yet certified; unchanged-default behavior is not substituted for a new capture."
+  },
+  "next_native_soak": {
+    "output": "out/key-opposites-native-warp-15",
+    "admission_monitor": "out/wait-key-opposites-native-soak.py",
+    "log": "out/key-opposites-native-soak-admission.log",
+    "state": "admission_monitor_stopped_before_wind_build; replaced by wind validation chain",
+    "condition": "MemAvailable >=8 GiB continuously for 20 seconds; at most 1800 seconds waiting; original runtime safeguards retained",
+    "note": "Poll actual process/session and result.json. This record alone is not evidence of a live process or test success."
+  },
+  "wind_pace_integration": {
+    "status": "implemented_retail_and_native_route_verified_visual_pace_pending",
+    "source": "src/engine/wind_pace.h and src/engine/frame_rate.cpp at bbhost v0.2.24",
+    "finding": "Default GX mode advances wind by fixed 1/60 per frame; existing force task-step redirections follow dt. Paired correction uses half measured game dt for wind time and original 1/60 for late force load.",
+    "activation": "Default for unlocked frame hooks, BB_WIND_PACE=0 preserves previous behavior; independent of experimental native frame clock.",
+    "scope": "Default GX mode (+0x100==1), matching upstream correction. Other GX modes and visual/full-wind-function acceptance not certified.",
+    "image_offsets": {
+      "time_load": "0x2313d8d",
+      "force_load": "0x23149ea",
+      "original_force_constant": "0x4929e70"
+    },
+    "before": "out/wind-before.log: actual installed instruction returns the old fixed wind step and fails the new regression",
+    "tests": "out/wind-targeted.log: native clock on/off, wind switch off, changed force instruction refuses both wind patches",
+    "full_gate": {
+      "ctest": 47,
+      "python": 280,
+      "exit": 0,
+      "log": "out/wind-check-all.log"
+    },
+    "hashes": "out/wind-build-sha256.txt",
+    "next_validation": {
+      "monitor": "out/wait-wind-native-validation.py",
+      "log": "out/wind-native-validation.log",
+      "sequence": [
+        "out/wind-native-dummy-verified/acceptance.json",
+        "out/wind-native-warp-15/result.json"
+      ],
+      "admission": "8 GiB stable for 20 seconds before each phase; timeout 1800 seconds per admission wait",
+      "state": "native route and 15-cycle soak passed on wind build; subsequent appearance build requires separate gameplay validation"
+    },
+    "runtime": {
+      "passed": true,
+      "gates": {
+        "native_configuration": true,
+        "actual_fsr411_native_backend": true,
+        "original_saves_unchanged": true,
+        "complete_frame_window": true,
+        "valid_gameplay_window": true,
+        "average_fps": true,
+        "p99_frame_time": true,
+        "worst_frame_time": true,
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": true,
+        "replay_finished": true
+      },
+      "frames": 1794,
+      "pose_samples": 1794,
+      "measured_fps": 59.82536595516499,
+      "p99_ms": 16.73,
+      "worst_ms": 16.75,
+      "backend": "FP8 t2160_m0",
+      "truncated_record_after_window": true,
+      "limitation": "One Central Yharnam route; wind visual pace across rates and other GX modes not yet measured.",
+      "acceptance": "out/wind-native-dummy-verified/acceptance.json",
+      "manifest": "out/wind-native-dummy-verified/manifest.json"
+    },
+    "soak": {
+      "accepted": true,
+      "requested_cycles": 15,
+      "checks": {
+        "rss": true,
+        "vram": true,
+        "staging": true,
+        "staging_observed": true,
+        "vram_observed": true,
+        "fifteen_cycles": true,
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": true
+      },
+      "elapsed_s": 1224.369,
+      "samples": 2425,
+      "peak_rss": 1379995648,
+      "peak_vram": 5563219968,
+      "original_saves_unchanged": true,
+      "evidence": "out/wind-native-warp-15/result.json"
+    }
+  },
+  "mirror_appearance": {
+    "status": "optional_feature_prepared_gui_and_copied_save_gameplay_verified",
+    "source": "bbhost v0.2.24 src/engine/dream_mirror_layout.cpp",
+    "generator": "scripts/world_assets.py",
+    "data": "Only the local retail file is transformed; no game bytes are shipped.",
+    "output_sha256": "99d5c7b7f52307344c6e8296b499d5e57969f21c443fcc607cb42cb2c38c8afa",
+    "oracle": "out/mirror-layout-differential.json: Python result equals original upstream C++ generator byte for byte over 388552 bytes",
+    "tests": {
+      "targeted": 4,
+      "full_python": 287,
+      "exit": 0,
+      "log": "out/appearance-feature-check-all.log",
+      "targeted_asset": 5,
+      "ctest": 52
+    },
+    "coverage": "Original entity/talk identity, type-group reorder, exact output checksum, DCX boundary validation/round trip, generated cache repair, original data preservation and player-mod precedence.",
+    "remaining": "Broader face/preset combinations, different save regions and long sessions remain untested; player Dream-map mods retain priority.",
+    "runtime_binary_changed": true,
+    "native_soak": "Accepted wind-build soak remains separate; new feature build was tested with editor interactions and one active-editor map transition, not 15 cycles.",
+    "runtime_tests": {
+      "evidence": "out/appearance-option-build.log; CTest appearance-test",
+      "coverage": "Retail constructor/pacer, reference holds, thread owner, allocation/window failure cleanup, retry after conflicting pacer without consuming menu watch."
+    },
+    "activation": "Midnight Mods y parches > Espejo del Sue\u00f1o, or setup --change-appearance; default off; rebuild prepared generation after a change.",
+    "gameplay": {
+      "first_session": {
+        "original_saves_unchanged": true,
+        "elapsed_s": 475.77459801199984
+      },
+      "prepared_session": {
+        "original_saves_unchanged": true,
+        "elapsed_s": 295.46479882500034
+      },
+      "fault_checks": {
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": true
+      },
+      "tests": [
+        "Original mirror interaction and one-time retail note",
+        "Preview actually rendered; male-to-female change in copied save",
+        "Close/reopen twice, then restart through independently prepared feature profile",
+        "Female option selected after restart (GPU snapshot f002)",
+        "Rotation and zoom visible (GPU snapshots f003 and f004)",
+        "Validated travel to Central Yharnam while editor open; preview closes and gameplay resumes (f005/f006)",
+        "No concurrent/reentered scheduler producer diagnostics with BB_PRODUCER_CHECK=1"
+      ],
+      "evidence": [
+        "out/appearance-mirror-session",
+        "out/appearance-prepared-validation.log",
+        "out/appearance-prepared-session"
+      ]
+    },
+    "build_hashes": {
+      "out/bb-probe": "3aaa842131d9b3d9b33763fdfd7b5c7117360038edf237bee7d49f201ec561c0",
+      "out/gpu/libbbgpu.so": "0d42f4ae130cdcdd5002b0ddc22e02ddd8641c5da009c756cda3ed91f227932f"
+    }
+  },
+  "published_native_profile": {
+    "setup_log": "out/native-default-setup.log",
+    "render_res": "2560x1440",
+    "output_res": "2560x1440",
+    "upscaler": "fsr411",
+    "preset": "0",
+    "direct_pool_mib": 5936,
+    "preferences_and_defaults_aligned": true,
+    "frame_clock": "0",
+    "acceptance": {
+      "passed": true,
+      "gates": {
+        "native_configuration": true,
+        "actual_fsr411_native_backend": true,
+        "original_saves_unchanged": true,
+        "complete_frame_window": true,
+        "valid_gameplay_window": true,
+        "average_fps": true,
+        "p99_frame_time": true,
+        "worst_frame_time": true,
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": true,
+        "replay_finished": true
+      },
+      "frames": 1794,
+      "pose_samples": 1794,
+      "measured_fps": 59.82502680287921,
+      "p99_ms": 16.73,
+      "worst_ms": 16.75,
+      "backend": "FP8 t2160_m0",
+      "truncated_record_after_window": false,
+      "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate."
+    },
+    "evidence": "out/native-active-default-verified",
+    "limitation": "Offscreen presentation and dummy audio; one route, not whole-game or physical display/audio acceptance. Later CMake test registration changed shader fingerprint; final build gameplay is separate."
+  },
+  "deferred_recording_overflow": {
+    "status": "implemented_unit_sanitizers_gpu_and_regression_passed",
+    "source": "Mrsuss60/bloodborne_pc_windows_port 3e600386439130a981259b84076a21a7bb31c3f6",
+    "tests": {
+      "ctest": 52,
+      "python": 284,
+      "exit": 0,
+      "log": "out/record-data-check-all.log",
+      "unit": "out/record-chunk-asan.log",
+      "gpu": "out/record-data-vulkan-dispatch.log"
+    },
+    "experimental_clock_capture": "out/record-chunk-native-verified/acceptance.json: rejected for p99 19.51 ms; cause of consecutive slow frames unresolved",
+    "default_clock_capture": "out/native-active-default-verified/acceptance.json: passed",
+    "coverage": "Owned aligned overflow, command cancellation, CPU data mutation and intentional recycling attempt before real GPU readback",
+    "remaining": "Final build gameplay; do not infer concurrent scheduler producers or universal stability."
+  },
+  "fmod_project_initialization": {
+    "status": "implemented_opt_in_retail_constructor_tested_gameplay_pending",
+    "source": "https://github.com/droogie/bbhost/pull/104",
+    "source_head": "d230787b2ab84d23981f7f7edfaf063e753e4a17",
+    "activation": "BB_FMOD_PROJECT_INIT=1 exactly; default off; startup stops when a requested hook is unavailable.",
+    "retail_test": "tests/test_fmod_project_init.cpp executes full retail constructor with host memset import; confirms untouched original count and checks exactly four changed bytes with fix.",
+    "tests": {
+      "ctest": 53,
+      "python": 287,
+      "exit": 0,
+      "log": "out/fmod-project-final-check-all.log"
+    },
+    "limitations": "Failed LANG load and complete corrupt-bank cleanup not yet executed in gameplay; upcoming renderer batching change is outside this gate."
+  },
+  "native_final_attempts": {
+    "initial": "out/native-active-default-final: stopped below 2 GiB available; not accepted",
+    "retry": {
+      "passed": false,
+      "gates": {
+        "native_configuration": true,
+        "actual_fsr411_native_backend": true,
+        "original_saves_unchanged": true,
+        "complete_frame_window": true,
+        "valid_gameplay_window": false,
+        "average_fps": true,
+        "p99_frame_time": true,
+        "worst_frame_time": false,
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": true,
+        "replay_finished": true
+      },
+      "frames": 1790,
+      "pose_samples": 1790,
+      "measured_fps": 59.671897903049505,
+      "p99_ms": 16.73,
+      "worst_ms": 93.22,
+      "backend": "FP8 t2160_m0",
+      "truncated_record_after_window": true,
+      "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate."
+    },
+    "retry_manifest": "out/native-active-default-final-retry/manifest.json",
+    "next_step": "Correlate pauses using host resources and CPU sections, without PCM dump I/O; retain whole measurement windows."
+  },
+  "gx_reclaim_followup": {
+    "status": "foundation_and_retail_failure_classification_verified_integration_pending",
+    "source": "https://github.com/droogie/bbhost/blob/7dbe6f60f33fff45ea1bcbf6c6e61a6b35466e13/src/decomp/gx/rename_wait.cpp",
+    "risk": "Retail can recover a copy after reclaim, then fail table allocation. Reclaim count alone does not make retry safe.",
+    "retail_test": "tests/test_gx_rename_retail.cpp",
+    "bounded_wait": "gpu/vulkan/timeline.cpp: Semaphore::WaitFor; real Vulkan timeout, delayed signals, completion publication tested",
+    "remaining": "Connect GPU progress including completed CPU label callbacks; dispatch flush only on producer thread; classify copy failure exactly before retry. Existing collector statistics hook must not overlap.",
+    "gate": {
+      "log": "out/gx-wait-check-all.log",
+      "exit_file": "out/gx-wait-check-exit.txt",
+      "ctest_passed": 55,
+      "python_passed": 288,
+      "runtime_c": true,
+      "spirv": true,
+      "vulkan_readback": true
+    }
+  },
+  "native_extended_diagnostic": {
+    "path": "out/native-stutter-diagnostic/acceptance.json",
+    "passed": true,
+    "gates": {
+      "native_configuration": true,
+      "actual_fsr411_native_backend": true,
+      "original_saves_unchanged": true,
+      "complete_frame_window": true,
+      "valid_gameplay_window": true,
+      "average_fps": true,
+      "p99_frame_time": true,
+      "worst_frame_time": true,
+      "runtime_faults_absent": true,
+      "shutdown_faults_absent": true,
+      "replay_finished": true
+    },
+    "frames": 7178,
+    "pose_samples": 7177,
+    "measured_fps": 59.82435908217199,
+    "p99_ms": 16.74,
+    "worst_ms": 17.38,
+    "backend": "FP8 t2160_m0",
+    "truncated_record_after_window": false,
+    "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+    "duration_seconds": 120,
+    "frame_clock": 0,
+    "host_trace": true,
+    "section_timers": true,
+    "producer_check": true,
+    "fmod_project_init": true,
+    "audio": "dummy without PCM dump",
+    "scope": "One route on pre-GX-foundation binary, original saves unchanged; no whole-port acceptance."
+  },
+  "native_default_120_repeat": {
+    "log": "out/native-default-120-verified.log",
+    "status": "not_launched_memory_admission_expired",
+    "required_available_gib": 8,
+    "stable_seconds": 20,
+    "fps_acceptance": null
+  },
+  "gx_reclaim_integration": {
+    "status": "implemented_retail_real_cp_and_in_game_cpu_label_flush_tested",
+    "source_commit": "7dbe6f60f33fff45ea1bcbf6c6e61a6b35466e13",
+    "runtime_default": "on; BB_GX_RENAME_WAIT=0 counts without waiting",
+    "copy_policy": "Only exact second-copy allocation retried inside original rename. No whole-rename retries; successful initial allocation has no new hook.",
+    "pool_policy": "Original collector retained; table-empty caller identified on live host/guest stack; shared statistics avoid overlapping legacy trap.",
+    "progress": "Submitted tick plus completed CPU label callbacks; producer-owned flush via cancellable heap request; per-queue decode snapshot; shared 400 ms wait budget.",
+    "tests": [
+      "gx-reclaim-test",
+      "gx-reclaim-off-test",
+      "progress-request-test",
+      "cp-progress-test"
+    ],
+    "gate": {
+      "log": "out/gx-reclaim-check-all.log",
+      "exit_file": "out/gx-reclaim-check-exit.txt",
+      "ctest_passed": 59,
+      "python_passed": 288,
+      "runtime_c": true,
+      "spirv": true,
+      "vulkan_readback": true
+    },
+    "remaining": "Stage 0 pending GPU tick under load, heavy-area real copy exhaustion, current-build broader soak and performance comparison. Current native-default 120-second route passed.",
+    "gameplay_probe": {
+      "source": "tests/gpu_progress_preload.cpp",
+      "target": "gpu-progress-preload",
+      "runner": "out/run-gpu-progress-integration.py",
+      "admission": "8 GiB available for 20 seconds; 600-second finite admission timeout",
+      "scope": "Isolated copied-save diagnostic, not final default-profile acceptance."
+    }
+  },
+  "save_before_desktop_exit": {
+    "status": "implemented_retail_and_three_copied_save_sessions_verified",
+    "source": "ayozetr/bloodborne_linux @ 1d0bbec9785843eca8661f481f3a7f47de126829",
+    "confirmation": "Only affirmative original functor; No never arms. Both retail clones and cross-thread invocation verified.",
+    "close_gate": "Title reached and every save mount released; monotonic timeout; post-unmount callback outside save lock.",
+    "gate": {
+      "log": "out/save-quit-check-all.log",
+      "exit_file": "out/save-quit-check-exit.txt",
+      "ctest": 60,
+      "python": 288,
+      "runtime_c": true,
+      "spirv": true,
+      "vulkan_readback": true
+    },
+    "sessions": {
+      "cancel": {
+        "path": "out/save-quit-cancel-session",
+        "scope": "Functional menu and save/cancel test only; standard MemoryWatch (4 GiB admission, 2 GiB runtime floor, 25% PSI abort); not FPS acceptance.",
+        "original_saves_unchanged": true,
+        "elapsed_s": 230.05548889499914,
+        "binary_sha256": {
+          "out/bb-probe": "6cdf9536980cdce1913427e3780ac7cb19f5b30623ef3df0ce498924d4ea6c56",
+          "out/gpu/libbbgpu.so": "f6413aeea86cef49ea5685e960608127c0cbb0d8e0ec1156045130cd48de80b3"
+        },
+        "binary_unchanged": true,
+        "fault_checks": {
+          "runtime_faults_absent": true,
+          "shutdown_faults_absent": true
+        }
+      },
+      "confirm": {
+        "path": "out/save-quit-confirm-session",
+        "scope": "Functional menu and save/cancel test only; standard MemoryWatch (4 GiB admission, 2 GiB runtime floor, 25% PSI abort); not FPS acceptance.",
+        "natural_exit": true,
+        "exit_code": 0,
+        "original_saves_unchanged": true,
+        "elapsed_s": 55.50727355300114,
+        "binary_sha256": {
+          "out/bb-probe": "6cdf9536980cdce1913427e3780ac7cb19f5b30623ef3df0ce498924d4ea6c56",
+          "out/gpu/libbbgpu.so": "f6413aeea86cef49ea5685e960608127c0cbb0d8e0ec1156045130cd48de80b3"
+        },
+        "binary_unchanged": true,
+        "fault_checks": {
+          "runtime_faults_absent": true,
+          "shutdown_faults_absent": true
+        }
+      },
+      "title": {
+        "path": "out/save-quit-title-session",
+        "scope": "Functional menu and save/cancel test only; standard MemoryWatch (4 GiB admission, 2 GiB runtime floor, 25% PSI abort); not FPS acceptance.",
+        "natural_exit": true,
+        "exit_code": 0,
+        "original_saves_unchanged": true,
+        "elapsed_s": 145.74181657499867,
+        "binary_sha256": {
+          "out/bb-probe": "6cdf9536980cdce1913427e3780ac7cb19f5b30623ef3df0ce498924d4ea6c56",
+          "out/gpu/libbbgpu.so": "f6413aeea86cef49ea5685e960608127c0cbb0d8e0ec1156045130cd48de80b3"
+        },
+        "binary_unchanged": true,
+        "fault_checks": {
+          "runtime_faults_absent": true,
+          "shutdown_faults_absent": true
+        }
+      }
+    },
+    "scope": "Functional validation under existing MemoryWatch, not FPS acceptance."
+  },
+  "gx_real_game_probe": {
+    "previous_log": "out/gpu-progress-integration.log",
+    "previous_status": "memory_admission_expired_not_launched",
+    "current_log": "out/gpu-progress-integration-current.log",
+    "current_result": "out/gpu-progress-integration-current/manifest.json",
+    "current_status": "real_flush_stages_passed_shutdown_fault_requires_retest",
+    "admission": "8 GiB available continuously 20 seconds; unchanged.",
+    "manifest": {
+      "run": {
+        "fps": 60,
+        "poses": "60/poses.csv",
+        "replay_start_ns": 21032790836000,
+        "duration_seconds": 30,
+        "observed_fps": [
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8
+        ],
+        "render_res": "2560x1440",
+        "output_res": "2560x1440",
+        "upscaler": "fsr411",
+        "preset": "0",
+        "frame_generation": "off",
+        "direct_memory_mb": 5936,
+        "guest_vram": "0",
+        "audio_backend": "dummy",
+        "host_trace": false,
+        "audio_dump": false
+      },
+      "progress_stages": [
+        [
+          "0",
+          "0",
+          "50000000",
+          "6550",
+          "PASS"
+        ],
+        [
+          "1",
+          "1",
+          "50000000",
+          "400834",
+          "PASS"
+        ],
+        [
+          "2",
+          "1",
+          "150000000",
+          "431798",
+          "PASS"
+        ]
+      ],
+      "integration_passed": true,
+      "binary_sha256": {
+        "out/bb-probe": "6cdf9536980cdce1913427e3780ac7cb19f5b30623ef3df0ce498924d4ea6c56",
+        "out/gpu/libbbgpu.so": "f6413aeea86cef49ea5685e960608127c0cbb0d8e0ec1156045130cd48de80b3",
+        "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libgpu-progress-preload.so": "2cc6a5e3bf0503f2ad200a49f71bf54b381d5d443380279b8f1ace1478a39b3f"
+      },
+      "binary_unchanged": true,
+      "original_saves_unchanged": true,
+      "diagnostic": "Explicit preload harness; BB_GPU_LABELS=0; three real progress stages on pacer thread; dummy audio without PCM writes. Not final default-profile performance acceptance."
+    },
+    "route_acceptance": {
+      "passed": false,
+      "gates": {
+        "native_configuration": true,
+        "actual_fsr411_native_backend": true,
+        "original_saves_unchanged": true,
+        "complete_frame_window": true,
+        "valid_gameplay_window": true,
+        "average_fps": true,
+        "p99_frame_time": true,
+        "worst_frame_time": true,
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": false,
+        "replay_finished": true
+      },
+      "frames": 1794,
+      "pose_samples": 1794,
+      "measured_fps": 59.82508665300316,
+      "p99_ms": 16.73,
+      "worst_ms": 16.77,
+      "backend": "FP8 t2160_m0",
+      "truncated_record_after_window": true,
+      "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate."
+    },
+    "remaining": "Stage 0 had no outstanding submission; pending-tick step under GPU load and real heavy-area copy exhaustion remain separate.",
+    "status": "performance_window_passed_shutdown_acceptance_withdrawn",
+    "corrected_acceptance_path": "out/gpu-progress-integration-current/acceptance-corrected.json",
+    "correction": "2026-11-05: generic Fault (signal N) messages were not matched by the old fault gate; GpuSignals shutdown fault invalidates complete acceptance. Original evidence retained."
+  },
+  "native_current_default_acceptance": {
+    "status": "performance_window_passed_shutdown_acceptance_withdrawn",
+    "manifest_path": "out/native-default-120-current/manifest.json",
+    "acceptance_path": "out/native-default-120-current/acceptance.json",
+    "warmup_seconds": 30,
+    "manifest": {
+      "run": {
+        "fps": 60,
+        "poses": "60/poses.csv",
+        "replay_start_ns": 21189465337000,
+        "duration_seconds": 120,
+        "observed_fps": [
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8,
+          59.8
+        ],
+        "render_res": "2560x1440",
+        "output_res": "2560x1440",
+        "upscaler": "fsr411",
+        "preset": "0",
+        "frame_generation": "off",
+        "direct_memory_mb": 5936,
+        "guest_vram": "0",
+        "audio_backend": "dummy",
+        "host_trace": false,
+        "audio_dump": false
+      },
+      "binary_sha256": {
+        "out/bb-probe": "6cdf9536980cdce1913427e3780ac7cb19f5b30623ef3df0ce498924d4ea6c56",
+        "out/gpu/libbbgpu.so": "f6413aeea86cef49ea5685e960608127c0cbb0d8e0ec1156045130cd48de80b3"
+      },
+      "binary_unchanged": true,
+      "original_saves_unchanged": true,
+      "diagnostic": "Published runtime settings, dummy audio without PCM writes; no section timers or host resource sampling."
+    },
+    "acceptance": {
+      "passed": false,
+      "gates": {
+        "native_configuration": true,
+        "actual_fsr411_native_backend": true,
+        "original_saves_unchanged": true,
+        "complete_frame_window": true,
+        "valid_gameplay_window": true,
+        "average_fps": true,
+        "p99_frame_time": true,
+        "worst_frame_time": true,
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": false,
+        "replay_finished": true
+      },
+      "frames": 7179,
+      "pose_samples": 7179,
+      "measured_fps": 59.82435688816346,
+      "p99_ms": 16.73,
+      "worst_ms": 17.49,
+      "backend": "FP8 t2160_m0",
+      "truncated_record_after_window": false,
+      "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate."
+    },
+    "scope": "One headless route on local PC. Heavy areas, current-build soak, physical display/VRR, physical input/audio, online and remaining BBHost utility are separate.",
+    "corrected_acceptance_path": "out/native-default-120-current/acceptance-corrected.json",
+    "correction": "2026-11-05: generic Fault (signal N) messages were not matched by the old fault gate; GpuSignals shutdown fault invalidates complete acceptance. Original evidence retained."
+  },
+  "interrupt_lifetime_followup": {
+    "status": "asan_ubsan_full_gate_mensis_and_cathedral_camera_120_passed",
+    "regression": "tests/test_interrupt_lifetime.cpp",
+    "before": "out/interrupt-lifetime-before-asan.log",
+    "after": "out/interrupt-lifetime-after-asan.log",
+    "fix": "Fixed-size interrupt line directory lives through process exit; normal Forget and Once still release callbacks. Prevents callbacks/mutexes being destroyed while GPU signal threads can still raise interrupts.",
+    "full_check": "out/interrupt-lifetime-check-all.log",
+    "ctest": 62,
+    "python": 300,
+    "mensis_manifest": "out/native-mensis-camera-lifetime/manifest.json",
+    "mensis_acceptance": {
+      "passed": true,
+      "gates": {
+        "native_configuration": true,
+        "actual_fsr411_native_backend": true,
+        "original_saves_unchanged": true,
+        "complete_frame_window": true,
+        "valid_gameplay_window": true,
+        "average_fps": true,
+        "p99_frame_time": true,
+        "worst_frame_time": true,
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": true,
+        "replay_finished": true,
+        "requested_area": true,
+        "binary_unchanged": true
+      },
+      "frames": 7179,
+      "pose_samples": 7179,
+      "measured_fps": 59.82503988335992,
+      "p99_ms": 16.73,
+      "worst_ms": 16.88,
+      "backend": "FP8 t2160_m0",
+      "truncated_record_after_window": true,
+      "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate."
+    },
+    "scope": "120-second camera sweep at Byrgenwerth entrance, with 8 GiB stable admission and corrected shutdown-fault gate. Does not certify the entire area or full port.",
+    "cathedral_manifest": "out/native-cathedral-camera-lifetime/manifest.json",
+    "cathedral_acceptance": {
+      "passed": true,
+      "gates": {
+        "native_configuration": true,
+        "actual_fsr411_native_backend": true,
+        "original_saves_unchanged": true,
+        "complete_frame_window": true,
+        "valid_gameplay_window": true,
+        "average_fps": true,
+        "p99_frame_time": true,
+        "worst_frame_time": true,
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": true,
+        "replay_finished": true,
+        "requested_area": true,
+        "binary_unchanged": true
+      },
+      "frames": 7179,
+      "pose_samples": 7179,
+      "measured_fps": 59.82481554015209,
+      "p99_ms": 16.73,
+      "worst_ms": 16.74,
+      "backend": "FP8 t2160_m0",
+      "truncated_record_after_window": false,
+      "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate."
+    }
+  },
+  "resource_followup_2026_11_05": {
+    "status": "idle_candidates_passed_two_120_second_scenes_and_15_cycle_soak_no_defaults_changed",
+    "script": "out/run-native-cp-spin-abba.py",
+    "directory": "out/native-cp-spin-abba",
+    "order_gpu_spin_us": [
+      200,
+      0,
+      0,
+      200
+    ],
+    "scope": "60-second camera sweeps at Byrgenwerth entrance, 30-second warmup, 8 GiB stable admission, copied saves and fixed binaries. 1 Hz host samples include CPU time and whole-board power.",
+    "cpu_comparison": {
+      "status": "four_conditions_passed",
+      "conditions": {
+        "200": {
+          "cpu_percent_one_core_mean": 158.2309650116962,
+          "gpu_board_watts_mean": 88.49152542372882
+        },
+        "0": {
+          "cpu_percent_one_core_mean": 156.69077453578063,
+          "gpu_board_watts_mean": 88.48305084745763
+        }
+      },
+      "default_changed": false,
+      "interpretation": "About 1% process CPU reduction in this scene; whole-board power unchanged within observed variation. Keep existing defaults while evaluating the recorder and other areas.",
+      "error_history": [
+        "Incomplete frame timestamp before measurement ended"
+      ],
+      "timestamp_proof": "Final empty CSV timestamp is outside the measured window, proven by preceding complete timestamp. No frames within the measurement are removed."
+    },
+    "recorder_directory": "out/native-pipe-spin-abba",
+    "recorder_script": "out/run-native-pipe-spin-abba.py",
+    "recorder_comparison": {
+      "status": "four_conditions_passed",
+      "variable": "BB_PIPE_SPIN_US",
+      "conditions": {
+        "200": {
+          "cpu_percent_one_core": 157.6662938841916,
+          "gpu_board_watts_mean": 88.39830508474577
+        },
+        "0": {
+          "cpu_percent_one_core": 154.32562086168295,
+          "gpu_board_watts_mean": 88.65254237288136
+        }
+      },
+      "default_changed": false,
+      "scope": "One instrumented scene, camera sweep. Whole-board GPU power includes other applications.",
+      "cpu_reduction_percent": 2.118825108531075
+    },
+    "combined_driver": "out/run-native-idle-combined.py",
+    "combined_summary": "out/native-idle-combined-summary.json",
+    "soak_driver": "out/run-native-idle-soak.py",
+    "combined_summary_result": {
+      "passed": true,
+      "scope": "Candidate combination, both idle spins zero at fixed 60 FPS. Does not change published defaults.",
+      "binary_sha256": {
+        "out/bb-probe": "f9388ed7c1ce99149011a461fa190aaa54d1415008d0014ff85159e20e8e4c7d",
+        "out/gpu/libbbgpu.so": "5a0fb1dde9bcc9e47952d039c5e71a7bf086086706afc6f5a36eeb22a50459b0"
+      },
+      "runs": [
+        {
+          "area": "mensis",
+          "directory": "out/native-idle-combined-mensis",
+          "exit_code": 0
+        },
+        {
+          "area": "cathedral",
+          "directory": "out/native-idle-combined-cathedral",
+          "exit_code": 0
+        }
+      ]
+    },
+    "soak_manifest": {
+      "check_exit": 0,
+      "binary_sha256": {
+        "out/bb-probe": "f9388ed7c1ce99149011a461fa190aaa54d1415008d0014ff85159e20e8e4c7d",
+        "out/gpu/libbbgpu.so": "5a0fb1dde9bcc9e47952d039c5e71a7bf086086706afc6f5a36eeb22a50459b0"
+      },
+      "binary_unchanged": true,
+      "scope": "Combined idle-spin candidate at fixed 60 FPS; 8 GiB stable initial admission; default soak runtime memory/PSI gates, copied saves, 15 real round trips.",
+      "passed": true
+    }
+  },
+  "param_repository_followup": {
+    "status": "production_build_full_gate_and_generated_mod_live_read_passed",
+    "source": "BBHOST src/engine/params.cpp @ bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+    "local": [
+      "gpu/games/bloodborne/params.cpp",
+      "gpu/games/bloodborne/params.h",
+      "tests/test_params.cpp"
+    ],
+    "evidence": "out/params-read-asan.log",
+    "scope": "Read-only repository lookup and a generated named-field mod verified in the game. No live table mutation or plugin ABI claim.",
+    "full_check": "out/param-read-check-all.log",
+    "ctest": 63,
+    "python": 302,
+    "live_manifest": "out/param-mod-live/manifest.json",
+    "live_result": {
+      "passed": true,
+      "scope": "Functional generated-mod and loaded repository verification only, not final FPS/whole-port acceptance. Test mod and copied saves are isolated in this directory.",
+      "expected_word": 9985,
+      "field": "warpChairNo",
+      "old_value": 38,
+      "test_value": 39,
+      "run": {
+        "fps": 60,
+        "poses": "60/poses.csv",
+        "replay_start_ns": 3285467411000,
+        "duration_seconds": 10,
+        "observed_fps": [
+          59.4,
+          59.8,
+          59.0,
+          59.1,
+          59.8,
+          59.8,
+          59.8
+        ],
+        "render_res": "2560x1440",
+        "output_res": "2560x1440",
+        "upscaler": "fsr411",
+        "preset": "0",
+        "frame_generation": "off",
+        "direct_memory_mb": 5936,
+        "guest_vram": "0",
+        "audio_backend": "dummy",
+        "host_trace": false,
+        "audio_dump": false,
+        "warp_lamp": null,
+        "expected_map": null
+      },
+      "fault_checks": {
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": true
+      },
+      "loaded_value_verified": true,
+      "binary_sha256": {
+        "out/bb-probe": "f9388ed7c1ce99149011a461fa190aaa54d1415008d0014ff85159e20e8e4c7d",
+        "out/gpu/libbbgpu.so": "5a0fb1dde9bcc9e47952d039c5e71a7bf086086706afc6f5a36eeb22a50459b0"
+      },
+      "binary_unchanged": true,
+      "original_saves_unchanged": true,
+      "original_archive_unchanged": true
+    }
+  },
+  "limiter_followup_2026_11_05": {
+    "status": "optin_source_full_gate_and_first_factorial_screen_passed",
+    "full_check": "out/phase-pacing-check-all.log",
+    "ctest": 78,
+    "python": 302,
+    "retail_tests": [
+      "tests/test_limiter_margin.cpp",
+      "tests/test_limiter_hooks.cpp"
+    ],
+    "scope": "BBHOST adaptive sleep history plus byte-checked redirects preserve original pacer arithmetic. The zero-margin test explicitly replays the one-microsecond later virtual release. Renderer handoff and phase pacing remain opt-in candidates; no default adoption.",
+    "first_screen": "out/native-pacer-factorial/summary.json",
+    "next_screen": "out/native-phase-screen/summary.json",
+    "phase_screen": {
+      "evidence": "out/native-phase-screen/summary.json",
+      "passed": true,
+      "runs": [
+        {
+          "condition": "baseline",
+          "directory": "/home/ssparzival/Proyectos/GitHub/cachyborne/out/native-phase-screen/baseline",
+          "acceptance": {
+            "passed": true,
+            "gates": {
+              "native_configuration": true,
+              "actual_fsr411_native_backend": true,
+              "original_saves_unchanged": true,
+              "complete_frame_window": true,
+              "valid_gameplay_window": true,
+              "average_fps": true,
+              "p99_frame_time": true,
+              "worst_frame_time": true,
+              "frame_timestamp_spacing": true,
+              "runtime_faults_absent": true,
+              "shutdown_faults_absent": true,
+              "replay_finished": true,
+              "requested_area": true
+            },
+            "frames": 3589,
+            "pose_samples": 3589,
+            "measured_fps": 59.825131922833755,
+            "p99_ms": 16.73,
+            "worst_ms": 16.75,
+            "window_fps": 59.81666666666667,
+            "p99_interval_ms": 16.732845,
+            "worst_interval_ms": 16.748752,
+            "backend": "FP8 t2160_m0",
+            "truncated_record_after_window": true,
+            "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate."
+          },
+          "resources": {
+            "observed_seconds": 59.025936496,
+            "cpu_percent_one_core": 155.3554343118541,
+            "gpu_board_watts_mean": 87.01694915254237,
+            "gpu_power_samples": 59,
+            "major_faults": 7,
+            "disk_read_bytes": 0,
+            "min_available": 6636720128
+          }
+        },
+        {
+          "condition": "phase",
+          "directory": "/home/ssparzival/Proyectos/GitHub/cachyborne/out/native-phase-screen/phase",
+          "acceptance": {
+            "passed": true,
+            "gates": {
+              "native_configuration": true,
+              "actual_fsr411_native_backend": true,
+              "original_saves_unchanged": true,
+              "complete_frame_window": true,
+              "valid_gameplay_window": true,
+              "average_fps": true,
+              "p99_frame_time": true,
+              "worst_frame_time": true,
+              "frame_timestamp_spacing": true,
+              "runtime_faults_absent": true,
+              "shutdown_faults_absent": true,
+              "replay_finished": true,
+              "requested_area": true
+            },
+            "frames": 3600,
+            "pose_samples": 3600,
+            "measured_fps": 59.99876002562613,
+            "p99_ms": 16.71,
+            "worst_ms": 17.64,
+            "window_fps": 60.0,
+            "p99_interval_ms": 16.708723,
+            "worst_interval_ms": 17.635075,
+            "backend": "FP8 t2160_m0",
+            "truncated_record_after_window": false,
+            "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate."
+          },
+          "resources": {
+            "observed_seconds": 59.290616354,
+            "cpu_percent_one_core": 219.71436293090827,
+            "gpu_board_watts_mean": 88.37288135593221,
+            "gpu_power_samples": 59,
+            "major_faults": 7,
+            "disk_read_bytes": 491520,
+            "min_available": 6604398592
+          }
+        },
+        {
+          "condition": "phase-adaptive",
+          "directory": "/home/ssparzival/Proyectos/GitHub/cachyborne/out/native-phase-screen/phase-adaptive",
+          "acceptance": {
+            "passed": true,
+            "gates": {
+              "native_configuration": true,
+              "actual_fsr411_native_backend": true,
+              "original_saves_unchanged": true,
+              "complete_frame_window": true,
+              "valid_gameplay_window": true,
+              "average_fps": true,
+              "p99_frame_time": true,
+              "worst_frame_time": true,
+              "frame_timestamp_spacing": true,
+              "runtime_faults_absent": true,
+              "shutdown_faults_absent": true,
+              "replay_finished": true,
+              "requested_area": true
+            },
+            "frames": 3600,
+            "pose_samples": 3600,
+            "measured_fps": 59.99328075255571,
+            "p99_ms": 16.71,
+            "worst_ms": 18.16,
+            "window_fps": 60.0,
+            "p99_interval_ms": 16.70848,
+            "worst_interval_ms": 18.15736,
+            "backend": "FP8 t2160_m0",
+            "truncated_record_after_window": true,
+            "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate."
+          },
+          "resources": {
+            "observed_seconds": 58.080449356,
+            "cpu_percent_one_core": 138.2909410836067,
+            "gpu_board_watts_mean": 89.27586206896552,
+            "gpu_power_samples": 58,
+            "major_faults": 12,
+            "disk_read_bytes": 0,
+            "min_available": 6707376128
+          }
+        },
+        {
+          "condition": "native-adaptive",
+          "directory": "/home/ssparzival/Proyectos/GitHub/cachyborne/out/native-phase-screen/native-adaptive",
+          "acceptance": {
+            "passed": true,
+            "gates": {
+              "native_configuration": true,
+              "actual_fsr411_native_backend": true,
+              "original_saves_unchanged": true,
+              "complete_frame_window": true,
+              "valid_gameplay_window": true,
+              "average_fps": true,
+              "p99_frame_time": true,
+              "worst_frame_time": true,
+              "frame_timestamp_spacing": true,
+              "runtime_faults_absent": true,
+              "shutdown_faults_absent": true,
+              "replay_finished": true,
+              "requested_area": true
+            },
+            "frames": 3600,
+            "pose_samples": 3600,
+            "measured_fps": 60.002440099230704,
+            "p99_ms": 17.32,
+            "worst_ms": 21.55,
+            "window_fps": 60.0,
+            "p99_interval_ms": 17.323375,
+            "worst_interval_ms": 21.553929,
+            "backend": "FP8 t2160_m0",
+            "truncated_record_after_window": true,
+            "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate."
+          },
+          "resources": {
+            "observed_seconds": 58.961772232,
+            "cpu_percent_one_core": 135.51153056528432,
+            "gpu_board_watts_mean": 88.77966101694915,
+            "gpu_power_samples": 59,
+            "major_faults": 2,
+            "disk_read_bytes": 0,
+            "min_available": 6698549248
+          }
+        }
+      ],
+      "candidate": "phase-adaptive",
+      "candidate_cpu_reduction_percent": 10.984162416869726,
+      "scope": "60s one-scene screen; both idle spins zero in every condition; no default adoption yet. Headless diagnostic sampling; board power is not process-only."
+    },
+    "cathedral_abba": {
+      "evidence": "out/native-phase-cathedral-abba/summary.json",
+      "comparison": {
+        "baseline": 182.56684376367008,
+        "candidate": 159.71829570247866,
+        "cpu_reduction_percent": 12.515168466607507,
+        "scope": "Four full 60s windows at Cathedral lamp in ABBA order; both idle spins zero, native FSR 4.1, complete map/pose/runtime/shutdown gates; board watts are not process-only."
+      },
+      "passed": true,
+      "candidate_windows": [
+        {
+          "passed": true,
+          "gates": {
+            "native_configuration": true,
+            "actual_fsr411_native_backend": true,
+            "original_saves_unchanged": true,
+            "complete_frame_window": true,
+            "valid_gameplay_window": true,
+            "average_fps": true,
+            "p99_frame_time": true,
+            "worst_frame_time": true,
+            "frame_timestamp_spacing": true,
+            "runtime_faults_absent": true,
+            "shutdown_faults_absent": true,
+            "replay_finished": true,
+            "requested_area": true
+          },
+          "frames": 3600,
+          "pose_samples": 3600,
+          "measured_fps": 59.991651161879965,
+          "p99_ms": 16.71,
+          "worst_ms": 16.73,
+          "window_fps": 60.0,
+          "p99_interval_ms": 16.711161,
+          "worst_interval_ms": 16.732929,
+          "backend": "FP8 t2160_m0",
+          "truncated_record_after_window": true,
+          "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate."
+        },
+        {
+          "passed": true,
+          "gates": {
+            "native_configuration": true,
+            "actual_fsr411_native_backend": true,
+            "original_saves_unchanged": true,
+            "complete_frame_window": true,
+            "valid_gameplay_window": true,
+            "average_fps": true,
+            "p99_frame_time": true,
+            "worst_frame_time": true,
+            "frame_timestamp_spacing": true,
+            "runtime_faults_absent": true,
+            "shutdown_faults_absent": true,
+            "replay_finished": true,
+            "requested_area": true
+          },
+          "frames": 3600,
+          "pose_samples": 3600,
+          "measured_fps": 59.99454049681479,
+          "p99_ms": 16.71,
+          "worst_ms": 16.73,
+          "window_fps": 60.0,
+          "p99_interval_ms": 16.713198,
+          "worst_interval_ms": 16.730788,
+          "backend": "FP8 t2160_m0",
+          "truncated_record_after_window": true,
+          "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate."
+        }
+      ],
+      "scope": "Full ABBA comparison, not yet final default adoption."
+    },
+    "actual_mensis_120": {
+      "evidence": "out/native-phase-expanded-mensis/acceptance.json",
+      "area": {
+        "lamp": 2602950,
+        "map": 436207616,
+        "block": "m26_00_00_00",
+        "name": "Nightmare of Mensis"
+      },
+      "acceptance": {
+        "passed": true,
+        "gates": {
+          "native_configuration": true,
+          "actual_fsr411_native_backend": true,
+          "original_saves_unchanged": true,
+          "complete_frame_window": true,
+          "valid_gameplay_window": true,
+          "average_fps": true,
+          "p99_frame_time": true,
+          "worst_frame_time": true,
+          "frame_timestamp_spacing": true,
+          "runtime_faults_absent": true,
+          "shutdown_faults_absent": true,
+          "replay_finished": true,
+          "requested_area": true,
+          "binary_unchanged": true
+        },
+        "frames": 7200,
+        "pose_samples": 7201,
+        "measured_fps": 59.992176020377336,
+        "p99_ms": 16.71,
+        "worst_ms": 16.86,
+        "window_fps": 60.0,
+        "p99_interval_ms": 16.714853,
+        "worst_interval_ms": 16.861383,
+        "backend": "FP8 t2160_m0",
+        "truncated_record_after_window": true,
+        "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate."
+      },
+      "scope": "120s stationary camera sweep at actual Mensis entrance. Does not certify complete area or combat."
+    },
+    "expanded_scenes": {
+      "passed": true,
+      "runs": [
+        {
+          "area": "mensis",
+          "evidence": "out/native-phase-expanded-mensis/acceptance-target-verified.json",
+          "acceptance": {
+            "passed": true,
+            "gates": {
+              "native_configuration": true,
+              "actual_fsr411_native_backend": true,
+              "original_saves_unchanged": true,
+              "complete_frame_window": true,
+              "valid_gameplay_window": true,
+              "average_fps": true,
+              "p99_frame_time": true,
+              "worst_frame_time": true,
+              "frame_timestamp_spacing": true,
+              "runtime_faults_absent": true,
+              "shutdown_faults_absent": true,
+              "replay_finished": true,
+              "requested_area": true,
+              "binary_unchanged": true,
+              "target_60fps": true
+            },
+            "frames": 7200,
+            "pose_samples": 7201,
+            "measured_fps": 59.992176020377336,
+            "p99_ms": 16.71,
+            "worst_ms": 16.86,
+            "window_fps": 60.0,
+            "p99_interval_ms": 16.714853,
+            "worst_interval_ms": 16.861383,
+            "backend": "FP8 t2160_m0",
+            "truncated_record_after_window": true,
+            "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+            "target_rate_tolerance_fps": 0.1
+          }
+        },
+        {
+          "area": "old-yharnam",
+          "evidence": "out/native-phase-expanded-old-yharnam/acceptance-target-verified.json",
+          "acceptance": {
+            "passed": true,
+            "gates": {
+              "native_configuration": true,
+              "actual_fsr411_native_backend": true,
+              "original_saves_unchanged": true,
+              "complete_frame_window": true,
+              "valid_gameplay_window": true,
+              "average_fps": true,
+              "p99_frame_time": true,
+              "worst_frame_time": true,
+              "frame_timestamp_spacing": true,
+              "runtime_faults_absent": true,
+              "shutdown_faults_absent": true,
+              "replay_finished": true,
+              "requested_area": true,
+              "binary_unchanged": true,
+              "target_60fps": true
+            },
+            "frames": 7200,
+            "pose_samples": 7201,
+            "measured_fps": 59.99184610824978,
+            "p99_ms": 16.71,
+            "worst_ms": 16.73,
+            "window_fps": 60.0,
+            "p99_interval_ms": 16.711188,
+            "worst_interval_ms": 16.734415,
+            "backend": "FP8 t2160_m0",
+            "truncated_record_after_window": true,
+            "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+            "target_rate_tolerance_fps": 0.1
+          }
+        },
+        {
+          "area": "forbidden-woods",
+          "evidence": "out/native-phase-expanded-forbidden-woods/acceptance-target-verified.json",
+          "acceptance": {
+            "passed": true,
+            "gates": {
+              "native_configuration": true,
+              "actual_fsr411_native_backend": true,
+              "original_saves_unchanged": true,
+              "complete_frame_window": true,
+              "valid_gameplay_window": true,
+              "average_fps": true,
+              "p99_frame_time": true,
+              "worst_frame_time": true,
+              "frame_timestamp_spacing": true,
+              "runtime_faults_absent": true,
+              "shutdown_faults_absent": true,
+              "replay_finished": true,
+              "requested_area": true,
+              "binary_unchanged": true,
+              "target_60fps": true
+            },
+            "frames": 7200,
+            "pose_samples": 7201,
+            "measured_fps": 59.99260591132143,
+            "p99_ms": 16.71,
+            "worst_ms": 16.73,
+            "window_fps": 60.0,
+            "p99_interval_ms": 16.710369,
+            "worst_interval_ms": 16.728872,
+            "backend": "FP8 t2160_m0",
+            "truncated_record_after_window": false,
+            "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+            "target_rate_tolerance_fps": 0.1
+          }
+        }
+      ],
+      "binary_sha256": {
+        "out/bb-probe": "f0572fe53c089402d22ea00ab0a40ffd356a93c05b654dced078f6eb380ea7db",
+        "out/gpu/libbbgpu.so": "ca699a2d5516325e49899a4609ecef4cc1d2381e1212e88be4eec2ddcc5a0b30"
+      },
+      "scope": "Three complete 120s entrance-camera windows, actual map identities, stricter 60\u00b10.1 rate verified without changing frames. Does not certify whole areas/combat."
+    }
+  },
+  "occlusion_fresh_followup": {
+    "source": "bcdd8ff0eeffdcf9df1955dc9b143d620a628fb3",
+    "status": "optin_retail_and_sanitizer_verified_gameplay_pending",
+    "full_gate": {
+      "ctest": 83,
+      "python": 302,
+      "evidence": "out/occlusion-fresh-check-all-fixed.log"
+    },
+    "sanitizers": [
+      "out/occlusion-fresh-asan-fixed.log",
+      "out/limiter-hooks-asan.log"
+    ],
+    "fixture_correction": "Retail query writer supplies three refill arguments. The initial fixture incorrectly asserted a fourth argument; raw failure retained in out/occlusion-fresh-asan.log and out/occlusion-fresh-check-all.log."
+  },
+  "area_identity_correction": {
+    "incorrect_label": "Mensis",
+    "actual_area": "Byrgenwerth",
+    "lamp": 3202950,
+    "map": "0x20000000",
+    "affects": [
+      "native-mensis-* followup directories",
+      "native-cp-spin-abba",
+      "native-pipe-spin-abba",
+      "native-pacer-factorial",
+      "native-phase-screen"
+    ],
+    "provenance": "Historical paths and raw manifests retained; their map/warp IDs identify the actual area. These results do not certify Mensis.",
+    "correct_mensis": {
+      "lamp": 2602950,
+      "map": "0x1a000000"
+    },
+    "source": "BBHOST tools/area_check.py and local ReturnPointParam"
+  },
+  "thd_datagram_followup": {
+    "source": "bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+    "status": "production_module_and_instrumented_thd_loopback_verified",
+    "finding": "THD backend, unlike vendor shadNet, still used the same 2048-byte receive/send buffers as pre-fix BBHOST. Corrected loopback fixture reproduces old rejection above 2 KiB.",
+    "before_evidence": "out/thd-datagrams-before-corrected-fixture.log",
+    "limits": "Direct loopback covers 65,507-byte UDP limit including headers, chunk splitting, long chunks, malformed tails, both vport header widths, legacy mode and guest errno. Relay and two-player end-to-end acceptance remain separate; no external sessions contacted.",
+    "after_evidence": "out/native-60-defaults-check-all-fixed.log",
+    "sanitizers": [
+      "out/thd-datagrams-asan-split.log",
+      "out/thd-datagrams-asan-whole.log",
+      "out/thd-datagrams-asan-legacy.log"
+    ],
+    "sanitizer_scope": "Instrumented actual thd_net.cpp object relinked with production module objects, loaded by an ASan/UBSan guest-import loopback harness; normal binaries unchanged.",
+    "full_gate": {
+      "ctest": 86,
+      "python": 308
+    }
+  },
+  "published_60_followup": {
+    "scope": "Published fixed-60 efficiency policy after 120s Mensis/Old Yharnam/Forbidden Woods and ABBA Cathedral candidate evidence, plus full current build gate. Final compiled-default soak and desktop presentation acceptance pending.",
+    "settings": {
+      "fps": "60",
+      "fps_limit": 60,
+      "render_res": "2560x1440",
+      "output_res": "2560x1440",
+      "upscaler": "fsr411",
+      "hdr": true,
+      "fullscreen": true
+    },
+    "preset": "0",
+    "frame_generation": "off",
+    "efficiency": {
+      "BB_GPU_SPIN_US": "0",
+      "BB_PIPE_SPIN_US": "0",
+      "BB_LIMITER_MARGIN_US": "auto",
+      "BB_PACE_STABLE": "1"
+    },
+    "binary_sha256": {
+      "out/bb-probe": "c9e0ec1493d6d835e802b698bff39622e3e9d9b350778e3f5aa8e4f793cd8fba",
+      "out/gpu/libbbgpu.so": "4521256293840c77bebde5c715b4c3fdd2d4f9b0bd37febab1bc91341e69ed48",
+      "out/gpu/libbbnet20.so": "0c2c595253218d70545891ea8e8f3309b7ece3a24137b5e27c957baa12f2ca46"
+    },
+    "full_gate": "out/native-60-defaults-check-all-fixed.log",
+    "backup": "out/native-60-publish-backup",
+    "soak": {
+      "evidence": "out/native-60-published-soak/result.json",
+      "manifest": "out/native-60-published-soak-manifest.json",
+      "passed": true,
+      "elapsed_s": 1235.426,
+      "cycles": 15,
+      "floor_growth_mib": {
+        "rss": 54.11328125,
+        "vram": 162.0390625,
+        "staging": 0.0
+      },
+      "original_saves_unchanged": true,
+      "checks": {
+        "rss": true,
+        "vram": true,
+        "staging": true,
+        "staging_observed": true,
+        "vram_observed": true,
+        "fifteen_cycles": true,
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": true
+      }
+    },
+    "physical_runs": [
+      {
+        "evidence": "out/native-physical-1440/manifest.json",
+        "accepted": false,
+        "acceptance": null,
+        "physical_display_stable": null,
+        "physical_audio_routed": null,
+        "audio_no_starvation": null,
+        "display_restored": false,
+        "manual_restore_verified": {
+          "enabled": false,
+          "pos": {
+            "x": 0,
+            "y": 0
+          },
+          "mode": {
+            "id": "40",
+            "name": "2560x1440@180",
+            "refreshRate": 179.9980010986328,
+            "size": {
+              "height": 1440,
+              "width": 2560
+            }
+          },
+          "matches_original_semantic_mode": true,
+          "note": "No game launched. Original disabled state and position restored after transient output re-enumeration prevented wrapper cleanup."
+        },
+        "error": ""
+      },
+      {
+        "evidence": "out/native-physical-1440-retry/manifest.json",
+        "accepted": false,
+        "acceptance": {
+          "passed": true,
+          "gates": {
+            "native_configuration": true,
+            "actual_fsr411_native_backend": true,
+            "original_saves_unchanged": true,
+            "complete_frame_window": true,
+            "valid_gameplay_window": true,
+            "average_fps": true,
+            "p99_frame_time": true,
+            "worst_frame_time": true,
+            "frame_timestamp_spacing": true,
+            "runtime_faults_absent": true,
+            "shutdown_faults_absent": true,
+            "replay_finished": true,
+            "requested_area": true,
+            "target_60fps": true,
+            "binary_unchanged": true
+          },
+          "frames": 7200,
+          "pose_samples": 7201,
+          "measured_fps": 59.99296582475704,
+          "p99_ms": 16.71,
+          "worst_ms": 16.74,
+          "window_fps": 60.0,
+          "p99_interval_ms": 16.709384,
+          "worst_interval_ms": 16.737312,
+          "backend": "FP8 t2160_m0",
+          "truncated_record_after_window": true,
+          "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+          "target_rate_tolerance_fps": 0.1
+        },
+        "physical_display_stable": true,
+        "physical_audio_routed": false,
+        "audio_no_starvation": true,
+        "display_restored": true,
+        "manual_restore_verified": null,
+        "error": null
+      },
+      {
+        "evidence": "out/native-physical-1440-audio/manifest.json",
+        "accepted": false,
+        "acceptance": {
+          "passed": false,
+          "gates": {
+            "native_configuration": true,
+            "actual_fsr411_native_backend": true,
+            "original_saves_unchanged": true,
+            "complete_frame_window": true,
+            "valid_gameplay_window": false,
+            "average_fps": true,
+            "p99_frame_time": true,
+            "worst_frame_time": false,
+            "frame_timestamp_spacing": false,
+            "runtime_faults_absent": true,
+            "shutdown_faults_absent": true,
+            "replay_finished": true,
+            "requested_area": true,
+            "target_60fps": false,
+            "binary_unchanged": true
+          },
+          "frames": 7184,
+          "pose_samples": 7185,
+          "measured_fps": 59.862132110159315,
+          "p99_ms": 16.71,
+          "worst_ms": 281.56,
+          "window_fps": 59.86666666666667,
+          "p99_interval_ms": 16.710675,
+          "worst_interval_ms": 281.556061,
+          "backend": "FP8 t2160_m0",
+          "truncated_record_after_window": true,
+          "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+          "target_rate_tolerance_fps": 0.1
+        },
+        "physical_display_stable": true,
+        "physical_audio_routed": true,
+        "audio_no_starvation": true,
+        "display_restored": true,
+        "manual_restore_verified": null,
+        "error": null
+      }
+    ],
+    "physical_status": "Intermittent 281.56 ms no-rendering gap in the hardware-audio run; not accepted. Frame p99 alone is insufficient. A diagnostic run watches pose progress and takes existing runtime SIGUSR2 stacks after a gap; no binary changes.",
+    "python_after_desktop_harness": {
+      "passed": true,
+      "tests": 312,
+      "evidence": "out/desktop-harness-python.log"
+    }
+  },
+  "pad_scan_followup": {
+    "status": "compiled_full_suite_native_and_physical_captures_passed",
+    "finding": "No-controller branch ignored the existing one-second scan interval and called SDL_GetGamepads for every read. The corrected condition throttles missing and preferred-device searches while preserving initial discovery and later virtual hotplug. This is not yet established as the cause of the 281.56 ms frame.",
+    "evidence": [
+      "out/pad-scan-before.log",
+      "out/pad-scan-after.log",
+      "out/pad-scan-asan.log",
+      "out/pad-scan-and-csv-check-all-fixed.log",
+      "out/native-occlusion-fresh-live/acceptance.json"
+    ],
+    "diagnostic": "BB_PAD_TRACE additionally reports enumeration calls taking at least 2 ms."
+  },
+  "native_csv_followup": {
+    "status": "targeted_regressions_passed",
+    "tests": 23,
+    "evidence": "out/native-timestamp-reader-tests.log",
+    "finding": "A terminated process may leave valid-looking digits of a partial final timestamp. Native writers complete rows with newline; incomplete tails are ignored only after a preceding complete timestamp strictly beyond the entire measurement window. Complete backwards timestamps and within-window incomplete records still fail. Pose records use the same completion rule.",
+    "reanalysis": [
+      {
+        "evidence": "out/native-physical-1440-audio/capture/acceptance-corrected-tail.json",
+        "passed": false,
+        "worst_ms": 281.56
+      },
+      {
+        "evidence": "out/native-physical-stall-diagnostic-2/capture/acceptance-corrected-tail.json",
+        "passed": true,
+        "frames": 7200,
+        "worst_ms": 16.73
+      },
+      {
+        "evidence": "out/native-physical-stall-long/capture/acceptance-full-600-corrected.json",
+        "passed": true,
+        "frames": 36000,
+        "fps": 59.99319877,
+        "p99_ms": 16.71,
+        "worst_ms": 16.89,
+        "scope": "Full 600-second window, previous published binary; diagnostic presentation/audio observer; no in-window diagnostic triggers. Original pre-duration-support failure retained."
+      }
+    ],
+    "duration_support_seconds": 1800
+  },
+  "altar_preparation_followup": {
+    "status": "offline_and_pure_planning_only_runtime_pending",
+    "upstream": "bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+    "script_roundtrip_count": 271,
+    "synthetic_mutations": 10000,
+    "corpus_mutations": 2168,
+    "bounded_parser": true,
+    "orphan_condition_regression": true,
+    "rewrite_input_sha256": "e56163a1bb8f46ae59368160e522e11f970e2268f6d356b823e4d72a7c969ff1",
+    "rewrite_output_sha256": "e726dec68e8d73c5d5b6ba1875fabd6a85320b6b14f95ca3d6729143a3c362b2",
+    "retail_price_thresholds": {
+      "levels": 544,
+      "before_differing_levels": 6,
+      "after_differing_levels": 0,
+      "detail": "Native compiled BBHOST expression differs from retail affordability thresholds. Preserve separate scalar operations and retail second rounding step. Verify cost-1, cost, cost+1 against actual retail function at every level."
+    },
+    "evidence": [
+      "out/esd-rebirth-check-all-final.log",
+      "out/esd-corpus-asan-final.log",
+      "out/esd-final-ctest.log",
+      "out/rebirth-script-cli.json",
+      "out/rebirth-plan-retail-asan-fixed.log",
+      "out/rebirth-price-retail-before.log",
+      "out/rebirth-price-retail-fixed.log",
+      "out/rebirth-price-retail-asan.log"
+    ],
+    "remaining": "Plan and price harnesses are now registered in CTest and pass. Archive/message generation is complete offline. Runtime event/player services, altar reset/heal/menu/undo/load lifecycle, launcher selection and copied-save gameplay validation remain pending."
+  },
+  "physical_current_followup": {
+    "status": "qualified_candidate_not_final_release",
+    "configuration": "Physical MSI 2560x1440, render/output 1x native, FSR 4.1 Native AA, FG off, 60 cap, spins zero, adaptive margin and stable cadence",
+    "full_suite": {
+      "ctest": 87,
+      "python": 315,
+      "evidence": "out/esd-rebirth-check-all-final.log"
+    },
+    "desktop_pid_fix": "capture_physics publishes the owned game PID for every desktop capture, independently of optional resource sampling. Python 315 tests pass; actual USB routing succeeds in the follow-up.",
+    "runs": [
+      {
+        "evidence": "out/native-physical-current-600/manifest.json",
+        "overall_passed": false,
+        "performance_passed": true,
+        "frames": 35999,
+        "fps": 59.99130535191135,
+        "p99_ms": 16.71,
+        "worst_ms": 31.21,
+        "physical_display": true,
+        "physical_usb_audio": false,
+        "display_restored": true,
+        "binary_sha256": {
+          "/home/ssparzival/Proyectos/GitHub/cachyborne/out/bb-probe": "c907bf4a9b504d407b39469bdb12592062e9a41031944c75dcbeefb88d084110",
+          "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbgpu.so": "45d7d448672860ae749b46aff75439986182dcdb3ae8a17dc339e03e21f69e21",
+          "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbnet20.so": "0c2c595253218d70545891ea8e8f3309b7ece3a24137b5e27c957baa12f2ca46"
+        }
+      },
+      {
+        "evidence": "out/native-physical-current-audio-120/manifest.json",
+        "overall_passed": true,
+        "performance_passed": true,
+        "frames": 7200,
+        "fps": 59.99531036657301,
+        "p99_ms": 16.71,
+        "worst_ms": 16.73,
+        "physical_display": true,
+        "physical_usb_audio": true,
+        "display_restored": true,
+        "binary_sha256": {
+          "/home/ssparzival/Proyectos/GitHub/cachyborne/out/bb-probe": "c907bf4a9b504d407b39469bdb12592062e9a41031944c75dcbeefb88d084110",
+          "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbgpu.so": "45d7d448672860ae749b46aff75439986182dcdb3ae8a17dc339e03e21f69e21",
+          "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbnet20.so": "0c2c595253218d70545891ea8e8f3309b7ece3a24137b5e27c957baa12f2ca46"
+        }
+      }
+    ],
+    "frozen_candidate": "out/verified-native-1440p-2026-11-05/manifest.json",
+    "open_issue": "Prior 281.56 ms stall is not attributed or withdrawn; no claim of perfect performance throughout the game."
+  },
+  "altar_asset_layer_followup": {
+    "status": "offline_layer_complete_runtime_pending",
+    "full_suite": {
+      "ctest": 89,
+      "python": 323,
+      "evidence": "out/altar-assets-check-all.log"
+    },
+    "local_archives_byte_identical": 42,
+    "fmg_groups_semantics_preserved": 528,
+    "generated_files": 23,
+    "source_dump_unchanged": true,
+    "localized_new_messages": [
+      "spaes",
+      "spaar"
+    ],
+    "other_new_messages_language": "English; all original messages retained",
+    "cache": "Verified generations reused; edited/damaged generations preserved and repaired into separate publication; late validation failure leaves no published partial generation",
+    "shared_parser": "param_tables.py now reuses bnd4.py instead of a second BND parser",
+    "evidence": [
+      "out/talk-message-assets-roundtrip.json",
+      "out/message-assets-tests.log",
+      "out/param-shared-bnd-tests.log",
+      "out/rebirth-assets-tests.log",
+      "out/rebirth-assets-generated-manifest.json"
+    ],
+    "remaining": "Runtime event/player services, reset/heal/menu/undo/load lifecycle, launcher selection and copied-save gameplay tests. Prepared layer is not installed in the published PC profile."
+  },
+  "rebirth_runtime_followup": {
+    "status": "optin_offline_runtime_handshake_verified_full_altar_ui_pending",
+    "full_native_suite": {
+      "ctest": 91,
+      "python": 323,
+      "evidence": "out/rebirth-runtime-check-all-fixed.log"
+    },
+    "python_after_snapshot_gate": {
+      "tests": 326,
+      "evidence": "out/rebirth-snapshot-python.log"
+    },
+    "sanitizers": [
+      "out/rebirth-session-asan.log",
+      "out/rebirth-runtime-asan.log"
+    ],
+    "first_test_failure": "Test fixture attempted to patch the pacer page after hook installation restored RX protection. GDB localized the write in test main. Fixture now explicitly mprotects its own mapped retail code before installing the unwind; production protection behavior was correct.",
+    "runtime_design": [
+      "Default off; BB_REBIRTH=1 opt-in, offline only. No frame task when disabled.",
+      "Shared event entry points also used by existing kit restoration; read-only player service reuses the parameter reader interface.",
+      "Guest origin/cost rows checked before applying the original retail stat function. Writable health/echo destinations checked before mutation; heal and exact echo writes complete each operation.",
+      "Undo belongs to the same record and is forgotten after loading/map transitions. Menu references owned/released explicitly. Timeout two seconds across FPS. Outside the target map, no flag polling."
+    ],
+    "runs": [
+      {
+        "evidence": "out/rebirth-live-functional/manifest.json",
+        "passed": true,
+        "functional_gates": {
+          "positive_refund_fixture": true,
+          "origin_stats_and_level": true,
+          "exact_echo_refund": true,
+          "alive_and_healed": true,
+          "undo_exact_build": true,
+          "undo_healed": true
+        },
+        "expected": {
+          "level": 9,
+          "stats": [
+            10,
+            10,
+            12,
+            10,
+            9,
+            8
+          ],
+          "bought_points": 4,
+          "refund": 3526
+        },
+        "acceptance": {
+          "passed": true,
+          "gates": {
+            "native_configuration": true,
+            "actual_fsr411_native_backend": true,
+            "original_saves_unchanged": true,
+            "complete_frame_window": true,
+            "valid_gameplay_window": true,
+            "average_fps": true,
+            "p99_frame_time": true,
+            "worst_frame_time": true,
+            "frame_timestamp_spacing": true,
+            "runtime_faults_absent": true,
+            "shutdown_faults_absent": true,
+            "replay_finished": true,
+            "requested_area": true,
+            "target_60fps": true,
+            "binary_unchanged": true
+          },
+          "frames": 7200,
+          "pose_samples": 7201,
+          "measured_fps": 59.99230598675719,
+          "p99_ms": 16.71,
+          "worst_ms": 16.73,
+          "window_fps": 60.0,
+          "p99_interval_ms": 16.714361,
+          "worst_interval_ms": 16.734258,
+          "backend": "FP8 t2160_m0",
+          "truncated_record_after_window": true,
+          "truncated_pose_record_after_window": false,
+          "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+          "target_rate_tolerance_fps": 0.1
+        },
+        "original_saves_unchanged": true,
+        "binary_sha256": {
+          "/home/ssparzival/Proyectos/GitHub/cachyborne/out/bb-probe": "9de4c92f9077a61c1f613d1ff7beb1d6cbbe79a2718b66c4310fbe7668bf962c",
+          "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbgpu.so": "70add6ce083c9f2a92462d8b815f6ef6c4e926546d96e53c9dbd051b19c237bc"
+        }
+      },
+      {
+        "evidence": "out/rebirth-live-standard/manifest.json",
+        "passed": false,
+        "functional_gates": {
+          "positive_refund": true,
+          "origin_stats_and_level": true,
+          "exact_echo_refund": true,
+          "alive_and_healed": true,
+          "undo_exact_build": true,
+          "undo_healed": true
+        },
+        "expected": {
+          "level": 10,
+          "stats": [
+            11,
+            10,
+            12,
+            10,
+            9,
+            8
+          ],
+          "bought_points": 3,
+          "refund": 2715
+        },
+        "acceptance": {
+          "passed": false,
+          "gates": {
+            "native_configuration": true,
+            "actual_fsr411_native_backend": true,
+            "original_saves_unchanged": true,
+            "complete_frame_window": true,
+            "valid_gameplay_window": true,
+            "average_fps": true,
+            "p99_frame_time": true,
+            "worst_frame_time": false,
+            "frame_timestamp_spacing": false,
+            "runtime_faults_absent": true,
+            "shutdown_faults_absent": true,
+            "replay_finished": true,
+            "requested_area": true,
+            "target_60fps": true,
+            "binary_unchanged": true
+          },
+          "frames": 7197,
+          "pose_samples": 7198,
+          "measured_fps": 59.9728409777248,
+          "p99_ms": 16.72,
+          "worst_ms": 62.23,
+          "window_fps": 59.975,
+          "p99_interval_ms": 16.715101,
+          "worst_interval_ms": 62.230707,
+          "backend": "FP8 t2160_m0",
+          "truncated_record_after_window": false,
+          "truncated_pose_record_after_window": false,
+          "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+          "target_rate_tolerance_fps": 0.1
+        },
+        "original_saves_unchanged": true,
+        "binary_sha256": {
+          "/home/ssparzival/Proyectos/GitHub/cachyborne/out/bb-probe": "9de4c92f9077a61c1f613d1ff7beb1d6cbbe79a2718b66c4310fbe7668bf962c",
+          "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbgpu.so": "70add6ce083c9f2a92462d8b815f6ef6c4e926546d96e53c9dbd051b19c237bc"
+        }
+      },
+      {
+        "evidence": "out/rebirth-live-standard-primed/manifest.json",
+        "passed": true,
+        "functional_gates": {
+          "positive_refund": true,
+          "origin_stats_and_level": true,
+          "exact_echo_refund": true,
+          "alive_and_healed": true,
+          "undo_exact_build": true,
+          "undo_healed": true
+        },
+        "expected": {
+          "level": 10,
+          "stats": [
+            11,
+            10,
+            12,
+            10,
+            9,
+            8
+          ],
+          "bought_points": 3,
+          "refund": 2715
+        },
+        "acceptance": {
+          "passed": true,
+          "gates": {
+            "native_configuration": true,
+            "actual_fsr411_native_backend": true,
+            "original_saves_unchanged": true,
+            "complete_frame_window": true,
+            "valid_gameplay_window": true,
+            "average_fps": true,
+            "p99_frame_time": true,
+            "worst_frame_time": true,
+            "frame_timestamp_spacing": true,
+            "runtime_faults_absent": true,
+            "shutdown_faults_absent": true,
+            "replay_finished": true,
+            "requested_area": true,
+            "target_60fps": true,
+            "binary_unchanged": true
+          },
+          "frames": 7200,
+          "pose_samples": 7201,
+          "measured_fps": 59.99834504564915,
+          "p99_ms": 16.72,
+          "worst_ms": 16.73,
+          "window_fps": 60.0,
+          "p99_interval_ms": 16.717532,
+          "worst_interval_ms": 16.732601,
+          "backend": "FP8 t2160_m0",
+          "truncated_record_after_window": true,
+          "truncated_pose_record_after_window": false,
+          "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+          "target_rate_tolerance_fps": 0.1
+        },
+        "original_saves_unchanged": true,
+        "binary_sha256": {
+          "/home/ssparzival/Proyectos/GitHub/cachyborne/out/bb-probe": "9de4c92f9077a61c1f613d1ff7beb1d6cbbe79a2718b66c4310fbe7668bf962c",
+          "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbgpu.so": "70add6ce083c9f2a92462d8b815f6ef6c4e926546d96e53c9dbd051b19c237bc"
+        }
+      }
+    ],
+    "ui_scene_identity": {
+      "2422952": "Celestial Emissary arena, visually verified",
+      "2422951": "Ebrietas room, visually verified",
+      "evidence": "out/rebirth-altar-ui-session/result.json",
+      "scope": "No dialogue or stone/menu interaction certified by this exploratory session. All original saves and binary hashes unchanged."
+    },
+    "snapshot_followup": {
+      "evidence": "out/rebirth-live-standard-primed/snapshot-phase-comparison.json",
+      "finding": "Capture previously requested the GPU readback together with replay start. DumpImages can allocate a mapped VMA block and write the file on a scheduler callback. SnapshotGate now requires the complete correctly-sized file and two quiet seconds before issuing replay. Old failed windows are retained; 281.56 ms mid-window stall remains unexplained."
+    },
+    "remaining": "Actual altar dialogue, stone requirement, level-up UI accept/undo flow, launcher selection, broader native/physical qualification and final commits/release."
+  },
+  "fixed_native_physical_600": {
+    "status": "passed_current_candidate",
+    "manifest": "out/native-physical-fixed-600/manifest.json",
+    "frozen_candidate": "out/verified-native-1440p-fixed-2026-11-05",
+    "acceptance": {
+      "passed": true,
+      "gates": {
+        "native_configuration": true,
+        "actual_fsr411_native_backend": true,
+        "original_saves_unchanged": true,
+        "complete_frame_window": true,
+        "valid_gameplay_window": true,
+        "average_fps": true,
+        "p99_frame_time": true,
+        "worst_frame_time": true,
+        "frame_timestamp_spacing": true,
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": true,
+        "replay_finished": true,
+        "requested_area": true,
+        "target_60fps": true,
+        "binary_unchanged": true
+      },
+      "frames": 36000,
+      "pose_samples": 36001,
+      "measured_fps": 59.9934017257002,
+      "p99_ms": 16.72,
+      "worst_ms": 16.95,
+      "window_fps": 60.0,
+      "p99_interval_ms": 16.715524,
+      "worst_interval_ms": 16.94833,
+      "backend": "FP8 t2160_m0",
+      "truncated_record_after_window": true,
+      "truncated_pose_record_after_window": false,
+      "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+      "target_rate_tolerance_fps": 0.1
+    },
+    "physical_usb_audio": true,
+    "display_restored": true,
+    "profile_generation": "7df11393e8944db5b122a0f41701d926",
+    "scope": "One 600-second Mensis entrance camera sweep, not whole-goal completion."
+  },
+  "rebirth_full_ui_and_preparation": {
+    "status": "passed_copied_save_native_ui_and_separate_process_persistence",
+    "ui": "out/rebirth-ui-owned-dialogue/ui-evidence.json",
+    "restart": "out/rebirth-prepared-persistence/manifest.json",
+    "setup": "out/rebirth-prepared-fixed-validation/asset-verification.json",
+    "full_check": "out/rebirth-integrated-check-all.log",
+    "ctest": 91,
+    "python": 328,
+    "default_enabled": false,
+    "fixture": "Copied save only: Ebrietas completion flag before loading room and one Yharnam Stone granted through original inventory functions. Rebirth itself operated through native UI."
+  },
+  "plugin_conditional_hook": {
+    "status": "implemented_concurrency_recursion_flags_full_suite_sanitizers_physical_route_passed",
+    "full_check": "out/plugin-conditional-check-all.log",
+    "ctest": 92,
+    "python": 328,
+    "asan": "out/plugin-conditional-asan.log",
+    "physical": "out/native-physical-plugin-hooks-120/manifest.json",
+    "frozen_candidate": "out/verified-native-plugin-hooks-2026-11-05",
+    "acceptance": {
+      "passed": true,
+      "gates": {
+        "native_configuration": true,
+        "actual_fsr411_native_backend": true,
+        "original_saves_unchanged": true,
+        "complete_frame_window": true,
+        "valid_gameplay_window": true,
+        "average_fps": true,
+        "p99_frame_time": true,
+        "worst_frame_time": true,
+        "frame_timestamp_spacing": true,
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": true,
+        "replay_finished": true,
+        "requested_area": true,
+        "target_60fps": true,
+        "binary_unchanged": true
+      },
+      "frames": 7200,
+      "pose_samples": 7201,
+      "measured_fps": 59.991791123247964,
+      "p99_ms": 16.71,
+      "worst_ms": 16.73,
+      "window_fps": 60.0,
+      "p99_interval_ms": 16.710306,
+      "worst_interval_ms": 16.735,
+      "backend": "FP8 t2160_m0",
+      "truncated_record_after_window": true,
+      "truncated_pose_record_after_window": false,
+      "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+      "target_rate_tolerance_fps": 0.1
+    },
+    "plugin_host": "not_implemented"
+  },
+  "water_gate_native": {
+    "status": "optin_native_activity_and_short_copied_save_lake_movement_verified",
+    "default": "off",
+    "env": "BB_WATER_GATE=1",
+    "source_revision": "bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+    "model_mutants_caught": 18,
+    "model_mutants_total": 18,
+    "ctest": 97,
+    "python": 328,
+    "evidence": [
+      "out/water-model-tests.log",
+      "out/water-model-asan.log",
+      "out/water-native-tests.log",
+      "out/water-native-asan.log",
+      "out/water-native-check-all-fixed.log"
+    ],
+    "limitations": [
+      "Native uses GX game-time bank, shared effect schedule not yet integrated.",
+      "Retail test runs original entry instructions/trampolines with stand-in update/task bodies; grid/impulse tests use a semantic model.",
+      "Short native Moonside Lake placement, sidestep and three captures inspected; controlled 30-FPS/A-B temporal equivalence, actual impulse preservation and long travel remain pending.",
+      "Four manager records; untracked additional managers fall back to original cadence."
+    ],
+    "initial_full_check_failure": "Generated docs/ENVIRONMENT.md was stale after adding the environment switch. Regenerated with --doc; all 97 CTest and 328 Python passed afterward. Initial failure log retained.",
+    "physical_manifest": "out/native-physical-water-byrgenwerth-120/manifest.json",
+    "observer_classification": "out/native-physical-water-byrgenwerth-120/observer-classification.json",
+    "acceptance": {
+      "passed": true,
+      "gates": {
+        "native_configuration": true,
+        "actual_fsr411_native_backend": true,
+        "original_saves_unchanged": true,
+        "complete_frame_window": true,
+        "valid_gameplay_window": true,
+        "average_fps": true,
+        "p99_frame_time": true,
+        "worst_frame_time": true,
+        "frame_timestamp_spacing": true,
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": true,
+        "replay_finished": true,
+        "requested_area": true,
+        "target_60fps": true,
+        "binary_unchanged": true
+      },
+      "frames": 7200,
+      "pose_samples": 7201,
+      "measured_fps": 59.992995817738276,
+      "p99_ms": 16.71,
+      "worst_ms": 16.73,
+      "window_fps": 60.0,
+      "p99_interval_ms": 16.7104,
+      "worst_interval_ms": 16.732752,
+      "backend": "FP8 t2160_m0",
+      "truncated_record_after_window": true,
+      "truncated_pose_record_after_window": false,
+      "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+      "target_rate_tolerance_fps": 0.1
+    },
+    "activity_evidence": "out/water-ui-owned-lake-1/reviewed-evidence.json",
+    "frozen_candidate": "out/verified-native-water-adapter-2026-11-05"
+  },
+  "bloodletter_self_hit": {
+    "status": "opt_in_only_no_need_reproduced_at_native_60",
+    "source": "BBHOST engine/frame_rate.cpp frame_rate_atk_params_loaded @ bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+    "native": "gpu/games/bloodborne/bloodletter.cpp",
+    "only_when": "Native frame-rate conversion active AND BB_BLOODLETTER_SELF_HIT=1; default disabled",
+    "row": 2900931,
+    "field": "hit0_Radius",
+    "original_bits": 1053609165,
+    "corrected_bits": 1058642330,
+    "default_poll_seconds": 5,
+    "pointers_retained_across_loads": false,
+    "full_suite": "out/bloodletter-check-all.log",
+    "ctest": 98,
+    "python": 331,
+    "asan": "out/bloodletter-asan.log",
+    "physical": "out/native-physical-bloodletter-120/manifest.json",
+    "acceptance": {
+      "passed": true,
+      "gates": {
+        "native_configuration": true,
+        "actual_fsr411_native_backend": true,
+        "original_saves_unchanged": true,
+        "complete_frame_window": true,
+        "valid_gameplay_window": true,
+        "average_fps": true,
+        "p99_frame_time": true,
+        "worst_frame_time": true,
+        "frame_timestamp_spacing": true,
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": true,
+        "replay_finished": true,
+        "requested_area": true,
+        "target_60fps": true,
+        "binary_unchanged": true
+      },
+      "frames": 7200,
+      "pose_samples": 7201,
+      "measured_fps": 59.99886502147001,
+      "p99_ms": 16.71,
+      "worst_ms": 16.73,
+      "window_fps": 60.0,
+      "p99_interval_ms": 16.706559,
+      "worst_interval_ms": 16.73371,
+      "backend": "FP8 t2160_m0",
+      "truncated_record_after_window": true,
+      "truncated_pose_record_after_window": false,
+      "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+      "target_rate_tolerance_fps": 0.1
+    },
+    "frozen_candidate": "out/verified-native-bloodletter-before-batching-2026-11-05",
+    "remaining": "No exhaustive state/rate coverage or correction-superiority claim. Automatic enlargement is not justified by the tested native60 states.",
+    "controls": "out/native-bloodletter-controls/manifest.json",
+    "current_full_suite": "out/guest-call-optin-retail-check-all.log",
+    "historical_physical_scope": "The physical manifests above used the earlier automatic-on policy. They remain frozen evidence for those hashes, not proof of the subsequent default policy.",
+    "combat_controls": {
+      "stock30": {
+        "result": "out/bloodletter-ui-owned-30-baseline/result.json",
+        "functional_evidence": "out/bloodletter-ui-owned-30-baseline/ui-evidence.json",
+        "passed": true,
+        "attacks": 3,
+        "radius_bits": 1053609165,
+        "scope": "Original attack naturally activates aura5286; copied save, read-only effect observer; not a performance certificate."
+      },
+      "stock60": {
+        "result": "out/bloodletter-ui-owned-60-unfixed/result.json",
+        "functional_evidence": "out/bloodletter-ui-owned-60-unfixed/ui-evidence.json",
+        "passed": true,
+        "attacks": 3,
+        "radius_bits": 1053609165,
+        "scope": "Original attack naturally activates aura5286; copied save, read-only effect observer; not a performance certificate."
+      },
+      "stock60_experimental_clock": {
+        "result": "out/bloodletter-ui-owned-60-clock-unfixed/result.json",
+        "functional_evidence": "out/bloodletter-ui-owned-60-clock-unfixed/ui-evidence.json",
+        "passed": true,
+        "attacks": 3,
+        "radius_bits": 1053609165,
+        "scope": "Original attack naturally activates aura5286; copied save, read-only effect observer; not a performance certificate."
+      }
+    },
+    "corrected_single_attack": {
+      "evidence": "out/bloodletter-ui-owned-60-created/ui-evidence.json",
+      "scope": "One early aura activation observed; raw session later failed MemoryWatch, preserved as failed. No causal advantage established."
+    },
+    "current_default_physical": "out/native-physical-guest-call-optin-120/manifest.json"
+  },
+  "bounded_param_metadata_batches": {
+    "status": "model_sanitizers_full_suite_microbenchmark_and_physical_passed",
+    "source": "gpu/games/bloodborne/params.cpp",
+    "batch_records": 128,
+    "max_stack_buffer_bytes": 3072,
+    "cache": "none; borrowed addresses scoped to each query",
+    "preserved": [
+      "first duplicate ID match",
+      "unsorted record order",
+      "all existing row formats and flags",
+      "reload re-resolution",
+      "bounded offsets and safe reader refusal"
+    ],
+    "full_suite": "out/params-batch-check-all.log",
+    "ctest": 98,
+    "python": 331,
+    "asan": "out/params-batch-asan.log",
+    "benchmark": "out/params-query-bench-manifest.json",
+    "physical": "out/native-physical-params-batch-120/manifest.json",
+    "acceptance": {
+      "passed": true,
+      "gates": {
+        "native_configuration": true,
+        "actual_fsr411_native_backend": true,
+        "original_saves_unchanged": true,
+        "complete_frame_window": true,
+        "valid_gameplay_window": true,
+        "average_fps": true,
+        "p99_frame_time": true,
+        "worst_frame_time": true,
+        "frame_timestamp_spacing": true,
+        "runtime_faults_absent": true,
+        "shutdown_faults_absent": true,
+        "replay_finished": true,
+        "requested_area": true,
+        "target_60fps": true,
+        "binary_unchanged": true
+      },
+      "frames": 7200,
+      "pose_samples": 7201,
+      "measured_fps": 59.99287584599328,
+      "p99_ms": 16.71,
+      "worst_ms": 16.73,
+      "window_fps": 60.0,
+      "p99_interval_ms": 16.712767,
+      "worst_interval_ms": 16.733047,
+      "backend": "FP8 t2160_m0",
+      "truncated_record_after_window": true,
+      "truncated_pose_record_after_window": false,
+      "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+      "target_rate_tolerance_fps": 0.1
+    },
+    "frozen_candidate": "out/verified-native-param-batches-2026-11-05",
+    "bloodletter_loaded_verified": true,
+    "additional_asan": "out/bloodletter-batched-asan.log"
+  },
+  "native_scalar_guest_call": {
+    "status": "unit_sanitizers_and_retail_full_suite_passed",
+    "evidence": "out/guest-call-register-validation.json",
+    "full_suite": "out/guest-call-optin-retail-check-all.log",
+    "ctest": 99,
+    "ctest_skipped": 0,
+    "python": 331,
+    "retail_price_comparisons": 1632,
+    "physical_default_policy": "out/native-physical-guest-call-optin-120/manifest.json",
+    "plugin_abi": "adapter_and_owner_lifecycle_pending",
+    "frozen_candidate": "out/verified-native-guest-call-optin-2026-11-06",
+    "local_profile_publication": "out/physical-monitor-profile-publication.json"
+  },
+  "native_callback_retirement": {
+    "audit": "docs/BBHOST_PLUGIN_SERVICES_AUDIT.json",
+    "full_suite": "out/plugin-callbacks-final-check-all.log",
+    "ctest": 101,
+    "skipped": 0,
+    "python": 331,
+    "asan": "out/plugin-callbacks-asan.log",
+    "physical": "out/native-physical-plugin-callbacks-120/manifest.json",
+    "frozen_candidate": "out/verified-native-plugin-callbacks-2026-11-06",
+    "remaining": "Public plugin ABI, initialization/unload error-path integration, HLE/hook/thread residency and full live host verification"
+  },
+  "native_plugin_module": {
+    "status": "phases_context_lifecycle_and_normal_physical_passed_full_host_pending",
+    "audit": "docs/BBHOST_PLUGIN_SERVICES_AUDIT.json",
+    "evidence": "out/plugin-module-validation.json",
+    "full_suite": "out/plugin-module-owner-check-all.log",
+    "ctest": 102,
+    "python": 331,
+    "license_audit": "docs/BBHOST_LICENSE_AUDIT.json",
+    "frozen_candidate": "out/verified-native-plugin-module-2026-11-06"
+  },
+  "native_plugin_hle": {
+    "status": "native_resolver_and_real_module_chain_passed_public_host_pending",
+    "audit": "docs/BBHOST_PLUGIN_SERVICES_AUDIT.json",
+    "evidence": "out/plugin-hle-validation.json",
+    "full_suite": "out/plugin-hle-integration-check-all.log",
+    "ctest": 105,
+    "skipped": 0,
+    "python": 331,
+    "physical": "out/native-physical-plugin-hle-120/manifest.json",
+    "frozen_candidate": "out/verified-native-plugin-hle-2026-11-06"
+  },
+  "native_plugin_image_and_checked_patch": {
+    "status": "checked_core_hook_publication_image_identity_and_physical_passed_public_adapter_pending",
+    "audit": "docs/BBHOST_PLUGIN_SERVICES_AUDIT.json",
+    "evidence": "out/plugin-image-patch-validation.json",
+    "full_suite": "out/plugin-image-patch-final-check-all.log",
+    "ctest": 107,
+    "skipped": 0,
+    "python": 331,
+    "physical": "out/native-physical-plugin-image-patch-120/manifest.json",
+    "frozen_candidate": "out/verified-native-plugin-image-patch-2026-11-06"
+  },
+  "native_owned_hook_abi": {
+    "status": "module_hook_ABI_and_lifecycle_passed_public_table_pending",
+    "audit": "docs/BBHOST_PLUGIN_SERVICES_AUDIT.json",
+    "evidence": "out/plugin-hooks-validation.json",
+    "full_suite": "out/plugin-hooks-check-all.log",
+    "ctest": 108,
+    "skipped": 0,
+    "python": 331,
+    "physical": "out/native-physical-plugin-hooks-abi-120/manifest.json",
+    "frozen_candidate": "out/verified-native-plugin-hooks-abi-2026-11-06"
+  }
+}

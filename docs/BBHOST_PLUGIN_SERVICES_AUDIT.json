@@ -1,0 +1,704 @@
+{
+  "status": "native_prefix1_verified_API16_and_normal_runtime_integration_in_progress",
+  "upstream_revision": "bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+  "api_version": 16,
+  "service_count": 54,
+  "services": [
+    {
+      "service": "log",
+      "status": "native_v1_service_table_component_and_hle_verified_normal_runtime_activation_pending",
+      "existing_or_candidate": "BbPluginHost::Host advertises a complete version-1 prefix and uses the checked native lifecycle/image/import/hook primitives. See BBHOST_PLUGIN_HOST_V1_AUDIT.json for per-phase semantics, tested concurrency, actual-runtime HLE fallback and remaining configuration/discovery integration."
+    },
+    {
+      "service": "config",
+      "status": "native_v1_service_table_component_and_hle_verified_normal_runtime_activation_pending",
+      "existing_or_candidate": "BbPluginHost::Host advertises a complete version-1 prefix and uses the checked native lifecycle/image/import/hook primitives. See BBHOST_PLUGIN_HOST_V1_AUDIT.json for per-phase semantics, tested concurrency, actual-runtime HLE fallback and remaining configuration/discovery integration."
+    },
+    {
+      "service": "data_dir",
+      "status": "native_v1_service_table_component_and_hle_verified_normal_runtime_activation_pending",
+      "existing_or_candidate": "BbPluginHost::Host advertises a complete version-1 prefix and uses the checked native lifecycle/image/import/hook primitives. See BBHOST_PLUGIN_HOST_V1_AUDIT.json for per-phase semantics, tested concurrency, actual-runtime HLE fallback and remaining configuration/discovery integration."
+    },
+    {
+      "service": "mods_dir",
+      "status": "native_v1_service_table_component_and_hle_verified_normal_runtime_activation_pending",
+      "existing_or_candidate": "BbPluginHost::Host advertises a complete version-1 prefix and uses the checked native lifecycle/image/import/hook primitives. See BBHOST_PLUGIN_HOST_V1_AUDIT.json for per-phase semantics, tested concurrency, actual-runtime HLE fallback and remaining configuration/discovery integration."
+    },
+    {
+      "service": "register_hle",
+      "status": "native_v1_service_table_component_and_hle_verified_normal_runtime_activation_pending",
+      "existing_or_candidate": "BbPluginHost::Host advertises a complete version-1 prefix and uses the checked native lifecycle/image/import/hook primitives. See BBHOST_PLUGIN_HOST_V1_AUDIT.json for per-phase semantics, tested concurrency, actual-runtime HLE fallback and remaining configuration/discovery integration."
+    },
+    {
+      "service": "eboot_sha256",
+      "status": "native_v1_service_table_component_and_hle_verified_normal_runtime_activation_pending",
+      "existing_or_candidate": "BbPluginHost::Host advertises a complete version-1 prefix and uses the checked native lifecycle/image/import/hook primitives. See BBHOST_PLUGIN_HOST_V1_AUDIT.json for per-phase semantics, tested concurrency, actual-runtime HLE fallback and remaining configuration/discovery integration."
+    },
+    {
+      "service": "eboot_is_109",
+      "status": "native_v1_service_table_component_and_hle_verified_normal_runtime_activation_pending",
+      "existing_or_candidate": "BbPluginHost::Host advertises a complete version-1 prefix and uses the checked native lifecycle/image/import/hook primitives. See BBHOST_PLUGIN_HOST_V1_AUDIT.json for per-phase semantics, tested concurrency, actual-runtime HLE fallback and remaining configuration/discovery integration."
+    },
+    {
+      "service": "guest_addr",
+      "status": "native_v1_service_table_component_and_hle_verified_normal_runtime_activation_pending",
+      "existing_or_candidate": "BbPluginHost::Host advertises a complete version-1 prefix and uses the checked native lifecycle/image/import/hook primitives. See BBHOST_PLUGIN_HOST_V1_AUDIT.json for per-phase semantics, tested concurrency, actual-runtime HLE fallback and remaining configuration/discovery integration."
+    },
+    {
+      "service": "read",
+      "status": "native_v1_service_table_component_and_hle_verified_normal_runtime_activation_pending",
+      "existing_or_candidate": "BbPluginHost::Host advertises a complete version-1 prefix and uses the checked native lifecycle/image/import/hook primitives. See BBHOST_PLUGIN_HOST_V1_AUDIT.json for per-phase semantics, tested concurrency, actual-runtime HLE fallback and remaining configuration/discovery integration."
+    },
+    {
+      "service": "write",
+      "status": "native_v1_service_table_component_and_hle_verified_normal_runtime_activation_pending",
+      "existing_or_candidate": "BbPluginHost::Host advertises a complete version-1 prefix and uses the checked native lifecycle/image/import/hook primitives. See BBHOST_PLUGIN_HOST_V1_AUDIT.json for per-phase semantics, tested concurrency, actual-runtime HLE fallback and remaining configuration/discovery integration."
+    },
+    {
+      "service": "patch",
+      "status": "native_v1_service_table_component_and_hle_verified_normal_runtime_activation_pending",
+      "existing_or_candidate": "BbPluginHost::Host advertises a complete version-1 prefix and uses the checked native lifecycle/image/import/hook primitives. See BBHOST_PLUGIN_HOST_V1_AUDIT.json for per-phase semantics, tested concurrency, actual-runtime HLE fallback and remaining configuration/discovery integration."
+    },
+    {
+      "service": "hook",
+      "status": "native_v1_service_table_component_and_hle_verified_normal_runtime_activation_pending",
+      "existing_or_candidate": "BbPluginHost::Host advertises a complete version-1 prefix and uses the checked native lifecycle/image/import/hook primitives. See BBHOST_PLUGIN_HOST_V1_AUDIT.json for per-phase semantics, tested concurrency, actual-runtime HLE fallback and remaining configuration/discovery integration."
+    },
+    {
+      "service": "on_frame",
+      "status": "native_owner_registry_adapter_pending",
+      "existing_or_candidate": "BbPluginCallbacks::Registry adds module-pinned owner callbacks, retirement/drain, COW snapshots, reentrant nonblocking retirement and exception quarantine. Explicit Frames adapter reuses BbFrameTasks; no default task installation. Public plugin ABI and host failure/unload wiring remain pending."
+    },
+    {
+      "service": "param_row",
+      "status": "adapter_pending",
+      "existing_or_candidate": "gpu/games/bloodborne/params.{h,cpp}"
+    },
+    {
+      "service": "param_get",
+      "status": "adapter_pending",
+      "existing_or_candidate": "scripts/param_tables.py supports offline fields; native field service absent"
+    },
+    {
+      "service": "param_set",
+      "status": "adapter_pending",
+      "existing_or_candidate": "scripts/param_tables.py supports offline fields; native field service absent"
+    },
+    {
+      "service": "lua_event",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "event_flag_get",
+      "status": "adapter_pending",
+      "existing_or_candidate": "gpu/games/bloodborne/event_flags.{h,cpp}"
+    },
+    {
+      "service": "event_flag_set",
+      "status": "adapter_pending",
+      "existing_or_candidate": "gpu/games/bloodborne/event_flags.{h,cpp}"
+    },
+    {
+      "service": "player_stat_get",
+      "status": "adapter_pending",
+      "existing_or_candidate": "gpu/games/bloodborne/player_data.{h,cpp}"
+    },
+    {
+      "service": "player_stat_set",
+      "status": "adapter_pending",
+      "existing_or_candidate": "Rebirth uses checked retail apply; general named writer absent"
+    },
+    {
+      "service": "on_event_flag",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "player_position",
+      "status": "adapter_pending",
+      "existing_or_candidate": "gpu/games/bloodborne/hooks_acceptance.cpp reads pose on main thread"
+    },
+    {
+      "service": "camera_get",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "player_block",
+      "status": "adapter_pending",
+      "existing_or_candidate": "Existing appearance/rebirth/acceptance world reads"
+    },
+    {
+      "service": "player_warp",
+      "status": "adapter_pending",
+      "existing_or_candidate": "BBHOST implementation reviewed; native public queued positional warp absent"
+    },
+    {
+      "service": "lamp_warp",
+      "status": "adapter_pending",
+      "existing_or_candidate": "Validated retail travel used by acceptance; public queued plugin API absent"
+    },
+    {
+      "service": "symbol",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "call_guest",
+      "status": "native_primitive_adapter_pending",
+      "existing_or_candidate": "BbGuestCall::Invoke implements the scalar SysV register/stack frame without FS switching (native guest uses GS). Mixed/variadic/float/alignment/concurrency/recursion/host-CFI tests added; actual retail price function comparison added. Plugin owner lifecycle, attached-thread/context validation and public API adapter remain pending."
+    },
+    {
+      "service": "hook2",
+      "status": "native_abi_owner_adapter_passed_public_table_pending",
+      "existing_or_candidate": "BbPluginHooks::Hooks bridges BbHookFrame/BbHookCtx to Core conditional snapshots, per-invocation skip decisions, argument/XMM rewrites and integer return; Registry::Invocation owns admission/drain. Image-phase/process-resident module only. Retired or quarantined callbacks pass through; full public service table still pending."
+    },
+    {
+      "service": "param_ids",
+      "status": "native_primitive_retail_differential_passed_public_adapter_pending",
+      "existing_or_candidate": "BbParams::ListIds shares bounded 128-record traversal with FindRow. Count-only, capacity limits, order/duplicates, invalid records, truncated batches and overflow pass native/ASan/UBSan tests. Copied-save retail differential matches all 87 ReturnPointParam IDs and the first 257 of 1877 AtkParam_Pc IDs; missing table rejected. Full public plugin service table/lifecycle adapter remains pending."
+    },
+    {
+      "service": "on_world_load",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "chr_list",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "sp_effect_apply",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "sp_effect_has",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "plugin_dir",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "show_message",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "set_time_scale",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "on_option",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "on_action",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "game_file",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "overlay_file",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "set_rules",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "on_world_rules",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "visitor",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "replace_text",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "loading_screen",
+      "status": "adapter_pending",
+      "existing_or_candidate": "Existing acceptance/loading state; no plugin service"
+    },
+    {
+      "service": "input",
+      "status": "adapter_pending",
+      "existing_or_candidate": "src/runtime_pad; no BbInput ABI bridge yet"
+    },
+    {
+      "service": "input_take",
+      "status": "adapter_pending",
+      "existing_or_candidate": "Existing overlay/control capture; no per-plugin consumption bridge"
+    },
+    {
+      "service": "on_camera",
+      "status": "adapter_pending",
+      "existing_or_candidate": "gpu/games/bloodborne/hooks_camera.cpp; native plugin observer absent"
+    },
+    {
+      "service": "key_bound",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "show_text",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "on_scene_category",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    },
+    {
+      "service": "draw_style",
+      "status": "service_pending",
+      "existing_or_candidate": "Full native implementation/semantics comparison still required"
+    }
+  ],
+  "critical_contracts": [
+    "Initialize before guest import binding; image phase after native patches.",
+    "Binary Ninja addresses are based at 0x400000; native image has a different base.",
+    "Hook argument/float rewriting and per-call skip must remain correct during concurrent/reentrant calls.",
+    "Mutable params, event/stat changes and guest calls need main-thread/lifetime contracts.",
+    "Callbacks/HLE bindings must not outlive a dlclosed module after initialization failure.",
+    "Online rules propagation must match the selected native transport; no claim of BBHOST server compatibility.",
+    "API 16 includes scene-category callbacks and draw styles; default no-op stubs would not establish compatibility."
+  ],
+  "next": "Map remaining services to their actual upstream implementations and native counterparts, then implement/test lifecycle and services without advertising an unsupported API.",
+  "source_findings": [
+    {
+      "topic": "lifecycle",
+      "status": "source_review_potential_failure_path_not_runtime_reproduced",
+      "source": "src/host/plugins.cpp:259-263, 1352-1377",
+      "finding": "on_frame stores a callback without module ownership. A plugin image callback may register one and then return failure; plugins_image dlcloses the module and erases its Plugin record without visibly removing that callback. A native port needs owner-scoped registration and retirement or resident disabled modules before exposing this lifecycle."
+    },
+    {
+      "topic": "hooks",
+      "status": "native_per_invocation_conditional_hook_implemented_full_suite_passed",
+      "source": "gpu/shim/bbport_guest_code_hooks.{h,cpp}",
+      "finding": "Core::InstallConditionalGuestCodeHook now branches on the current callback result before restoring guest state. True returns snapshot RAX; false executes the original instructions with rewritten arguments. Both paths restore GPR/YMM/MXCSR/flags. No shared skip flag. Eight simultaneous threads (16,000 calls), recursive opposite decisions, callable original, argument/return changes and carry preservation pass. The BBHOST plugin adapter and owner lifecycle remain pending.",
+      "evidence": [
+        "tests/test_guest_hook_conditional.cpp",
+        "out/plugin-conditional-tests.log",
+        "out/plugin-conditional-check-all.log",
+        "out/plugin-conditional-asan.log"
+      ],
+      "installation_contract": "Install before any thread can execute the patched site; serialized registration alone is not a live-patching protocol."
+    }
+  ],
+  "native_integration_points": [
+    {
+      "file": "src/probe.c",
+      "phase": "after runtime_file_configure near line599, before image/import binding",
+      "purpose": "Host plugin init must publish HLE overrides before runtime_resolve is used; a bbgpu_patch_image-only loader is too late for register_hle."
+    },
+    {
+      "file": "src/probe.c",
+      "phase": "after native image patches near line783",
+      "purpose": "Image callbacks can use relocated runtime addresses and checked guest hooks."
+    },
+    {
+      "file": "src/runtime.c",
+      "phase": "runtime_resolve near line207",
+      "purpose": "Implemented wrapper resolves the original provider first, then an owner-aware stable function trampoline. Data imports bypass replacements; capability gates remain authoritative."
+    },
+    {
+      "file": "scripts/mods.py",
+      "phase": "build_overlay near line184",
+      "purpose": "The merged root links both dump and selected mod files. Plugin overlays must distinguish player overrides from original files and preserve their priority; merely replacing the merged tree would violate overlay_file semantics."
+    }
+  ],
+  "native_callback_retirement": {
+    "implementation": "gpu/shim/bbport_plugin_callbacks.{h,cpp}",
+    "tests": [
+      "tests/test_plugin_callbacks.cpp",
+      "tests/test_plugin_callbacks_frame.cpp",
+      "tests/plugin_callback_module.c"
+    ],
+    "capacity": 256,
+    "allocation_policy": "Copy-on-write registration and retirement; dispatch takes a shared snapshot without allocating. No task installed in a normal run without a host.",
+    "ownership": "The host supplies a shared pin owning its dlopen reference. Owners, entries and dispatch snapshots retain it. Other HLE/hook/thread callbacks need their own residency before global module unloading can be claimed.",
+    "retirement": "Close admission first, remove published entries, then drain running callbacks outside all registry dispatch callbacks. Inside callbacks return false without waiting, including cross-registry retirement. Snapshots retain executable residency through callback return.",
+    "exceptions": "Catch at callback boundary, disable owner, report failure count. Host must later Retire to remove entries and release pins.",
+    "verified_scope": "Real DSO ordinary retirement and self-retirement, stale snapshots, concurrency, dedup, capacity reuse, quarantine; original retail pacer entry/trampoline with substituted later body. Full live plugin host not implemented.",
+    "full_suite": "out/plugin-callbacks-final-check-all.log",
+    "sanitizers": "out/plugin-callbacks-asan.log",
+    "physical": {
+      "manifest": "out/native-physical-plugin-callbacks-120/manifest.json",
+      "passed": true,
+      "scope": "Normal game regression with new compiled code; registry adapter is not installed by default. No full live plugin host claim.",
+      "fps": 59.99210104002973,
+      "p99_ms": 16.71,
+      "worst_ms": 20.43
+    }
+  },
+  "metadata_refresh": {
+    "evidence": "out/bbhost-open-pr-refresh-2026-11-06.json",
+    "master": "bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+    "open_pr213_head": "04aea6ddced70c9b645f130e4c9382d9f79dff83",
+    "open_pull_requests": 16,
+    "scope": "Live GitHub metadata only; unchanged audited master and PR213 heads. Not proof all PR code was integrated."
+  },
+  "native_module_loader": {
+    "implementation": "gpu/shim/bbport_plugin_module.{h,cpp}",
+    "abi_header": "gpu/shim/plugins/bbhost_plugin.h",
+    "status": "loader_and_owner_context_implemented_service_table_pending",
+    "services": "The integrating host supplies a truthful table; loader never fabricates or advertises a full API implementation. No automatic discovery/loading in the normal game yet.",
+    "phases": "bb_plugin_init and bb_plugin_image under nested thread-local owner scopes; API version and size prefix validation; errors/exceptions retire callbacks",
+    "default_residency": "Process lifetime, including failed modules, until every hook/HLE/thread resource is tracked. CallbacksOnly policy is explicitly limited to clients exposing no other asynchronous resources.",
+    "exceptions": "Phase pin survives plugin exception destructor and type information use even after owner retirement",
+    "fixtures": [
+      "tests/plugin_module_fixture.cpp",
+      "tests/test_plugin_module.cpp"
+    ],
+    "sanitizers": "out/plugin-module-asan.log",
+    "remaining": [
+      "Truthful full public service table and production early-init/image wiring",
+      "HLE retirement/restoration and process residency are implemented; hook/thread resources and unloading quiescence remain pending",
+      "Plugin configuration/discovery/options/overlay/network semantics",
+      "Live game host qualification"
+    ],
+    "full_suite": "out/plugin-module-owner-check-all.log",
+    "ctest": 102,
+    "skipped": 0,
+    "python": 331,
+    "owner_context": "Init/image and runtime callback nested scopes; invalid scope masks outer context, no context inherited by unrelated threads",
+    "physical": {
+      "manifest": "out/native-physical-plugin-module-120/manifest.json",
+      "passed": true,
+      "scope": "Normal game regression with new compiled code; no plugin host automatically loaded",
+      "acceptance": {
+        "passed": true,
+        "gates": {
+          "native_configuration": true,
+          "actual_fsr411_native_backend": true,
+          "original_saves_unchanged": true,
+          "complete_frame_window": true,
+          "valid_gameplay_window": true,
+          "average_fps": true,
+          "p99_frame_time": true,
+          "worst_frame_time": true,
+          "frame_timestamp_spacing": true,
+          "runtime_faults_absent": true,
+          "shutdown_faults_absent": true,
+          "replay_finished": true,
+          "requested_area": true,
+          "target_60fps": true,
+          "binary_unchanged": true
+        },
+        "frames": 7200,
+        "pose_samples": 7201,
+        "measured_fps": 59.99232598163485,
+        "p99_ms": 16.71,
+        "worst_ms": 16.73,
+        "window_fps": 60.0,
+        "p99_interval_ms": 16.710057,
+        "worst_interval_ms": 16.731737,
+        "backend": "FP8 t2160_m0",
+        "truncated_record_after_window": true,
+        "truncated_pose_record_after_window": false,
+        "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+        "target_rate_tolerance_fps": 0.1
+      }
+    },
+    "frozen_candidate": "out/verified-native-plugin-module-2026-11-06"
+  },
+  "native_hle_replacement": {
+    "implementation": [
+      "src/runtime_plugin_hle.c",
+      "src/runtime_plugin_hle.h",
+      "gpu/shim/bbport_plugin_module.cpp"
+    ],
+    "startup": "src/probe.c installs backend before early plugin insertion point and seals registration before native imports. No automatic plugin discovery yet.",
+    "constraints": [
+      "Replaces existing provided function imports by names in the native catalogue; unknown names rejected and unresolved originals not redirected",
+      "Only bb_plugin_init may register, and only with process-resident module policy",
+      "Data imports and disabled runtime capabilities bypass replacement",
+      "256 distinct binding slots, eight owner layers per symbol, maximum name length255",
+      "Module code remains resident for already running calls; retire changes subsequent dispatch, not executing calls"
+    ],
+    "trampolines": "Lazy two-page allocation: read/execute tail-jump code, separate read/write non-executable atomic destinations; no argument/flag/stack changes. No allocation without registrations.",
+    "native_tests": "tests/test_plugin_hle_runtime.h included by tests/test_runtime.c",
+    "end_to_end": [
+      "plugin-native-hle-init-fail",
+      "plugin-native-hle-image-fail",
+      "plugin-native-hle-success"
+    ],
+    "test_fixture": "tests/plugin_hle_integration.cpp receives actual native runtime callbacks; real plugin module loaded by Module; limited test API, not a product host claim",
+    "full_suite": "out/plugin-hle-integration-check-all.log",
+    "ctest": 105,
+    "skipped": 0,
+    "python": 331,
+    "sanitizers": {
+      "native_runtime": "out/plugin-hle-runtime-asan.log",
+      "module": "out/plugin-hle-module-asan.log",
+      "scope": "Native runtime compiled with ASan+UBSan; function metadata checks off for generated thunk entries, leak checks off for native process-lifetime state. Module tests use ASan+UBSan with leak checks on."
+    },
+    "physical": {
+      "manifest": "out/native-physical-plugin-hle-120/manifest.json",
+      "passed": true,
+      "scope": "Normal game regression with new compiled HLE backend; no complete public plugin host automatically loaded",
+      "acceptance": {
+        "passed": true,
+        "gates": {
+          "native_configuration": true,
+          "actual_fsr411_native_backend": true,
+          "original_saves_unchanged": true,
+          "complete_frame_window": true,
+          "valid_gameplay_window": true,
+          "average_fps": true,
+          "p99_frame_time": true,
+          "worst_frame_time": true,
+          "frame_timestamp_spacing": true,
+          "runtime_faults_absent": true,
+          "shutdown_faults_absent": true,
+          "replay_finished": true,
+          "requested_area": true,
+          "target_60fps": true,
+          "binary_unchanged": true
+        },
+        "frames": 7200,
+        "pose_samples": 7201,
+        "measured_fps": 59.99255092492682,
+        "p99_ms": 16.71,
+        "worst_ms": 16.73,
+        "window_fps": 60.0,
+        "p99_interval_ms": 16.710967,
+        "worst_interval_ms": 16.733264,
+        "backend": "FP8 t2160_m0",
+        "truncated_record_after_window": true,
+        "truncated_pose_record_after_window": false,
+        "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+        "target_rate_tolerance_fps": 0.1
+      }
+    },
+    "frozen_candidate": "out/verified-native-plugin-hle-2026-11-06"
+  },
+  "native_image_access": {
+    "implementation": [
+      "gpu/shim/bbport_plugin_image.h",
+      "gpu/shim/bbport_plugin_image.cpp"
+    ],
+    "identity": "Hash actual original ELF and separately reconstruct PT_LOAD/SCE_RELRO image with BSS zero fill, matching scripts/game_check.py. 1.09 authorization uses supported mapped-image hash; raw SHA is never spoofed.",
+    "compatibility": "This PC reconstructed ELF SHA is cec1b276e7f9e4db978e57f524f41fbaac594530a3437b002e23f3fab14b4f86, not BBHOST reference file941f887a. Both file hash and semantic Is109 remain truthful. Plugins hardcoding a file hash need separate compatibility review.",
+    "addressing": "Checked preferred-base0x400000 offsets and relocated runtime-image pointers. Other ranges require host guest-map approval; arbitrary readable host memory is not admitted.",
+    "mutations": "Patch requires supported identity and matching byte spans; quiescent/image-phase contract. General data-write service and public ABI phase binding remain pending.",
+    "tests": "tests/test_plugin_image.cpp; synthetic invalid headers, bounds, high-base relocation, approved heap ranges, actual local1.09 ELF/prologue and valid padding variants",
+    "sanitizers": "out/plugin-image-asan.log",
+    "full_suite": "out/plugin-image-patch-final-check-all.log",
+    "ctest": 107,
+    "python": 331,
+    "physical": {
+      "manifest": "out/native-physical-plugin-image-patch-120/manifest.json",
+      "passed": true,
+      "scope": "Normal game with shared writer used by its native hooks. Plugin image service core separately verified; no complete public plugin host automatically loaded.",
+      "acceptance": {
+        "passed": true,
+        "gates": {
+          "native_configuration": true,
+          "actual_fsr411_native_backend": true,
+          "original_saves_unchanged": true,
+          "complete_frame_window": true,
+          "valid_gameplay_window": true,
+          "average_fps": true,
+          "p99_frame_time": true,
+          "worst_frame_time": true,
+          "frame_timestamp_spacing": true,
+          "runtime_faults_absent": true,
+          "shutdown_faults_absent": true,
+          "replay_finished": true,
+          "requested_area": true,
+          "target_60fps": true,
+          "binary_unchanged": true
+        },
+        "frames": 7200,
+        "pose_samples": 7200,
+        "measured_fps": 59.99426554811802,
+        "p99_ms": 16.71,
+        "worst_ms": 16.73,
+        "window_fps": 60.0,
+        "p99_interval_ms": 16.713169,
+        "worst_interval_ms": 16.733275,
+        "backend": "FP8 t2160_m0",
+        "truncated_record_after_window": true,
+        "truncated_pose_record_after_window": false,
+        "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+        "target_rate_tolerance_fps": 0.1
+      }
+    },
+    "frozen_candidate": "out/verified-native-plugin-image-patch-2026-11-06"
+  },
+  "native_patch_writer": {
+    "implementation": [
+      "gpu/shim/bbport_guest_patch.h",
+      "gpu/shim/bbport_guest_patch.cpp"
+    ],
+    "adoption": "Core::InstallGuestCodeHook and conditional hook share this writer; failed publication clears callable-original output and rewinds unpublished trampoline bytes.",
+    "semantics": "Safe source/destination reads, expected bytes/idempotence,16MiB bound, complete permission admission before writes, actual page protection restoration. Code must be quiescent; no atomic live-patching claim.",
+    "fault_policy": "Failure to add write permission returns Refused with unchanged destination; previously opened mappings restored. Rollback/protection-restoration failure aborts rather than continuing with corrupted permissions/instructions.",
+    "tests": [
+      "tests/test_guest_patch.cpp",
+      "tests/test_guest_hook_conditional.cpp"
+    ],
+    "sanitizers": "out/guest-patch-asan.log",
+    "full_suite": "out/plugin-image-patch-final-check-all.log",
+    "remaining": "Public patch/hook ABI and module owner retirement adapter",
+    "physical": {
+      "manifest": "out/native-physical-plugin-image-patch-120/manifest.json",
+      "passed": true,
+      "scope": "Normal game with shared writer used by its native hooks. Plugin image service core separately verified; no complete public plugin host automatically loaded.",
+      "acceptance": {
+        "passed": true,
+        "gates": {
+          "native_configuration": true,
+          "actual_fsr411_native_backend": true,
+          "original_saves_unchanged": true,
+          "complete_frame_window": true,
+          "valid_gameplay_window": true,
+          "average_fps": true,
+          "p99_frame_time": true,
+          "worst_frame_time": true,
+          "frame_timestamp_spacing": true,
+          "runtime_faults_absent": true,
+          "shutdown_faults_absent": true,
+          "replay_finished": true,
+          "requested_area": true,
+          "target_60fps": true,
+          "binary_unchanged": true
+        },
+        "frames": 7200,
+        "pose_samples": 7200,
+        "measured_fps": 59.99426554811802,
+        "p99_ms": 16.71,
+        "worst_ms": 16.73,
+        "window_fps": 60.0,
+        "p99_interval_ms": 16.713169,
+        "worst_interval_ms": 16.733275,
+        "backend": "FP8 t2160_m0",
+        "truncated_record_after_window": true,
+        "truncated_pose_record_after_window": false,
+        "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+        "target_rate_tolerance_fps": 0.1
+      }
+    }
+  },
+  "native_owned_hooks": {
+    "implementation": [
+      "gpu/shim/bbport_plugin_hooks.h",
+      "gpu/shim/bbport_plugin_hooks.cpp"
+    ],
+    "owner_lifecycle": "Registry::Invocation is shared by frames and hooks. Retire closes admission and drains active callbacks; any invocation marks the thread as nonblocking-retirement context. Bindings/trampolines remain process-lifetime; inactive owners run original instructions.",
+    "abi": "Six GPRs, eight low64 XMM lanes, hook1 skip=>RAX0, hook2 conditional RAX return and argument rewrites. Commit context only after normal callback return; exceptions quarantine callbacks and retain original arguments.",
+    "registration": "Only Module image phase under process-resident policy; no live code patching or automatic thread suspension. Expected-prologue hook, optional-prologue hook2,14..64 whole position-independent bytes; at most256 permanent plugin hook bindings.",
+    "tests": [
+      "tests/plugin_hook_fixture.cpp",
+      "tests/test_plugin_hooks.cpp"
+    ],
+    "verified_scope": "Real DSO/module phases/native trampolines over stand-in guest functions in relocated source-verified1.09 image. Weighted GPR input/output, floating input/output/return,16000 calls from eight threads, recursive decisions, blocked in-flight retirement, frame callback ownership, userdata freed after drain, exception rollback/quarantine, image failure pass-through. Not a full live game plugin host.",
+    "sanitizers": {
+      "log": "out/plugin-hooks-asan.log",
+      "scope": "ASan+UBSan and leak checking for fixture, adapters, registry, module/image/patch and native hook generator. Function metadata checks disabled for generated code. Existing decoder/third-party dependencies are not fully instrumented."
+    },
+    "full_suite": "out/plugin-hooks-check-all.log",
+    "ctest": 108,
+    "skipped": 0,
+    "python": 331,
+    "physical": {
+      "manifest": "out/native-physical-plugin-hooks-abi-120/manifest.json",
+      "passed": true,
+      "scope": "Normal game regression with new compiled adapters; no public plugin host automatically loaded. DSO/ABI and lifecycle separately verified.",
+      "acceptance": {
+        "passed": true,
+        "gates": {
+          "native_configuration": true,
+          "actual_fsr411_native_backend": true,
+          "original_saves_unchanged": true,
+          "complete_frame_window": true,
+          "valid_gameplay_window": true,
+          "average_fps": true,
+          "p99_frame_time": true,
+          "worst_frame_time": true,
+          "frame_timestamp_spacing": true,
+          "runtime_faults_absent": true,
+          "shutdown_faults_absent": true,
+          "replay_finished": true,
+          "requested_area": true,
+          "target_60fps": true,
+          "binary_unchanged": true
+        },
+        "frames": 7200,
+        "pose_samples": 7200,
+        "measured_fps": 59.99191608930696,
+        "p99_ms": 16.72,
+        "worst_ms": 17.31,
+        "window_fps": 60.0,
+        "p99_interval_ms": 16.716256,
+        "worst_interval_ms": 17.309391,
+        "backend": "FP8 t2160_m0",
+        "truncated_record_after_window": true,
+        "truncated_pose_record_after_window": false,
+        "limitation": "One route only; heavy-area, soak, VRR, online and whole-port acceptance are separate.",
+        "target_rate_tolerance_fps": 0.1
+      }
+    },
+    "remaining": [
+      "Full public service table and native host startup wiring",
+      "Full plugin game session and renderer/network/other services qualification"
+    ],
+    "frozen_candidate": "out/verified-native-plugin-hooks-abi-2026-11-06",
+    "quarantine_cleanup": "Implemented: shared owner disable action synchronously retires native HLE layers when quarantine initiates; callback admission closes first. Module::Close also drains active disable action. In-flight raw HLE code remains process-resident."
+  },
+  "native_owner_disable_actions": {
+    "implementation": [
+      "gpu/shim/bbport_plugin_callbacks.h",
+      "gpu/shim/bbport_plugin_callbacks.cpp",
+      "gpu/shim/bbport_plugin_module.cpp"
+    ],
+    "behavior": "Exactly one action when owner admission closes, for explicit retirement or frame/hook quarantine. No registry locks held during action. Retire outside callbacks/actions waits for active callbacks and action completion; retirement inside either never waits.",
+    "action_lifetime": "Shared context owns copied backend function and owner ID; no Module pointer captured. Notification must be noexcept and must not free userdata still used by active callbacks.",
+    "hle": "Module attaches native HLE retirement to owner action; explicit Close no longer maintains a separate cleanup path. Cached imports restore native fallback before synchronous quarantine action completes.",
+    "tests": [
+      "tests/test_plugin_cleanup.cpp",
+      "tests/plugin_hle_integration.cpp",
+      "tests/test_plugin_hooks.cpp"
+    ],
+    "native_case": "plugin-native-hle-frame-throw: actual DSO/Module/native HLE cached import restored before Close",
+    "hook_case": "Real DSO/owned native hook exception clears registered HLE backend before Close (backend lifecycle double); actual HLE resolver separately tested in native case",
+    "sanitizers": {
+      "generic": "out/plugin-cleanup-asan.log",
+      "hooks": "out/plugin-quarantine-hooks-asan.log",
+      "scope": "ASan+UBSan, leak checking on. Generated-code function metadata checks off in hooks fixture; not a sanitizer pass for the full renderer."
+    },
+    "full_suite": "out/plugin-quarantine-check-all.log",
+    "ctest": 110,
+    "skipped": 0,
+    "python": 331,
+    "physical": "pending",
+    "remaining": [
+      "Public complete host table/discovery and production module activation",
+      "Raw HLE in-flight calls and untracked plugin threads are not drained by callback retirement; process residency remains required",
+      "Other future plugin-owned resources need their own disable actions"
+    ]
+  },
+  "native_host_prefix_audit": "docs/BBHOST_PLUGIN_HOST_V1_AUDIT.json"
+}

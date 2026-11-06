@@ -1,0 +1,129 @@
+{
+  "status": "diagnostic_verified_elision_pending",
+  "source_commit": "7dbe6f60f33fff45ea1bcbf6c6e61a6b35466e13",
+  "manifest": "out/image-copy-diagnostic-profiled/manifest.json",
+  "binary_sha256": {
+    "out/bb-probe": "6cdf9536980cdce1913427e3780ac7cb19f5b30623ef3df0ce498924d4ea6c56",
+    "out/gpu/libbbgpu.so": "1c37f32ad0e014632bfc7530a49b90a0636da8836f3ab645881477d9dc48e884"
+  },
+  "transfer_count": 5,
+  "trace_entries": 212,
+  "diagnostic_passed": true,
+  "original_saves_unchanged": true,
+  "runtime_faults_absent": true,
+  "shutdown_faults_absent": true,
+  "last_five_profile_windows": [
+    {
+      "frames": 300,
+      "labels": [
+        {
+          "ms_per_frame": 0.085,
+          "copies_per_frame": 3.0,
+          "label": "image copy R8G8B8A8Unorm 2560x1440"
+        },
+        {
+          "ms_per_frame": 0.062,
+          "copies_per_frame": 1.0,
+          "label": "image copy R16G16B16A16Sfloat 2560x1440"
+        },
+        {
+          "ms_per_frame": 0.051,
+          "copies_per_frame": 1.0,
+          "label": "image copy D32SfloatS8Uint 2560x1440"
+        }
+      ],
+      "total_copy_ms_per_frame": 0.198
+    },
+    {
+      "frames": 299,
+      "labels": [
+        {
+          "ms_per_frame": 0.086,
+          "copies_per_frame": 3.0,
+          "label": "image copy R8G8B8A8Unorm 2560x1440"
+        },
+        {
+          "ms_per_frame": 0.064,
+          "copies_per_frame": 1.0,
+          "label": "image copy R16G16B16A16Sfloat 2560x1440"
+        },
+        {
+          "ms_per_frame": 0.051,
+          "copies_per_frame": 1.0,
+          "label": "image copy D32SfloatS8Uint 2560x1440"
+        }
+      ],
+      "total_copy_ms_per_frame": 0.20099999999999998
+    },
+    {
+      "frames": 300,
+      "labels": [
+        {
+          "ms_per_frame": 0.088,
+          "copies_per_frame": 3.0,
+          "label": "image copy R8G8B8A8Unorm 2560x1440"
+        },
+        {
+          "ms_per_frame": 0.067,
+          "copies_per_frame": 1.0,
+          "label": "image copy R16G16B16A16Sfloat 2560x1440"
+        },
+        {
+          "ms_per_frame": 0.052,
+          "copies_per_frame": 1.0,
+          "label": "image copy D32SfloatS8Uint 2560x1440"
+        }
+      ],
+      "total_copy_ms_per_frame": 0.207
+    },
+    {
+      "frames": 300,
+      "labels": [
+        {
+          "ms_per_frame": 0.086,
+          "copies_per_frame": 3.0,
+          "label": "image copy R8G8B8A8Unorm 2560x1440"
+        },
+        {
+          "ms_per_frame": 0.064,
+          "copies_per_frame": 1.0,
+          "label": "image copy R16G16B16A16Sfloat 2560x1440"
+        },
+        {
+          "ms_per_frame": 0.051,
+          "copies_per_frame": 1.0,
+          "label": "image copy D32SfloatS8Uint 2560x1440"
+        }
+      ],
+      "total_copy_ms_per_frame": 0.20099999999999998
+    },
+    {
+      "frames": 300,
+      "labels": [
+        {
+          "ms_per_frame": 0.086,
+          "copies_per_frame": 3.0,
+          "label": "image copy R8G8B8A8Unorm 2560x1440"
+        },
+        {
+          "ms_per_frame": 0.064,
+          "copies_per_frame": 1.0,
+          "label": "image copy R16G16B16A16Sfloat 2560x1440"
+        },
+        {
+          "ms_per_frame": 0.051,
+          "copies_per_frame": 1.0,
+          "label": "image copy D32SfloatS8Uint 2560x1440"
+        }
+      ],
+      "total_copy_ms_per_frame": 0.20099999999999998
+    }
+  ],
+  "median_attributed_copy_ms_per_frame": 0.20099999999999998,
+  "limits": [
+    "One Central Yharnam route, headless dummy audio, profiler enabled; one frame capture disables render helpers/memos.",
+    "Timings are attributed diagnostic timestamps; they do not establish a speedup from deferral or elimination.",
+    "No source redirection, deferred materialization, backing swap or full-write proof implemented.",
+    "Native 120-second default-profile acceptance belongs to the earlier f6413aee build."
+  ]
+}

@@ -1,0 +1,359 @@
+{
+  "status": "corrected_BBHOST_license_attributions",
+  "source": {
+    "repository": "https://github.com/droogie/bbhost",
+    "revisions": [
+      "b0098e04b889e2e70b4af84be1ce809d7af3ff95",
+      "bdc5cdf8be5f37188da9c2368e92be444fdc04cb"
+    ],
+    "license": "GPL-3.0-or-later",
+    "grant": "README.md License: version 3 or later",
+    "grant_url": "https://github.com/droogie/bbhost/blob/bdc5cdf8be5f37188da9c2368e92be444fdc04cb/README.md#license",
+    "text_url": "https://github.com/droogie/bbhost/blob/bdc5cdf8be5f37188da9c2368e92be444fdc04cb/LICENSE",
+    "local_text": "LICENSES/GPL-3.0-or-later.txt"
+  },
+  "scope": "Reviewed BBHOST adaptations and their paired native interfaces; preserves original bbport and unrelated fork/component grants. Not a completed release packaging audit.",
+  "files": [
+    {
+      "path": "gpu/common/sha256.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/common/sha256.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/appearance.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/appearance.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/bloodletter.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/bloodletter.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/esd.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/esd.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/fmod_project_init.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/fmod_project_init.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/gx_job_barrier.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/gx_reclaim.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/gx_reclaim.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/menu_steps.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/menu_steps.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/occlusion_fresh.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/occlusion_fresh.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/params.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/params.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/player_data.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/player_data.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/rebirth.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/rebirth.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/rebirth_plan.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/rebirth_script.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/rebirth_script.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/rebirth_session.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/replay_time.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/replay_time.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/sfx_schedule.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/water_gate.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/water_gate.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne/water_gate_model.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/games/bloodborne_menu_pointer.cpp",
+      "spdx": "GPL-2.0-or-later AND GPL-3.0-or-later",
+      "scope": "Existing bbport file with GPLv3 BBHOST adaptations; original grant preserved"
+    },
+    {
+      "path": "gpu/shim/bbport_clock_consumers.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/shim/bbport_frame_clock.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/shim/bbport_frame_rate.cpp",
+      "spdx": "GPL-2.0-or-later AND GPL-3.0-or-later",
+      "scope": "Existing bbport file with GPLv3 BBHOST adaptations; original grant preserved"
+    },
+    {
+      "path": "gpu/shim/bbport_frame_rate.h",
+      "spdx": "GPL-2.0-or-later AND GPL-3.0-or-later",
+      "scope": "Existing bbport file with GPLv3 BBHOST adaptations; original grant preserved"
+    },
+    {
+      "path": "gpu/shim/bbport_guest_call.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/shim/bbport_guest_call.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/shim/bbport_limiter.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/shim/bbport_limiter.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/shim/bbport_sound_wake.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/shim/bbport_sound_wake.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "scripts/bnd4.py",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "scripts/fmg.py",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "scripts/param_tables.py",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "scripts/rebirth_assets.py",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "scripts/world_assets.py",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "src/runtime_pad/bindings.c",
+      "spdx": "GPL-2.0-or-later AND GPL-3.0-or-later",
+      "scope": "Existing bbport file with GPLv3 BBHOST adaptations; original grant preserved"
+    },
+    {
+      "path": "tests/bloodletter_assets_fixture.py",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "tests/bloodletter_ui_preload.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "tests/retail_timing_kit.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "tests/test_chr_replay_manipulator.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "tests/test_chr_sync.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "tests/test_gx_job_barrier.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "tests/test_rebirth_price.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "tests/test_sfx_schedule.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "tests/test_water_gate_model.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "tests/water_ui_preload.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "New adaptation/interface for the GPLv3-or-later BBHOST integrations"
+    },
+    {
+      "path": "gpu/shim/bbport_plugin_host.h",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "Native BBHOST host-prefix adaptation or paired integration test"
+    },
+    {
+      "path": "gpu/shim/bbport_plugin_host.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "Native BBHOST host-prefix adaptation or paired integration test"
+    },
+    {
+      "path": "tests/plugin_host_fixture.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "Native BBHOST host-prefix adaptation or paired integration test"
+    },
+    {
+      "path": "tests/test_plugin_host.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "Native BBHOST host-prefix adaptation or paired integration test"
+    },
+    {
+      "path": "tests/plugin_host_retail.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "Native BBHOST host-prefix adaptation or paired integration test"
+    },
+    {
+      "path": "tests/plugin_host_preload.cpp",
+      "spdx": "GPL-3.0-or-later",
+      "scope": "Native BBHOST host-prefix adaptation or paired integration test"
+    }
+  ],
+  "remaining": [
+    "Release archive must include NOTICE, both applicable GPL texts, full corresponding source and retained third-party notices",
+    "Other native forks retain their own source licenses; no blanket change applied to them"
+  ],
+  "public_api_header": {
+    "path": "gpu/shim/plugins/bbhost_plugin.h",
+    "license": "GPL-3.0-or-later",
+    "source": "include/bbhost_plugin.h",
+    "revision": "bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+    "retained_content": "Verbatim upstream header after two local provenance/license comments"
+  }
+}

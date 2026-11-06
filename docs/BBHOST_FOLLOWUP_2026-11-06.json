@@ -1,0 +1,430 @@
+{
+  "inspected_on": "2026-11-06",
+  "status": "in_progress",
+  "scope": "Pinned upstream discovery and explicitly listed native adaptations; not exhaustive source/fork review or final release qualification.",
+  "heads": [
+    {
+      "repository": "deadinside28/bloodborne_pc",
+      "commit": "0fc2921c45f8ff3900f6bfa43a299e9a4f532af4",
+      "subject": "0.7: native Windows build with online and mods, one memory model, faster heavy views, cloth and shadow fixes",
+      "date": "2026-10-28T23:55:53Z"
+    },
+    {
+      "repository": "Mrsuss60/bloodborne_pc_windows_port",
+      "commit": "432d2ddbf1547f6f24e87d27295a168355242a1b",
+      "subject": "gpu, probe: fix permutation conflicts, stale metas, and red-zone faults",
+      "date": "2026-11-06T13:22:49Z"
+    },
+    {
+      "repository": "bloodborne-native/bloodborne-runtime",
+      "commit": "42736cf7ca7704b087e847482417d9f475bb2dd7",
+      "subject": "run.sh: the app's own program answers --print-scaled",
+      "date": "2026-11-05T12:22:12Z"
+    },
+    {
+      "repository": "ayozetr/bloodborne_linux",
+      "commit": "1d0bbec9785843eca8661f481f3a7f47de126829",
+      "subject": "Launcher: version 0.70-linux.2",
+      "date": "2026-11-04T11:11:38Z"
+    },
+    {
+      "repository": "SrShadowy/bloodborne_pc",
+      "commit": "0b96acfc505ae53b09227e7bb40e758fad86c31d",
+      "subject": "today is a new day huh",
+      "date": "2026-10-27T02:35:36Z"
+    },
+    {
+      "repository": "Supermedo/bloodborne_pc",
+      "commit": "b48052617a919fc4d6b10ae3395e209c9e94e17a",
+      "subject": "Update README.md",
+      "date": "2026-10-30T20:41:05Z"
+    },
+    {
+      "repository": "droogie/bbhost",
+      "commit": "bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+      "subject": "net: P2P datagrams over 1,200 B leave as pieces of whole chunks, and none is dropped at 2 KB (BBHOST_NET_SPLIT_DATAGRAMS=0: whole; BBHOST_NET_LARGE_DATAGRAMS=0: as before)",
+      "date": "2026-11-04T16:54:36Z"
+    }
+  ],
+  "bbhost_open_pull_requests": [
+    {
+      "number": 213,
+      "title": "Faster uncapped on Windows too, and on 8 GB cards (v0.2.27, for testing)",
+      "head": "04aea6ddced70c9b645f130e4c9382d9f79dff83",
+      "draft": true,
+      "url": "https://github.com/droogie/bbhost/pull/213"
+    },
+    {
+      "number": 203,
+      "title": "enhancements: Messenger gifts - the pre-order and edition bonuses, as\u2026",
+      "head": "b10d9dd7599db64850bc93d9fc863ce9db8decba",
+      "draft": false,
+      "url": "https://github.com/droogie/bbhost/pull/203"
+    },
+    {
+      "number": 180,
+      "title": "options: mark Frame rate \"(requires restart)\" in the F10 menu",
+      "head": "2bc6f481038a49d1889c3afe1ce07803090e8e3e",
+      "draft": false,
+      "url": "https://github.com/droogie/bbhost/pull/180"
+    },
+    {
+      "number": 157,
+      "title": "macos: bbhost on Apple Silicon (Rosetta 2 + MoltenVK), playable at ~30 fps",
+      "head": "5e92cd19142ac87b109acc74d7fd6cbc7c7c14f2",
+      "draft": false,
+      "url": "https://github.com/droogie/bbhost/pull/157"
+    },
+    {
+      "number": 141,
+      "title": "perf/flip-timeline after #139: command processor 82 -> 121 fps in a CPU-bound area, compute buffers, shader trims (CI build)",
+      "head": "90ca92b69616df50eabb2a09330c73b332b1a18d",
+      "draft": true,
+      "url": "https://github.com/droogie/bbhost/pull/141"
+    },
+    {
+      "number": 126,
+      "title": "gx trace: emit records the command processor never takes go after 600 flips",
+      "head": "30581d7f4aa88a478bcb56513225bccc82260f63",
+      "draft": false,
+      "url": "https://github.com/droogie/bbhost/pull/126"
+    },
+    {
+      "number": 122,
+      "title": "kyo pc settings perf",
+      "head": "d66deac4f4dc099516f31df215cdbe83b3c6026a",
+      "draft": false,
+      "url": "https://github.com/droogie/bbhost/pull/122"
+    },
+    {
+      "number": 119,
+      "title": "Test build of master 566184a (do not merge)",
+      "head": "2f5a18d1ac0575398a4ac6aff3ca29d35bef1498",
+      "draft": true,
+      "url": "https://github.com/droogie/bbhost/pull/119"
+    },
+    {
+      "number": 117,
+      "title": "Stop dispatch trace records growing with tracing disabled",
+      "head": "0b0ea897469b2efe783cc749b8c5bd9541448502",
+      "draft": false,
+      "url": "https://github.com/droogie/bbhost/pull/117"
+    },
+    {
+      "number": 108,
+      "title": "present: FIFO where the driver presents through DXGI",
+      "head": "e53bdd8acb17d2ef3132a839ab37e9b7f1d9995b",
+      "draft": false,
+      "url": "https://github.com/droogie/bbhost/pull/108"
+    },
+    {
+      "number": 105,
+      "title": "diagnostics: preserve Windows crash evidence with an external dump collector",
+      "head": "dad785bf1dec59db85d33c54cd3b3553f76c5697",
+      "draft": false,
+      "url": "https://github.com/droogie/bbhost/pull/105"
+    },
+    {
+      "number": 104,
+      "title": "audio: initialize FMOD project language count before failed-load cleanup",
+      "head": "d230787b2ab84d23981f7f7edfaf063e753e4a17",
+      "draft": false,
+      "url": "https://github.com/droogie/bbhost/pull/104"
+    },
+    {
+      "number": 100,
+      "title": "Optimize rendering and fix Windows stack and effect handling",
+      "head": "7817a4231f8cb978db3fda5156188850748e65ff",
+      "draft": false,
+      "url": "https://github.com/droogie/bbhost/pull/100"
+    },
+    {
+      "number": 74,
+      "title": "Fix Windows certificate trust in portable curl builds",
+      "head": "82c58b4a805db07cf05849f84e0bf055e9027d27",
+      "draft": false,
+      "url": "https://github.com/droogie/bbhost/pull/74"
+    },
+    {
+      "number": 73,
+      "title": "Add DLSS/FSR upscaling, paced frame generation, motion vectors and Reflex",
+      "head": "539d45f41e1692379a130d69ff79dca3a900513d",
+      "draft": false,
+      "url": "https://github.com/droogie/bbhost/pull/73"
+    },
+    {
+      "number": 70,
+      "title": "Fix chromatic aberration disabling on Windows",
+      "head": "94db37124edf851f8d8272dcc9b194057ed30224",
+      "draft": false,
+      "url": "https://github.com/droogie/bbhost/pull/70"
+    }
+  ],
+  "decisions": [
+    {
+      "source": "droogie/bbhost src/engine/params.cpp:params_ids at bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+      "local": "gpu/games/bloodborne/params.cpp:ListIds",
+      "status": "native_primitive_and_retail_differential_passed_public_plugin_adapter_pending",
+      "semantics": "Full count, ordered IDs including duplicates, optional prefix/count-only. Shared bounded 128-record reads with FindRow; caller rejects partial output on failure.",
+      "evidence": [
+        "out/params-ids-asan.log",
+        "out/param-ids-check-all.log",
+        "out/native-physical-param-ids-120/manifest.json"
+      ]
+    },
+    {
+      "source": "bloodborne-native/bloodborne-runtime cf57dc0e0ebdb1562fa43ad002d0202a1d1fc480..42736cf7ca7704b087e847482417d9f475bb2dd7",
+      "status": "source_review_no_matching_local_path",
+      "decision": "Only new commit selects the app probe for --print-scaled in the upstream launcher. Native Cachyborne launcher resolves profile.probe directly; no corresponding BB_PREBUILT fallback exists."
+    },
+    {
+      "source": "Mrsuss60/bloodborne_pc_windows_port 3e600386439130a981259b84076a21a7bb31c3f6..432d2ddbf1547f6f24e87d27295a168355242a1b",
+      "status": "listed_native_cache_adaptation_and_retail_tests_passed_other_utilities_pending",
+      "commits": [
+        "8d76278ccc467f6d42ff72007a3f0dc1726d083e",
+        "ce83b806b9975185b801355d73fb5ea50aa5b314",
+        "432d2ddbf1547f6f24e87d27295a168355242a1b"
+      ],
+      "decisions": [
+        "Stored specialization Info rebases to its resident Program in both insertion paths. Standalone ASan/UBSan regression reproduces heap-use-after-free with the previous header and passes after correction. Full suite, 110 retail CTest cases without skips and physical 120-second native capture pass.",
+        "Version constants already shared by runtime/rebuild/import. Do not accept foreign version-24 caches: native shader-build identity and key version 8 differ.",
+        "Native metadata actually stores two object-motion addresses. Removing them as in the foreign fork would corrupt the local layout.",
+        "Native BlobStore writer already drains queued writes on Close. Profile-before-import synchronization still requires comparison.",
+        "Native BlobStore already drained writes on Close. Added a sequence-based Flush visibility barrier before a recipe import child is spawned, including active writes and explicit I/O failure propagation. FIFO-blocked worker/two waiter tests, previous-file preservation, reopen failure reset, close drain and separate-process profile reads pass. This is not fsync durability or a measured FPS gain. The final store destructor also wakes, drains and joins the writer if explicit Close was omitted; worker state outlives the jthread. Final retail, sanitizer and physical default-path qualification pass.",
+        "Equivalent-specialization preload reuse, stale-meta retirement, impossible-recipe memoization and save-manager comparison remain pending.",
+        "Reviewed runtime save safepoint: file copying is inside _WIN32 only, while Linux still writes success metadata/logs. It overwrites one fixed backup and performs synchronous I/O under the save mount lock. Do not port as a verified Linux backup; backup/restore utility requires a separate atomic, tested implementation."
+      ],
+      "evidence": [
+        "out/owner-regression/before-run.log",
+        "out/owner-regression/after-run.log",
+        "out/cache-specialization-owner-check-all.log",
+        "out/cache-specialization-owner-retail-ctest.log",
+        "out/blob-store-final-test.log",
+        "out/blob-store-asan.log",
+        "out/cache-import-flush-check-all.log"
+      ]
+    }
+  ],
+  "retail_param_ids": {
+    "passed": true,
+    "tables": [
+      {
+        "table": "ReturnPointParam",
+        "capacity": 4096,
+        "row_count": 87,
+        "passed": true
+      },
+      {
+        "table": "AtkParam_Pc",
+        "capacity": 257,
+        "row_count": 1877,
+        "passed": true
+      },
+      {
+        "table": "ReturnPointParam",
+        "capacity": 0,
+        "row_count": 87,
+        "passed": true
+      }
+    ]
+  },
+  "physical_verification": {
+    "manifest": "out/native-final-physical-120/manifest.json",
+    "passed": true,
+    "binary_sha256": {
+      "/home/ssparzival/Proyectos/GitHub/cachyborne/out/bb-probe": "2415321cab803062e9636df03c736d6a2775c2b63f3319c0627794bfb640b03f",
+      "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbgpu.so": "1cc4f67259d22fb2ecc5fdb40b0b8450bfd14c75009b3f1484c0fdf810bccc3f",
+      "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbnet20.so": "4c4d06738a0134b1ef314a95c5e91d24022aac96aeabd6db9f77f02609a75e37"
+    },
+    "frames": 7200,
+    "fps": 59.991101319970866,
+    "p99_ms": 16.71,
+    "worst_ms": 18.74,
+    "backend": "FP8 t2160_m0",
+    "scope": "One 120-second physical DP-2 Mensis lamp camera sweep with the normal published profile and no test preload, PipeWire USB sink, copied saves.",
+    "physical_audio_routed": true,
+    "audio_no_starvation": true,
+    "original_saves_unchanged": true
+  },
+  "validation": {
+    "full_suite": "out/plugin-host-retail-check-all.log",
+    "retail_suite": "out/plugin-host-retail-check-all.log",
+    "cpp_tests": 124,
+    "cpp_skipped": 0,
+    "python_tests": 338,
+    "vulkan_readback": true,
+    "owner_regression_before": "ASan heap-use-after-free",
+    "owner_regression_after": "ASan/UBSan passed",
+    "launch_dry_run": "out/plugin-host-default-launch-dry-run.log"
+  },
+  "cache_import_flush": {
+    "status": "implemented_full_suite_sanitizer_and_physical_default_path_passed",
+    "local": [
+      "gpu/render/blob_store.cpp",
+      "gpu/render/blob_store.h",
+      "gpu/render/pipeline_import.cpp",
+      "tests/test_blob_store.cpp"
+    ],
+    "cpp_tests": 111,
+    "cpp_skipped": 0,
+    "python_tests": 333,
+    "sanitizers": "Final instrumented store and test pass ASan/UBSan, including separate-process profile read, two simultaneous waiters, active-write barrier, error preservation, reopen reset and scope destructor drain.",
+    "first_physical_manifest": "out/native-physical-cache-flush-120/manifest.json",
+    "limits": [
+      "The published default has no recipe pack configured, so its physical capture verifies default-path stability, not a complete translation/import of a populated recipe pack.",
+      "Flush waits for queued file publication, not durable fsync; I/O failures remain failures."
+    ],
+    "physical_manifest": "out/native-physical-cache-lifecycle-120/manifest.json",
+    "evidence": [
+      "out/cache-import-lifecycle-check-all.log",
+      "out/blob-store-lifecycle-asan.log",
+      "out/blob-store-asan-command.json",
+      "out/native-physical-cache-lifecycle-120/manifest.json"
+    ]
+  },
+  "movement_verification": {
+    "manifest": "out/native-final-dream-120/manifest.json",
+    "passed": true,
+    "binary_sha256": {
+      "/home/ssparzival/Proyectos/GitHub/cachyborne/out/bb-probe": "2415321cab803062e9636df03c736d6a2775c2b63f3319c0627794bfb640b03f",
+      "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbgpu.so": "1cc4f67259d22fb2ecc5fdb40b0b8450bfd14c75009b3f1484c0fdf810bccc3f",
+      "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbnet20.so": "4c4d06738a0134b1ef314a95c5e91d24022aac96aeabd6db9f77f02609a75e37"
+    },
+    "frames": 7200,
+    "fps": 59.99236597143013,
+    "p99_ms": 16.71,
+    "worst_ms": 16.73,
+    "movement": {
+      "axis_range_m": [
+        0.5244970299999991,
+        0.07150984000000005,
+        0.43473240000000146
+      ],
+      "path_m": 13.62789901549861,
+      "passed": true
+    },
+    "resources": {
+      "samples": 117,
+      "observed_seconds": 118.260646127,
+      "cpu_percent_one_core": 138.14401100477423,
+      "peak_rss": 1231626240,
+      "peak_vram": 4772474880,
+      "min_available": 3093430272,
+      "gpu_board_watts_mean": 106.24786324786325
+    },
+    "scope": "Copied-save bounded walk/backstep pulses at the Hunter Dream entry lamp. Headless with dummy audio, 1 Hz host resource diagnostics. No full-area, combat, physical gamepad or energy-minimum claim.",
+    "limits": [
+      "Process RSS excludes other host/driver/direct-memory allocations.",
+      "Whole-board power includes other desktop clients; no global resource-minimum or causal energy-saving claim."
+    ]
+  },
+  "validated_source_sha256": {
+    "gpu/games/bloodborne/params.h": "a13dc7d49e9ce2fdd2392c65c4dc87799e83098bbea8f55dbf00fdbd0756c7ab",
+    "gpu/games/bloodborne/params.cpp": "99646b5ab3d26663e23782547935ab01b3f1832cfd525101ef9d6ead244919f2",
+    "gpu/games/bloodborne/hooks_acceptance.cpp": "3f01c947281452a2309f0bcddbca71c93be3e22e2229b639a9c13b4483f7f6a0",
+    "gpu/render/pipeline_cache.h": "a0c05b828a194c5fb6ac46c8cc6f6036d271fac8dced3ffe29eef18098b3878d",
+    "gpu/render/blob_store.h": "71ad27a03a1b3ece3399a792ed6753b638a25678ede936561904652a88cda1f6",
+    "gpu/render/blob_store.cpp": "ace1b4e093da4b70c64513d9395b2a2eef0892278fb71e759ce874ea28acd930",
+    "gpu/render/pipeline_import.cpp": "549319608414ac2992281c3c11a22fb3bf0bb952508e4923349a726dd2287fb8",
+    "tests/test_params.cpp": "8b85f9ae80ceee4d0577301f3473d478b757b6804ebdbaf2d0b2997ba754926a",
+    "tests/test_shader_cache_invariants.cpp": "e1a2cda201b6e50d67e239b92af90828ea37508867fa9e8b8b34cdb5a6c53919",
+    "tests/test_blob_store.cpp": "6c1c96e33e986d1cb5b7f36878c75b928ddda79d67dd58718c2651d060025a78",
+    "gpu/shim/bbport_guest_patch.h": "971d3d2fedaf1290066a2d5432d789df3637772fd0415bc3dff3bb226a9533a9",
+    "gpu/shim/bbport_guest_patch.cpp": "b41fbdc6f45821aaa6a3eac6021e498b251c3e8bb7f1b98225633a1504acbe45",
+    "gpu/shim/bbport_plugin_image.h": "516083981c792d28cda83e57326d9820b5fca1c7ec2d5b48b1863c7b68f3ac8f",
+    "gpu/shim/bbport_plugin_image.cpp": "0445b158d90a462b616c1bd4d15ebe36e19b3426ca1da90fdc1ec9d764ad0e31",
+    "gpu/shim/bbport_plugin_host.h": "fa29587c86cd2b9597ba5e760e430bd1021ad56fa40719a9b524576475ecf1d4",
+    "gpu/shim/bbport_plugin_host.cpp": "c85dbab512f7e2f818e5ecc8389c053f1ef93acd8c49697de8223066c71698e7",
+    "tests/test_guest_patch.cpp": "1f9e8efd9895e8cc58d32d5be2e7109a5d8ef85c6db7e2dc3c7a5a68d39cc6ff",
+    "tests/test_plugin_image.cpp": "9685c38eaf07ac7d927f9e39b40ef4fa554789859c8ab5e70f4a236abd4d9bcc",
+    "tests/test_plugin_host.cpp": "839188e412ff10febee944de4e5f2dbb383414abaf53817bb8dc1e7da9bcd1e5",
+    "tests/plugin_host_fixture.cpp": "02b4ddb2b4f09ed5d58a6077333b5c118b98f8b48dc55dd2d823903732d2aec1",
+    "tests/plugin_host_retail.cpp": "36e68d3b8cf54b55fbe8ba332359b18a9cde0fdc81ddb02cf756584272a3488a",
+    "tests/plugin_host_preload.cpp": "8ddcc221d613ff2d65dcc27e0cc3b43517d12e9a5e6bc65dd44061355aa30ffa",
+    "tests/plugin_hle_integration.cpp": "90016cf5f67d3b29d0d694be21219d30cb3aa2a6df79ab081b1b9668e9db266b",
+    "gpu/CMakeLists.txt": "ee688ac70905b55b3401ec975946fbea56da448cd0d4addb489b2a3518b6a312",
+    "gpu/games/bloodborne/sf_text_layout.h": "69f249b60405302d87185ee11f1059247db6ecb2062b5892dda609fdb3ab95d3",
+    "gpu/games/bloodborne/sf_text_layout.cpp": "88e48953a69dbba158133ebdb4d286d8e447da58dfafca78903c1f4ee836554c",
+    "tests/test_sf_text_layout.cpp": "f8c5606a6fe5e7c26509c5f5c6d14d4711817c9d94d7004a500bd5086254efd7",
+    "src/runtime_content.c": "0eddb9d3bb9bc55faae0114414751660b9bc175eaee33f07877d34b05fd6f2c0",
+    "tests/test_content.c": "7563170d2a6f77dd115d9ee43381b75508949c66a94643951546de0cb72f238f"
+  },
+  "remaining": [
+    "Public BBHOST plugin service table/discovery and remaining native service adapters.",
+    "Architecture-specific renderer/shader and memory retirement comparisons still listed in the feature inventory.",
+    "Broader gameplay, controls, area/boss/long-session and online qualification.",
+    "Thematic commits and final corresponding-source/release packaging after the required integration and validation."
+  ],
+  "visual_review": {
+    "scope": "Inspected one complete pre-replay 2560x1440 snapshot for each final normal-profile capture. Scene, character, lighting and HUD visible; not a temporal-artifact or full-camera review.",
+    "snapshots": {
+      "out/native-physical-plugin-host-default-120/capture/60/frames/f000_final_2560x1440_bgra.raw": "4b9cdabaa2ffe9e92a1d1579a8f4e92f8df33c55b4fa07adb327e4dc746fdc75",
+      "out/native-dream-movement-host-v1-120/capture/60/frames/f000_final_2560x1440_bgra.raw": "97fd6ff6dbdf8746c14d97590c3863a080d0b80373adf97779a8915c27f2339a"
+    }
+  },
+  "native_plugin_host_prefix": {
+    "audit": "docs/BBHOST_PLUGIN_HOST_V1_AUDIT.json",
+    "status": "version1_prefix_and_guarded_actual_game_boot_verified_normal_activation_and_API16_pending",
+    "implemented_services": 12,
+    "upstream_services": 54
+  },
+  "earlier_physical_verifications": [
+    {
+      "manifest": "out/native-physical-cache-lifecycle-120/manifest.json",
+      "passed": true,
+      "binary_sha256": {
+        "/home/ssparzival/Proyectos/GitHub/cachyborne/out/bb-probe": "b311707027908225b57cd11938cee18c30dae34bfdd72d5a3b68fccb21f59bae",
+        "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbgpu.so": "8c633c9630036e64aa036caa74183b97585d5bc64825c726a232a3d559890890",
+        "/home/ssparzival/Proyectos/GitHub/cachyborne/out/gpu/libbbnet20.so": "3ea958007405eacd303b3baa7c6141741111f7f350d65f711c7b490f6697297e"
+      },
+      "frames": 7200,
+      "fps": 59.99415057031939,
+      "p99_ms": 16.71,
+      "worst_ms": 16.74,
+      "backend": "FP8 t2160_m0",
+      "scope": "One 120-second physical DP-2 Mensis lamp camera sweep, PipeWire USB sink, copied saves; not complete area/boss/online/input/audio listening qualification.",
+      "physical_audio_routed": true,
+      "audio_no_starvation": true,
+      "original_saves_unchanged": true
+    }
+  ],
+  "earlier_movement_verifications": [
+    {
+      "manifest": "out/native-dream-movement-120/manifest.json",
+      "passed": true,
+      "frames": 7200,
+      "fps": 59.99915501190025,
+      "p99_ms": 16.71,
+      "worst_ms": 16.73,
+      "movement": {
+        "axis_range_m": [
+          0.5241060299999987,
+          0.07143354000000013,
+          0.43511960000000016
+        ],
+        "path_m": 13.62725378657627,
+        "passed": true
+      },
+      "resources": {
+        "samples": 117,
+        "observed_seconds": 118.744856845,
+        "cpu_percent_one_core": 137.4880599781315,
+        "peak_rss": 1235345408,
+        "peak_vram": 4426063872,
+        "min_available": 5194858496,
+        "gpu_board_watts_mean": 97.5982905982906
+      },
+      "scope": "Copied-save bounded walk/backstep pulses at the Hunter Dream entry lamp. Headless with dummy audio, 1 Hz host resource diagnostics. No full-area, combat, physical gamepad or energy-minimum claim.",
+      "limits": [
+        "Peak RSS is process residency, not total host RAM required including driver/direct-memory/page-cache allocations.",
+        "Whole-board power includes other desktop clients; no causal energy-saving or global resource minimum claim."
+      ]
+    }
+  ],
+  "cache_identity_followup": {
+    "status": "implemented_and_verified_in_SHADER_CACHE_IDENTITY_AUDIT.json",
+    "finding": "The shader fingerprint source set includes the complete gpu/CMakeLists.txt. Adding test-only targets changes the production shader-build identity and rebuilds caches, although those additions do not alter shader translation.",
+    "source": "gpu/CMakeLists.txt:105-111",
+    "next": "Separate effective shader/compiler configuration identity from unrelated test/launcher build declarations, retaining rejection of genuinely incompatible code, layout and compiler inputs."
+  }
+}

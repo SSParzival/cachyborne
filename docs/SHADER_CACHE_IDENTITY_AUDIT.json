@@ -1,0 +1,46 @@
+{
+  "inspected_on": "2026-11-06",
+  "status": "implemented_full_suite_and_runtime_qualification_passed",
+  "problem": "The full gpu/CMakeLists.txt was hashed into the shader cache identity; unrelated test targets discarded compatible caches. Effective target options and the Sirit emitter were insufficiently represented.",
+  "implementation": {
+    "sources": [
+      "gpu/CMakeLists.txt",
+      "gpu/cmake/ShaderFingerprint.cmake",
+      "gpu/cmake/ShaderFingerprintDriver.cmake.in",
+      "tests/test_shader_fingerprint.py"
+    ],
+    "identity_inputs": [
+      "Shader translator, GCN decoder, pipeline/cache implementation and shared headers",
+      "Sirit emitter implementation and SPIR-V headers",
+      "Compiler identity, native predefined features, target/system ABI and active configuration",
+      "Effective compile options, definitions, features, standard, extensions, PIC and IPO for bbgpu and Sirit",
+      "Directory and source-specific compiler properties"
+    ],
+    "normalization": [
+      "Source and build roots",
+      "CRLF line endings"
+    ],
+    "behavior": "Configuration-specific headers are generated after CMake evaluates target usage requirements. The output mtime changes only when identity bytes change.",
+    "compatibility": "One intentional migration for the corrected identity. Existing magic, version, shader-build and GPU-profile rejection checks remain unchanged. Incompatible caches must rebuild."
+  },
+  "validation": {
+    "suite": "out/shader-identity-check-all.log",
+    "cpp_tests": 124,
+    "cpp_skipped": 0,
+    "python_tests": 338,
+    "vulkan_readback_bytes": 4096,
+    "integration_tests": [
+      "Unrelated test additions, comments and inactive configuration options preserve bytes and mtime",
+      "Shader/emitter code, active/inherited/directory/source definitions and compiler options invalidate identity",
+      "Relocation and CRLF retain identity",
+      "Ninja Multi-Config isolates Debug and Release"
+    ],
+    "production_noop": "out/shader-identity-production-noop-final.json",
+    "production_noop_passed": true
+  },
+  "limits": [
+    "This addresses unnecessary cache invalidation; it does not establish higher rendering FPS or a global resource minimum.",
+    "Target dependencies and hashed source sets must be maintained when new shader compiler dependencies are added.",
+    "The broader BBHOST integration and final release remain in progress."
+  ]
+}

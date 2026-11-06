@@ -1,0 +1,245 @@
+{
+  "status": "in_progress",
+  "selection": "Native Bloodborne forks with source relevant to Linux/Vulkan, FSR, controls and renderer stability; no ranking or exhaustive-fork claim.",
+  "sources": [
+    {
+      "repository": "Mrsuss60/bloodborne_pc_windows_port",
+      "commit": "8ea9aa3744c6e59ada2ed041c65e524c0a2837bb",
+      "subject": "input: add last-input priority and straight-line reversals to keyboard movement",
+      "date": "2026-11-03T20:12:19Z",
+      "latest_observed_head": {
+        "commit": "432d2ddbf1547f6f24e87d27295a168355242a1b",
+        "subject": "gpu, probe: fix permutation conflicts, stale metas, and red-zone faults",
+        "inspected_on": "2026-11-06",
+        "status": "See BBHOST_FOLLOWUP_2026-11-06.json for the bounded comparison and validation; does not replace the original audited baseline."
+      }
+    },
+    {
+      "repository": "SrShadowy/bloodborne_pc",
+      "commit": "0b96acfc505ae53b09227e7bb40e758fad86c31d",
+      "subject": "today is a new day huh",
+      "date": "2026-10-27T02:35:36Z"
+    },
+    {
+      "repository": "Supermedo/bloodborne_pc",
+      "commit": "b48052617a919fc4d6b10ae3395e209c9e94e17a",
+      "subject": "Update README.md",
+      "date": "2026-10-30T20:41:05Z"
+    },
+    {
+      "repository": "ayozetr/bloodborne_linux",
+      "commit": "e8c7eaaf9c0fa94568b595a4ba9667dcd17b071b",
+      "subject": "Players' guide: brought up to 0.70",
+      "date": "2026-11-03T21:54:23Z",
+      "latest_observed_head": {
+        "commit": "1d0bbec9785843eca8661f481f3a7f47de126829",
+        "subject": "Launcher: version 0.70-linux.2",
+        "inspected_on": "2026-11-06",
+        "status": "See BBHOST_FOLLOWUP_2026-11-06.json for the bounded comparison and validation; does not replace the original audited baseline."
+      }
+    },
+    {
+      "repository": "bloodborne-native/bloodborne-runtime",
+      "commit": "6c5cfe1bab9ac0e3b7ee0abebc6961a1a9c6c001",
+      "subject": "Stability: the data_format=15 fix shipped in 0.9.5",
+      "date": "2026-11-04T00:28:47Z",
+      "latest_observed_head": {
+        "commit": "42736cf7ca7704b087e847482417d9f475bb2dd7",
+        "subject": "run.sh: the app's own program answers --print-scaled",
+        "inspected_on": "2026-11-06",
+        "status": "See BBHOST_FOLLOWUP_2026-11-06.json for the bounded comparison and validation; does not replace the original audited baseline."
+      }
+    },
+    {
+      "repository": "deadinside28/bloodborne_pc",
+      "commit": "0fc2921c45f8ff3900f6bfa43a299e9a4f532af4",
+      "subject": "0.7: native Windows build with online and mods, one memory model, faster heavy views, cloth and shadow fixes",
+      "date": "2026-10-28T23:55:53Z"
+    },
+    {
+      "repository": "droogie/bbhost",
+      "commit": "b0098e04b889e2e70b4af84be1ce809d7af3ff95",
+      "subject": "keys: a straight reversal in a sprint flips the stick at once, for the quick turn",
+      "date": "2026-11-02T03:12:46Z",
+      "latest_observed_head": {
+        "commit": "bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+        "subject": "net: P2P datagrams over 1,200 B leave as pieces of whole chunks, and none is dropped at 2 KB (BBHOST_NET_SPLIT_DATAGRAMS=0: whole; BBHOST_NET_LARGE_DATAGRAMS=0: as before)",
+        "inspected_on": "2026-11-06",
+        "status": "See BBHOST_FOLLOWUP_2026-11-06.json for the bounded comparison and validation; does not replace the original audited baseline."
+      }
+    }
+  ],
+  "findings": [
+    {
+      "repository": "droogie/bbhost",
+      "commit": "b0098e04b889e2e70b4af84be1ce809d7af3ff95",
+      "scope": "v0.2.24 remains current default branch in this inspection",
+      "status": "audit ongoing; see BBHOST_0.2.24_AUDIT.json"
+    },
+    {
+      "repository": "bloodborne-native/bloodborne-runtime",
+      "commit": "e207326050a31ccd9e09d5d56bd1cc275816cbd8",
+      "scope": "Unused GCN data formats read as invalid descriptors; vertex inputs skipped in regular and prepared paths, invalid colour targets disabled.",
+      "status": "implemented; full regression and native FSR411 gameplay route passed in subsequent sound-wake build",
+      "evidence": [
+        "tests/test_reserved_formats.cpp",
+        "out/reserved-formats-before.log",
+        "out/reserved-formats-after.log",
+        "out/reserved-formats-check-all.log",
+        "out/reserved-formats-check-exit.txt",
+        "out/reserved-formats-build-sha256.txt",
+        "out/sound-wake-native-dummy-verified/acceptance.json"
+      ],
+      "finding": "Previous library stops with code 23 in formatted-buffer lowering. Candidate covers all 64 data encodings x 16 number encodings and production typed/untyped buffer load/store lowering for encoding 15. PipelineKeyVersion 8 invalidates serialized float vertex fallbacks."
+    },
+    {
+      "repository": "Mrsuss60/bloodborne_pc_windows_port",
+      "commit": "8ea9aa3744c6e59ada2ed041c65e524c0a2837bb",
+      "scope": "Last-input directional priority and reversals",
+      "status": "optional_last_input_policy_implemented_runtime_and_gui_tested",
+      "evidence": [
+        "out/fork-research/Mrsuss60-input-commit.json",
+        "src/runtime_pad/bindings.c",
+        "tests/test_pad.c",
+        "out/key-opposites-build-test.log",
+        "out/key-opposites-check-all.log",
+        "out/key-opposites-gui-all.log"
+      ],
+      "finding": "Added key_opposites=neutral|last and Midnight selection. Uses rising edges per axis, neutral ties, held-direction resumption. Existing BBHOST sprint momentum and camera policy preserved. Original controller tests retained."
+    },
+    {
+      "repository": "Mrsuss60/bloodborne_pc_windows_port",
+      "commit": "3e600386439130a981259b84076a21a7bb31c3f6",
+      "scope": "Deferred chunk data/command lifetime",
+      "status": "Aligned chunk-owned overflow implemented and unit/ASan/UBSan passed; production build and gameplay acceptance pending. Pipeline serialization and malformed-packet suppression not imported.",
+      "evidence": [
+        "tests/test_record_chunk.cpp",
+        "out/record-chunk-before.log",
+        "out/record-chunk-asan.log"
+      ]
+    },
+    {
+      "repository": "bloodborne-native/bloodborne-runtime",
+      "commit": "cf57dc0e0ebdb1562fa43ad002d0202a1d1fc480",
+      "scope": "Online/offline title choice",
+      "status": "implemented_patch_selection_and_native_launcher_tested",
+      "finding": "Online mode keeps the retail choice; offline mode skips it as before. Native and legacy common launchers project the choice; explicit extra environment wins. No online gameplay or peer compatibility claim.",
+      "evidence": [
+        "tests/test_patches.py",
+        "tests/test_original_settings.py",
+        "out/goal-online-python.log"
+      ]
+    },
+    {
+      "repository": "droogie/bbhost",
+      "commit": "04aea6ddced70c9b645f130e4c9382d9f79dff83",
+      "scope": "Open draft PR 213, eight commits on v0.2.26",
+      "status": "Eight-commit source classification; selected 60 FPS Linux default does not enable its extra homes/segment pool. Architecture-specific equivalence remains pending.",
+      "evidence": [
+        "docs/BBHOST_PR213_AUDIT.json",
+        "out/bbhost-pr-213.json"
+      ]
+    },
+    {
+      "repository": "Mrsuss60/bloodborne_pc_windows_port",
+      "commit": "432d2ddbf1547f6f24e87d27295a168355242a1b",
+      "scope": "Resident specialization lifetime and cache publication before importing shader recipes",
+      "status": "Native specialization ownership and profile publication barriers implemented. 111 retail CTest cases without skips, 333 Python tests, targeted ASan/UBSan and the final 120-second physical default-path capture pass. Other upstream utilities retain their listed pending/rejected dispositions.",
+      "evidence": [
+        "docs/BBHOST_FOLLOWUP_2026-11-06.json",
+        "tests/test_blob_store.cpp",
+        "tests/test_shader_cache_invariants.cpp",
+        "out/cache-import-flush-check-all.log",
+        "out/cache-import-lifecycle-check-all.log",
+        "out/native-physical-cache-lifecycle-120/manifest.json"
+      ]
+    }
+  ],
+  "safe_exit_followup": {
+    "repository": "ayozetr/bloodborne_linux",
+    "head": "1d0bbec9785843eca8661f481f3a7f47de126829",
+    "status": "implemented_retail_and_three_copied_save_sessions_verified",
+    "local_gap": "Closed: world desktop exit uses the retail question, affirmative callback, save path and title. Original Quit Game remains separate; title desktop exit remains immediate.",
+    "upstream_cancellation_risk": "Addressed by tagging the original cloned functor and arming only on its affirmative invocation, including across threads.",
+    "retail_evidence": [
+      "out/save-quit-vtable.json",
+      "out/exit-game.bin",
+      "out/exit-game-callback.bin"
+    ],
+    "candidate": "Implemented and verified: synchronous factory tag follows both original clone functions; callback BN 0x200d050 arms desktop exit before its preserved state write at 0x200d0c4.",
+    "remaining": "Broader full-port/region acceptance remains separate; no claim of every possible save I/O failure scenario.",
+    "tests": [
+      "save-quit-test",
+      "tests/test_quit.c",
+      "tests/test_savedata_quit.c",
+      "out/quit-asan-tests.log"
+    ],
+    "gate": {
+      "log": "out/save-quit-check-all.log",
+      "exit_file": "out/save-quit-check-exit.txt",
+      "ctest": 60,
+      "python": 288,
+      "runtime_c": true,
+      "spirv": true,
+      "vulkan_readback": true
+    },
+    "sessions": {
+      "cancel": {
+        "path": "out/save-quit-cancel-session",
+        "scope": "Functional menu and save/cancel test only; standard MemoryWatch (4 GiB admission, 2 GiB runtime floor, 25% PSI abort); not FPS acceptance.",
+        "original_saves_unchanged": true,
+        "elapsed_s": 230.05548889499914,
+        "binary_sha256": {
+          "out/bb-probe": "6cdf9536980cdce1913427e3780ac7cb19f5b30623ef3df0ce498924d4ea6c56",
+          "out/gpu/libbbgpu.so": "f6413aeea86cef49ea5685e960608127c0cbb0d8e0ec1156045130cd48de80b3"
+        },
+        "binary_unchanged": true,
+        "fault_checks": {
+          "runtime_faults_absent": true,
+          "shutdown_faults_absent": true
+        }
+      },
+      "confirm": {
+        "path": "out/save-quit-confirm-session",
+        "scope": "Functional menu and save/cancel test only; standard MemoryWatch (4 GiB admission, 2 GiB runtime floor, 25% PSI abort); not FPS acceptance.",
+        "natural_exit": true,
+        "exit_code": 0,
+        "original_saves_unchanged": true,
+        "elapsed_s": 55.50727355300114,
+        "binary_sha256": {
+          "out/bb-probe": "6cdf9536980cdce1913427e3780ac7cb19f5b30623ef3df0ce498924d4ea6c56",
+          "out/gpu/libbbgpu.so": "f6413aeea86cef49ea5685e960608127c0cbb0d8e0ec1156045130cd48de80b3"
+        },
+        "binary_unchanged": true,
+        "fault_checks": {
+          "runtime_faults_absent": true,
+          "shutdown_faults_absent": true
+        }
+      },
+      "title": {
+        "path": "out/save-quit-title-session",
+        "scope": "Functional menu and save/cancel test only; standard MemoryWatch (4 GiB admission, 2 GiB runtime floor, 25% PSI abort); not FPS acceptance.",
+        "natural_exit": true,
+        "exit_code": 0,
+        "original_saves_unchanged": true,
+        "elapsed_s": 145.74181657499867,
+        "binary_sha256": {
+          "out/bb-probe": "6cdf9536980cdce1913427e3780ac7cb19f5b30623ef3df0ce498924d4ea6c56",
+          "out/gpu/libbbgpu.so": "f6413aeea86cef49ea5685e960608127c0cbb0d8e0ec1156045130cd48de80b3"
+        },
+        "binary_unchanged": true,
+        "fault_checks": {
+          "runtime_faults_absent": true,
+          "shutdown_faults_absent": true
+        }
+      }
+    }
+  },
+  "latest_runtime_tree_observation": {
+    "repository": "bloodborne-native/bloodborne-runtime",
+    "commit": "42736cf7ca7704b087e847482417d9f475bb2dd7",
+    "inspected_on": "2026-11-05",
+    "status": "Recursive path inventory only, not full source review. No plugin-host or water-gate/rebirth paths found by filename; this does not prove equivalent utility is absent.",
+    "evidence": "out/fork-research/runtime-current-tree.json"
+  }
+}
