@@ -86,7 +86,7 @@ What players and the launchers set. The menu, bbport.ini and the launcher write 
 | `BB_REBIRTH` | =1: offline Altar of Despair rebirth service; setup must prepare its script/message layer; requires Yharnam Stone (default off) |
 | `BB_RENDER_RES` | =WxH: render resolution through the startup patch (compatibility) |
 | `BB_SAVE_LOG` | =1: the log and frame statistics also kept in logs/ |
-| `BB_SHADER_PROGRESS` | =0: no shader compilation progress on screen |
+| `BB_SHADER_PROGRESS` | =1: shader compilation progress on screen (off by default) |
 | `BB_SHADNET_NPID` | the shadNet account name (the launcher's) |
 | `BB_SHADNET_PASSWORD` | the shadNet account password (the launcher's) |
 | `BB_SHADNET_SERVER` | the shadNet server |

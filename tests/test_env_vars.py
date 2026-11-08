@@ -23,6 +23,18 @@ class EnvVarsTests(unittest.TestCase):
         for key, value in expected.items():
             self.assertEqual(env[key], value, key)
 
+    def test_shader_progress_line_is_opt_in(self):
+        source = (ROOT / 'gpu/shim/bbport_overlay.cpp').read_text(encoding='utf-8')
+        self.assertIn('bb_env_on("BB_SHADER_PROGRESS")', source)
+        self.assertNotIn('bb_env_off("BB_SHADER_PROGRESS")', source)
+        import copy
+        import cachyborne as core
+        import cachyborne_options as options
+        profile = dict(settings=options.reconcile(copy.deepcopy(core.DEFAULTS)),
+                       prepared='/prepared', user='/user', game='/game', probe='/probe', cache='/cache')
+        _, env = core.launch_command(profile, base_env={})
+        self.assertNotEqual(env.get('BB_SHADER_PROGRESS', '')[:1], '1')
+
     def test_list_matches_the_code(self):
         out = io.StringIO()
         with contextlib.redirect_stdout(out):

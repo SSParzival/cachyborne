@@ -383,13 +383,13 @@ void FpsCounter() {
 /// "Compiling shaders": pipelines made in the background (the cache's preload, imported recipes)
 /// as done / queued, the recipe import, and the game's own compiles of the last 1.5 s (idea from
 /// the SrShadowy fork's precompile splash; here a line in the corner while it lasts).
-/// BB_SHADER_PROGRESS=0 hides it.
+/// Off by default (it covered the bottom-left corner during play); BB_SHADER_PROGRESS=1 shows it.
 struct ShaderProgress {
     u32 done = 0, total = 0, recent = 0;
     bool importing = false;
 };
 ShaderProgress CurrentShaderProgress() {
-    static const bool enabled = !bb_env_off("BB_SHADER_PROGRESS");
+    static const bool enabled = bb_env_on("BB_SHADER_PROGRESS");
     ShaderProgress p;
     if (!enabled) {
         return p;
