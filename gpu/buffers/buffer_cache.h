@@ -545,6 +545,8 @@ private:
     void LayerMaintain();
     /// Mirrored blocks not bound for BB_VRAM_IDLE_SECONDS go back in place.
     void LayerProcessIdle();
+    /// True when the card reports memory usage and idle buffers can stay in VRAM.
+    bool HasIdleVramHeadroom() const;
     /// VRAM near the texture collector's critical mark: idle mirrors go back in place.
     void LayerYieldToImages(u32 now);
     /// Makes mirrors with memory left without valid blocks again over those blocks only.

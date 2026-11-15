@@ -89,8 +89,9 @@ void PS4_SYSV_ABI FrameStep(u64 pacer) {
     // simulation.
     Vulkan::LowLatency::Get().GameFrameStart();
     const float measured = *reinterpret_cast<const float*>(pacer + 0x264);
-    paced_frame.store(std::isfinite(measured) && measured+0.000002f>=live->shortest,
-                      std::memory_order_relaxed);
+    const bool paced = std::isfinite(measured) && measured + 0.000002f >= live->shortest;
+    paced_frame.store(paced, std::memory_order_relaxed);
+    BbStats::frame_paced.store(paced, std::memory_order_relaxed);
     float dt = std::clamp(std::isfinite(measured) ? measured : Frame30, live->shortest, Frame30);
     // BB_FRAME_DT_SMOOTH=a (diagnostics, 0 < a < 1): the step follows the measured frame time by
     // that fraction a frame, so frame-to-frame jitter of the measurement does not reach the

@@ -991,6 +991,9 @@ void BufferCache::LayerProcessIdle() {
         return;
     }
     LayerYieldToImages(now);
+    if (HasIdleVramHeadroom()) {
+        return;
+    }
     std::vector<std::pair<u64, u64>> idle;
     Layer().ForEachValid(0, ~0ULL, [&](u64 a, u64 b) {
         for (u64 block = a; block < b;) {

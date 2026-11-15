@@ -114,10 +114,21 @@ void TextureCache::DownloadImageMemory(ImageId image_id, bool sync) {
             return; // Never interpret tiled/MSAA bytes as a linear guest surface.
         }
         auto plan = std::move(*planned);
-        // Keep the in-place fast path and VRAM mirror in command-stream order. Only use it
-        // when every guest slice meets Vulkan buffer-offset alignment requirements.
+        static const bool store_unwatched = bb_env("BB_STORE_UNWATCHED") != nullptr &&
+                                            bb_env("BB_STORE_UNWATCHED")[0] == '1';
+        const bool watched_partial = !store_unwatched && image.IsTracked() &&
+                                     (image.track_addr > plan.guest_address ||
+                                      image.track_addr_end < plan.guest_address + plan.guest_size);
+        const u64 watch_begin = watched_partial ? image.track_addr : 0;
+        const u64 watch_end = watched_partial ? image.track_addr_end : ~u64{0};
+        if (watched_partial && watch_begin >= watch_end) {
+            return;
+        }
+        // Keep the in-place fast path and VRAM mirror in command-stream order only when the entire
+        // guest span is still watched and every slice meets Vulkan buffer-offset alignment.
         const u64 alignment = std::lcm<u64>(4, ImageCopyBlockBytes(image.info.pixel_format, aspect));
-        if (plan.guest_address && std::ranges::all_of(plan.slices, [&](const auto& slice) {
+        if (!watched_partial && plan.guest_address &&
+            std::ranges::all_of(plan.slices, [&](const auto& slice) {
                 return (plan.guest_address + slice.guest_offset) % alignment == 0;
             })) {
             const auto [arena, offset] =
@@ -135,10 +146,11 @@ void TextureCache::DownloadImageMemory(ImageId image_id, bool sync) {
             plan.staging_size, MemoryType::HostCached, std::lcm<u64>(256, alignment), !sync);
         const auto copies = plan.Copies(staging.offset, false);
         runtime.DownloadImage(&image, staging.buffer, copies);
-        const auto write_back = [this, plan = std::move(plan)](const auto& download) {
+        const auto write_back = [this, plan = std::move(plan), watch_begin,
+                                 watch_end](const auto& download) {
             download.Invalidate();
-            plan.WriteRows(download.mapped, [this](u64 address, const u8* data, u64 row_bytes,
-                                                   u64 row_pitch, u64 rows) {
+            const auto emit = [this](u64 address, const u8* data, u64 row_bytes, u64 row_pitch,
+                                     u64 rows) {
                 if (BbFreeCheck::WatchEnabled()) {
                     for (u64 row = 0; row < rows; ++row) {
                         BbFreeCheck::Check(address + row * row_pitch, row_bytes,
@@ -148,6 +160,26 @@ void TextureCache::DownloadImageMemory(ImageId image_id, bool sync) {
                 if (Core::Memory::Instance()->TryWriteBackingRows(
                         address, data, row_bytes, row_pitch, rows)) {
                     buffer_cache.InvalidateMemory(address, (rows - 1) * row_pitch + row_bytes);
+                }
+            };
+            plan.WriteRows(download.mapped, [watch_begin, watch_end, &emit](
+                                                u64 address, const u8* data, u64 row_bytes,
+                                                u64 row_pitch, u64 rows) {
+                if (rows == 0 || row_bytes == 0) {
+                    return;
+                }
+                const u64 span_end = address + (rows - 1) * row_pitch + row_bytes;
+                if (address >= watch_begin && span_end <= watch_end) {
+                    emit(address, data, row_bytes, row_pitch, rows);
+                    return;
+                }
+                for (u64 row = 0; row < rows; ++row) {
+                    const u64 row_addr = address + row * row_pitch;
+                    const u64 lo = std::max(row_addr, watch_begin);
+                    const u64 hi = std::min(row_addr + row_bytes, watch_end);
+                    if (lo < hi) {
+                        emit(lo, data + (lo - row_addr), hi - lo, row_pitch, 1);
+                    }
                 }
             });
         };
@@ -185,12 +217,12 @@ void TextureCache::RunGarbageCollector() {
 }
 
 void TextureCache::GarbageCollectImages() {
+    // BB_GC_BUDGET_MB=N: so on any GPU with a fixed budget (tests).
+    static const u64 forced_budget = bb_env_int("BB_GC_BUDGET_MB", 0) << 20;
     if (instance.CanReportMemoryUsage()) {
         total_used_memory = instance.GetDeviceMemoryUsage();
         // Integrated GPUs (Steam Deck): the usage covers system memory heaps holding much more
         // than images, over the startup budget: the marks follow the driver's current budget.
-        // BB_GC_BUDGET_MB=N: so on any GPU with a fixed budget (tests).
-        static const u64 forced_budget = bb_env_int("BB_GC_BUDGET_MB", 0) << 20;
         if (instance.IsIntegrated() || forced_budget) {
             const u64 budget = forced_budget ? forced_budget : instance.GetDeviceMemoryBudgetNow();
             if (budget != 0) {
@@ -263,6 +295,13 @@ void TextureCache::GarbageCollectImages() {
         gc_tick_at_second[second % gc_tick_at_second.size()] = gc_tick;
     }
     if (BbToggle::Disabled(BbToggle::TextureCollector) || total_used_memory < trigger_gc_memory) {
+        return;
+    }
+    static const bool idle_evict_always = bb_env_on("BB_VRAM_IDLE_ALWAYS");
+    if (!idle_evict_always && !forced_budget && instance.CanReportMemoryUsage() &&
+        total_used_memory < pressure_mark &&
+        second >= vram_short_until.load(std::memory_order_relaxed) &&
+        !BbStats::mirror_copies_waiting.load(std::memory_order_relaxed)) {
         return;
     }
 

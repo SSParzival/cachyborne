@@ -550,10 +550,10 @@ void Image::GetBarriers(Barriers& out, vk::ImageLayout dst_layout, vk::AccessFla
     const bool uniform_after =
         walk == SubresourceRange{{}, info.resources} || (fresh && whole == target) ||
         (backing->settled && backing->settled_uniform && backing->settled_state == target);
-    const u32 first_level = walk.base.level;
-    const u32 end_level = first_level + walk.extent.levels;
-    const u32 first_layer = walk.base.layer;
-    const u32 end_layer = first_layer + walk.extent.layers;
+    const u32 first_level = std::min(walk.base.level, info.resources.levels);
+    const u32 end_level = std::min(first_level + walk.extent.levels, info.resources.levels);
+    const u32 first_layer = std::min(walk.base.layer, num_layers);
+    const u32 end_layer = std::min(first_layer + walk.extent.layers, num_layers);
     for (u32 level = first_level; level < end_level; ++level) {
         for (u32 layer = first_layer; layer < end_layer;) {
             const u32 index = level * num_layers + layer;

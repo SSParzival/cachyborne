@@ -104,7 +104,7 @@ What players and the launchers set. The menu, bbport.ini and the launcher write 
 | `BB_USER_NAME` | the PS4 user name (default Hunter) |
 | `BB_VOICE_LANGUAGE` | Independent retail voice-bank language (eng, esa, ese, ded, frf, iti, jaj, ptb). |
 
-## Tuning (256)
+## Tuning (260)
 
 Defaults to change on a machine where they misbehave, workarounds, and switches that turn a fix off for comparison.
 
@@ -122,6 +122,7 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_BIND_MEMO` | =0: every resource binding takes the full path (no memo) |
 | `BB_BLOODLETTER_SELF_HIT` | =1: opt-in Bloodletter L2 original-radius correction (0.4 to 0.6 m); native60 control already activates the aura at 0.4 m, so default remains unchanged |
 | `BB_BREADCRUMBS` | =0: no GPU breadcrumbs (what the GPU was drawing at a hang) |
+| `BB_CACHE_READ_AHEAD` | =0: disable parallel startup read-ahead of cached shader blobs |
 | `BB_CHR_SYNC_STEP` | =0: leave the character-sync countdown frame-based instead of game-time 6 Hz |
 | `BB_CHUNK_TEXTURES` | =0: texture data copied instead of read in place from guest memory chunks |
 | `BB_CHUNK_UPLOADS` | =0: uploads through CPU staging instead of binding guest memory in place |
@@ -291,6 +292,7 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_PCSS` | =1/0: override pcss; atlas-bounded blocker search and soft directional shadow filtering |
 | `BB_PENDING_SUMMARY` | =0: pending checks without the summary level |
 | `BB_PIPELINE_CACHE` | =0: no pipeline cache on disk |
+| `BB_PIPE_REST` | =auto (default) / 0 / always: rest draw pipe recorder and resolver threads when frame-capped |
 | `BB_PIPE_SIGNALS` | =0: the frame's cache work on the GPU thread instead of the recording thread |
 | `BB_PIPE_SPIN_US` | =N: microseconds the draw pipe's threads spin before sleeping |
 | `BB_PM4_RECOVER` | =0: a command buffer the game rewrote while read stops decoding, as before |
@@ -328,6 +330,7 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_STAGING_HOST_IDLE_MS` | =N (default 30000; 0: frames only): host staging idle timeout in milliseconds; in-flight and held buffers remain protected |
 | `BB_STAGING_KEEP_MB` | =N (default 512): upload staging kept when idle |
 | `BB_STAGING_VRAM_IDLE_MS` | =N (default 3000): VRAM staging given back after this long unused |
+| `BB_STORE_UNWATCHED` | =1: store back whole downloaded textures including unwatched partial edge pages |
 | `BB_STREAM_BUFFER_MB` | =N: stream buffer size |
 | `BB_SUBMIT_AHEAD` | =N (default 2): a frame's first submissions go straight to the GPU |
 | `BB_SUBMIT_LOCK` | =frame: a frame's last submission decoded under the lock |
@@ -357,6 +360,7 @@ Defaults to change on a machine where they misbehave, workarounds, and switches 
 | `BB_VMA_BLOCK_MB` | =N (default 64): VMA block size |
 | `BB_VMA_DEDICATED_MB` | =N (default 4): images from this size get dedicated memory |
 | `BB_VRAM_FLOOR_IDLE_SECONDS` | =N (default 30): mirror floor idle time before textures make room |
+| `BB_VRAM_IDLE_ALWAYS` | =1: evict idle textures/buffers after timeout even with ample free VRAM |
 | `BB_VRAM_IDLE_SECONDS` | =N (default 60): VRAM copies unused this long are given back |
 | `BB_VRAM_LIMIT_MB` | =N: the driver's VRAM budget taken as at most N MiB |
 | `BB_VRAM_PRESSURE_IDLE_SECONDS` | =N (default 10): under pressure, VRAM groups unused this long go |

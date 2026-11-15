@@ -47,3 +47,33 @@ class GuiCallbackTests(unittest.TestCase):
         view.log.get_buffer.return_value.get_line_count.return_value = 1
         gui.Preferences.report(view, '1000 of 2000 checked')
         view.progress.set_fraction.assert_called_once_with(0.5)
+
+    def test_midnight_css_loads_without_parse_errors_and_host_summary_is_valid(self):
+        provider = gui.apply_style()
+        self.assertIsNotNone(provider)
+        cpu, mem, distro = gui._host_hardware_summary()
+        self.assertTrue(cpu and mem and distro)
+        self.assertEqual(gui._format_size(512 * 1024**2), '512.0 MiB')
+        self.assertEqual(gui._format_size(2 * 1024**3), '2.00 GiB')
+
+    def test_clean_storage_updates_disk_row_and_reports_freed_bytes(self):
+        view = SimpleNamespace(
+            collect=lambda: {},
+            report=MagicMock(),
+            refresh_disk_status=MagicMock(),
+            disk_row=MagicMock(),
+        )
+        with patch.object(gui.core, 'reclaim_disk_space', return_value=dict(freed_bytes=4 * 1024**2)):
+            gui.Preferences.clean_storage(view)
+        view.report.assert_called_once()
+        self.assertIn('4.0 MiB', view.report.call_args.args[0])
+        view.refresh_disk_status.assert_called_once()
+
+    def test_refresh_disk_status_formats_reclaimable_summary(self):
+        view = SimpleNamespace(settings={}, disk_row=MagicMock())
+        with patch.object(gui.core, 'disk_usage_summary',
+                          return_value=dict(prepared_total=10 * 1024**2, total_reclaimable=5 * 1024**2)):
+            gui.Preferences.refresh_disk_status(view)
+        subtitle = view.disk_row.set_subtitle.call_args.args[0]
+        self.assertIn('10.0 MiB', subtitle)
+        self.assertIn('5.0 MiB', subtitle)

@@ -58,6 +58,79 @@ public:
         wake.notify_one();
     }
 
+    enum class RestMode : u8 { Auto = 0, Never = 1, Always = 2 };
+
+    static RestMode ConfiguredRestMode() noexcept {
+        if (const char* env = bb_env("BB_PIPE_REST"); env && *env) {
+            if (std::strcmp(env, "0") == 0) return RestMode::Never;
+            if (std::strcmp(env, "always") == 0) return RestMode::Always;
+        }
+        return RestMode::Auto;
+    }
+
+    /// Stage A / flip boundary: updates cap-paced resting hysteresis across 250 ms windows.
+    /// Rests `bb:DrawRec` and `bb:Resolve*` (short spin + batched wakeup) when steadily frame-capped,
+    /// waking immediately on unpaced work, waits, drains, or loading screens.
+    void NoteFrame(bool paced, bool loading = false) {
+        if (rest_mode == RestMode::Always) {
+            resting.store(true, std::memory_order_relaxed);
+            return;
+        }
+        if (rest_mode == RestMode::Never) {
+            resting.store(false, std::memory_order_relaxed);
+            return;
+        }
+        if (loading) {
+            rest_window_frames = 0;
+            rest_window_paced = 0;
+            rest_quiet_windows = 0;
+            if (resting.exchange(false, std::memory_order_acq_rel)) {
+                Kick();
+            }
+            return;
+        }
+        const auto now = std::chrono::steady_clock::now();
+        if (rest_window_frames == 0) {
+            rest_window_start = now;
+        }
+        ++rest_window_frames;
+        if (paced) {
+            ++rest_window_paced;
+        }
+        constexpr auto kWindow = std::chrono::milliseconds(250);
+        if (now - rest_window_start < kWindow) {
+            return;
+        }
+        const bool steady_cap = rest_window_paced * 20 >= rest_window_frames * 17; // >= 85%
+        const bool still_capped = rest_window_paced * 20 >= rest_window_frames * 14; // >= 70%
+        rest_window_frames = 0;
+        rest_window_paced = 0;
+        rest_window_start = now;
+        if (resting.load(std::memory_order_relaxed)) {
+            if (!still_capped) {
+                rest_quiet_windows = 0;
+                resting.store(false, std::memory_order_release);
+                Kick();
+            }
+        } else {
+            rest_quiet_windows = steady_cap ? rest_quiet_windows + 1 : 0;
+            if (rest_quiet_windows >= 2) {
+                rest_quiet_windows = 0;
+                resting.store(true, std::memory_order_release);
+            }
+        }
+    }
+
+    [[nodiscard]] bool Resting() const noexcept {
+        return resting.load(std::memory_order_relaxed);
+    }
+
+    /// Stage A: immediately wakes sleeping recorder and resolvers (used on waits/drains/submissions).
+    void Kick() noexcept {
+        rest_unwoken = 0;
+        WakeWorkers(true);
+    }
+
     /// True while executing as the ordered recorder (including a Stage A assist).
     [[nodiscard]] static bool OnStageB() noexcept {
         return on_stage_b;
@@ -99,16 +172,13 @@ public:
         head += pending_size;
         published.store(head, std::memory_order_seq_cst);
         ++packets;
+        const bool rest = resting.load(std::memory_order_relaxed);
         if (!resolvers.empty()) {
             published_packets.store(packets, std::memory_order_seq_cst);
-            if (resolvers_sleeping.load(std::memory_order_seq_cst)) {
-                resolve_wake.fetch_add(1, std::memory_order_seq_cst);
-                resolve_wake.notify_all();
-            }
         }
-        if (sleeping.load(std::memory_order_seq_cst)) {
-            wake.fetch_add(1, std::memory_order_seq_cst);
-            wake.notify_one();
+        if (!rest || resolve || ++rest_unwoken >= kRestBatch) {
+            rest_unwoken = 0;
+            WakeWorkers(!resolvers.empty());
         }
     }
 
@@ -132,11 +202,16 @@ public:
             return;
         }
         number = std::min(number, packets);
+        bool woken = false;
         while (resolved_prefix < number) {
             if (slots[(resolved_prefix + 1) & SlotMask].state.load(std::memory_order_acquire) ==
                 SlotDone) {
                 ++resolved_prefix;
             } else {
+                if (!woken) {
+                    Kick();
+                    woken = true;
+                }
                 ++resolve_waits;
                 __builtin_ia32_pause();
             }
@@ -162,6 +237,7 @@ public:
         if (consumed.load(std::memory_order_acquire) == head) {
             return;
         }
+        Kick();
         ++drains;
         const u32 slot = reason < NumReasons ? reason : ReasonRasterizer;
         ++drains_by_reason[slot];
@@ -199,6 +275,7 @@ public:
         if (ReachedPacket(number)) {
             return;
         }
+        Kick();
         ++drains;
         const u32 slot = reason < NumReasons ? reason : ReasonRasterizer;
         ++drains_by_reason[slot];
@@ -255,9 +332,24 @@ private:
     }
 
     void WaitForSpace(u64 at, u64 size) {
+        if (at + size - consumed.load(std::memory_order_acquire) > Capacity) {
+            Kick();
+        }
         while (at + size - consumed.load(std::memory_order_acquire) > Capacity) {
             if (Assist()) continue;
             __builtin_ia32_pause();
+        }
+    }
+
+    void WakeWorkers(bool include_resolvers) noexcept {
+        if (include_resolvers && !resolvers.empty() &&
+            resolvers_sleeping.load(std::memory_order_seq_cst)) {
+            resolve_wake.fetch_add(1, std::memory_order_seq_cst);
+            resolve_wake.notify_all();
+        }
+        if (sleeping.load(std::memory_order_seq_cst)) {
+            wake.fetch_add(1, std::memory_order_seq_cst);
+            wake.notify_one();
         }
     }
 
@@ -332,13 +424,19 @@ private:
                     }
                     return BbThreads::Available() >= 12 ? 200 : 50;
                 }());
-                const auto spin_until = std::chrono::steady_clock::now() + spin_time;
+                const bool rest = resting.load(std::memory_order_relaxed);
+                const auto spin_until =
+                    rest ? std::chrono::steady_clock::time_point{}
+                         : std::chrono::steady_clock::now() + spin_time;
                 for (u32 spins = 1; available == at; ++spins) {
                     if (stop.stop_requested()) {
                         return;
                     }
                     __builtin_ia32_pause();
-                    if (!(spins & 255) && std::chrono::steady_clock::now() >= spin_until) {
+                    const bool sleep_now =
+                        rest ? (spins >= kRestSpin)
+                             : (!(spins & 255) && std::chrono::steady_clock::now() >= spin_until);
+                    if (sleep_now) {
                         const u32 seen = wake.load(std::memory_order_seq_cst);
                         sleeping.store(true, std::memory_order_seq_cst);
                         if (published.load(std::memory_order_seq_cst) == at &&
@@ -370,14 +468,20 @@ private:
         while (!stop.stop_requested()) {
             u64 number = next_claim.load(std::memory_order_relaxed);
             if (number > published_packets.load(std::memory_order_acquire)) {
-                const auto spin_until = std::chrono::steady_clock::now() + spin_time;
+                const bool rest = resting.load(std::memory_order_relaxed);
+                const auto spin_until =
+                    rest ? std::chrono::steady_clock::time_point{}
+                         : std::chrono::steady_clock::now() + spin_time;
                 for (u32 spins = 1;
                      number > published_packets.load(std::memory_order_acquire); ++spins) {
                     if (stop.stop_requested()) {
                         return;
                     }
                     __builtin_ia32_pause();
-                    if (!(spins & 255) && std::chrono::steady_clock::now() >= spin_until) {
+                    const bool sleep_now =
+                        rest ? (spins >= kRestSpin)
+                             : (!(spins & 255) && std::chrono::steady_clock::now() >= spin_until);
+                    if (sleep_now) {
                         const u32 seen = resolve_wake.load(std::memory_order_seq_cst);
                         resolvers_sleeping.fetch_add(1, std::memory_order_seq_cst);
                         if (number > published_packets.load(std::memory_order_seq_cst) &&
@@ -420,6 +524,15 @@ private:
     std::vector<std::jthread> resolvers;
 
     const bool barrier_steal = !bb_env_off("BB_GX_BARRIER_STEAL");
+    static constexpr u32 kRestSpin = 64;
+    static constexpr u32 kRestBatch = 64;
+    const RestMode rest_mode = ConfiguredRestMode();
+    std::atomic<bool> resting{rest_mode == RestMode::Always};
+    std::chrono::steady_clock::time_point rest_window_start{};
+    u32 rest_window_frames = 0;
+    u32 rest_window_paced = 0;
+    u32 rest_quiet_windows = 0;
+    u32 rest_unwoken = 0;
     alignas(64) std::atomic_flag recorder_busy{};
     static inline thread_local bool on_stage_b = false;
     static inline thread_local bool assisting = false;

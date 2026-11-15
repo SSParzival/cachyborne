@@ -268,6 +268,8 @@ inline std::atomic<bool> mirror_copies_waiting{false};
 inline std::atomic<std::uint32_t> vram_budget_lost_mb{0};
 /// Seconds of a steady clock, updated at every guest submission (cheap ages for caches).
 inline std::atomic<std::uint32_t> coarse_second{0};
+/// True when the game's frame pacer is steadily holding a target frame cap (DrawPipe resting).
+inline std::atomic<bool> frame_paced{false};
 /// VRAM blocks moved back in place when idle, unbound with the memory the game unmapped, and
 /// residency chunks given back to the driver.
 inline std::atomic<std::uint64_t> vram_idle_bytes{0}, vram_unmapped_bytes{0}, vram_chunks_freed_bytes{0};

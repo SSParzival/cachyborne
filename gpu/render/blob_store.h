@@ -14,6 +14,7 @@
 #include <span>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 #include "common/types.h"
@@ -49,8 +50,10 @@ public:
     [[nodiscard]] const std::filesystem::path& Directory() const {
         return dir;
     }
-    /// Loading at start is done (kept for the callers' order; files need no switch).
-    void FinishPreload() {}
+    /// Pre-reads cached shader metadata/binaries/keys in parallel before warm-up iteration.
+    void ReadAhead();
+    /// Loading at start is done: frees pre-read buffers kept only for startup warm-up.
+    void FinishPreload();
     /// Removes every blob: an incompatible cache is rebuilt, not ignored.
     void Clear();
 
@@ -81,6 +84,8 @@ private:
     std::deque<Write> queue;
     u64 submitted = 0, completed = 0, first_failed = 0; // guarded by mutex
     std::jthread writer; // joins before the state it accesses is destroyed
+    std::mutex ahead_mutex;
+    std::unordered_map<std::string, std::vector<u8>> ahead;
 };
 
 } // namespace BbCache

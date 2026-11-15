@@ -121,5 +121,47 @@ int main() {
     const std::vector<u8> final_bytes((std::istreambuf_iterator<char>(final_file)),{});
     assert((final_bytes==std::vector<u8>{10,11,12}));
     final_file.close();
+
+    // Parallel startup ReadAhead serves cached blobs from RAM across multiple queries (as
+    // WarmUp calls ForEachBlob(ShaderMeta) twice) until FinishPreload() releases the memory.
+    {
+        BbCache::BlobStore cached;
+        cached.Open();
+        assert(cached.Save(BlobType::ShaderMeta,"0xdeadbeef_0",std::vector<u8>{1,2,3,4}));
+        assert(cached.Save(BlobType::ShaderBinary,"0xdeadbeef_0",std::vector<u32>{0x07230203u,5u}));
+        assert(cached.Save(BlobType::PipelineKey,"pipe_1",std::vector<u8>{9,8,7}));
+        assert(cached.Flush());
+        cached.Close();
+
+        cached.Open();
+        unsetenv("BB_CACHE_READ_AHEAD");
+        cached.ReadAhead();
+        // Replace on-disk files with empty files while preloaded: ReadAhead memory must satisfy Load & ForEachBlob.
+        const auto meta_file=cached.Directory()/"0xdeadbeef_0.meta";
+        const auto key_file=cached.Directory()/"pipe_1.key";
+        assert(fs::remove(meta_file));
+        assert(fs::remove(key_file));
+        std::vector<u8> meta_out;
+        cached.Load(BlobType::ShaderMeta,"0xdeadbeef_0",meta_out);
+        assert((meta_out==std::vector<u8>{1,2,3,4}));
+        std::vector<u32> spv_out;
+        cached.Load(BlobType::ShaderBinary,"0xdeadbeef_0",spv_out);
+        assert((spv_out==std::vector<u32>{0x07230203u,5u}));
+        int key_hits=0;
+        cached.ForEachBlob(BlobType::PipelineKey,[&](std::vector<u8>&& data) {
+            assert((data==std::vector<u8>{9,8,7}));
+            ++key_hits;
+        });
+        cached.ForEachBlob(BlobType::PipelineKey,[&](std::vector<u8>&& data) {
+            assert((data==std::vector<u8>{9,8,7}));
+            ++key_hits;
+        });
+        assert(key_hits==2);
+        cached.FinishPreload();
+        meta_out.clear();
+        cached.Load(BlobType::ShaderMeta,"0xdeadbeef_0",meta_out);
+        assert(meta_out.empty()); // released after FinishPreload
+        cached.Close();
+    }
     fs::remove_all(root);
 }

@@ -212,8 +212,16 @@
       "local": "gpu/games/bloodborne/sf_text_layout.{h,cpp}; gpu/shim/bbgpu.cpp; tests/test_sf_text_layout.cpp",
       "status": "implemented_retail_abi_and_live_120s_verified",
       "remaining": "Uses verified retail 1.09 System V registers (rdx in UpdateTransform, edx in HandleChanges) and TreeCacheNode offsets (pRoot +0x18, UpdateFlags +0x44, pNextUpdate +0x48)."
+    },
+    {
+      "id": "efficiency_and_storage_sync_0_8_7",
+      "upstream": "droogie/bbhost@1cff2cb (v0.2.34: gxvk_rest, partial unwatched store, idle VRAM headroom, parallel blob read-ahead, RADV indirect guard); Awakenchan/LanternEngine@573f83f (v0.9.42: online language XML patch, archive size check)",
+      "local": "gpu/shim/{bbport_toggles.h,bbport_frame_rate.cpp,bb_env_vars.def}; gpu/render/{vk_draw_pipe.h,rasterizer.cpp,blob_store.h,blob_store.cpp,pipeline_store.cpp,vk_indirect_guard.cpp}; gpu/textures/{image.cpp,texture_cache_memory.cpp}; gpu/buffers/{buffer_cache.h,buffer_residency.cpp}; gpu/layer/buffer_cache_layer.cpp; patches/Bloodborne.xml; scripts/game_check.py; launcher/{cachyborne.py,cachyborne_options.py,cachyborne_gui.py,cachyborne_panels.py,styles/midnight.css}",
+      "status": "integrated_with_unit_and_ctest_verification",
+      "remaining": "Compiled and checked via unit tests and CTests (except plugin-host-test when CACHYBORNE_TEST_ELF is unset); live retail 60 FPS soak run with a retail dump was not re-run in this release."
     }
   ],
-  "latest_inspected_commit": "bdc5cdf8be5f37188da9c2368e92be444fdc04cb",
+  "latest_inspected_commit": "1cff2cb",
+  "latest_lantern_commit": "573f83f",
   "latest_followup": "docs/BBHOST_FOLLOWUP_2026-11-06.json"
 }

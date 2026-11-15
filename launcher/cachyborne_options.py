@@ -171,6 +171,9 @@ KNOWN_ENV = set(PRESENCE_FLAGS.values()) | {
     "BB_NET_GEN",
     "BB_THD_ONLINE_ID",
     "BB_THD_TOKEN",
+    "BB_ANISO",
+    "BB_PIPE_REST",
+    "BB_CACHE_READ_AHEAD",
 }
 
 
@@ -315,6 +318,14 @@ def reconcile(settings):
         env.pop(key, None)
     if s.get("fsr4_dir"):
         env["BB_FSR4_DIR"] = s["fsr4_dir"]
+    aniso = str(s.get("aniso", "16"))
+    if aniso != "16":
+        env["BB_ANISO"] = aniso
+    pipe_rest = str(s.get("pipe_rest", "auto"))
+    if pipe_rest != "auto":
+        env["BB_PIPE_REST"] = pipe_rest
+    if not s.get("cache_read_ahead", True):
+        env["BB_CACHE_READ_AHEAD"] = "0"
     s["original_settings"] = old
     s["runtime_env"] = env
     binding_defaults = {

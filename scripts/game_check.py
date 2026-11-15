@@ -256,12 +256,57 @@ def texture_pack(game, cache=None):
     return found
 
 
+def archive_required_size(header_path):
+    """Minimum byte length of the companion .bdt required by a BHF4 header."""
+    import struct
+    with Path(header_path).open('rb') as stream:
+        data = stream.read(16 * 1024 * 1024)
+    if len(data) < 0x40 or data[:4] != b'BHF4' or data[9] != 0:
+        return 0
+    count = struct.unpack_from('<i', data, 0x0C)[0]
+    start = 0x40
+    entry = struct.unpack_from('<q', data, 0x20)[0]
+    if entry != 0x24 or count < 0 or start + count * entry > len(data):
+        return 0
+    needed = 0
+    for index in range(count):
+        at = start + index * entry
+        size = struct.unpack_from('<q', data, at + 8)[0]
+        offset = struct.unpack_from('<I', data, at + 0x18)[0]
+        if size > 0:
+            needed = max(needed, offset + size)
+    return needed
+
+
+def broken_archives(game):
+    """Return relative paths of truncated or missing .tpfbhd/.hkxbhd data files."""
+    root = Path(game) / 'dvdroot_ps4'
+    if not root.is_dir():
+        return []
+    broken = []
+    for header in sorted(list(root.rglob('*.tpfbhd')) + list(root.rglob('*.hkxbhd'))):
+        data_path = header.with_suffix('.tpfbdt' if header.suffix.lower() == '.tpfbhd' else '.hkxbdt')
+        try:
+            if header.stat().st_size == 0:
+                broken.append(str(header.relative_to(game)))
+                continue
+            if not data_path.is_file():
+                broken.append(str(data_path.relative_to(game)))
+                continue
+            need = archive_required_size(header)
+            if need > data_path.stat().st_size:
+                broken.append(str(data_path.relative_to(game)))
+        except OSError:
+            broken.append(str(data_path.relative_to(game)))
+    return broken
+
+
 def problem(game, image_hash=None):
     """None for the supported game, else (kind, title, version): kind is 'missing_update' (base
     game or an older update), 'wrong_eboot' (param.sfo says 1.09, eboot.bin is another version),
     'patched_eboot' (the 1.09 eboot.bin with a 60 fps patch baked in), 'other_title' (another
-    edition), 'unreadable' or 'damaged_files' (the right game, but its shaders do not unpack: a
-    broken extraction)."""
+    edition), 'unreadable' or 'damaged_files' (the right game, but its shaders or archives do not
+    unpack: a broken extraction)."""
     if os.environ.get('BB_SKIP_GAME_CHECK') == '1':
         return None
     from prepare import sfo
@@ -273,7 +318,7 @@ def problem(game, image_hash=None):
     try:
         image_hash = image_hash or image_sha256(game)
         if image_hash == SUPPORTED_IMAGE:
-            return ('damaged_files', title, version) if broken_files(game) else None
+            return ('damaged_files', title, version) if (broken_files(game) or broken_archives(game)) else None
     except (OSError, ValueError, IndexError, StopIteration, KeyError):
         return 'unreadable', title, version
     if image_hash == LANCE_60FPS_IMAGE:
@@ -336,15 +381,20 @@ def explain(kind, title, version, language='en'):
 
 
 def main(argv):
-    """game_check.py GAME_DIR: every .dcx file of the game, those that do not unpack listed.
+    """game_check.py GAME_DIR: every .dcx file and map archive of the game, those damaged listed.
     game_check.py --texture-pack GAME_DIR [CACHE]: "1 <what was found>" for a texture pack, else "0"."""
     if len(argv) in (3, 4) and argv[1] == '--texture-pack':
         found = texture_pack(argv[2], argv[3] if len(argv) == 4 else None)
         print(f'1 a texture pack: {found[0]} has {found[1]}-pixel textures, the retail game '
               f'{RETAIL_TEXTURE_SIDE} at most' if found else '0')
         return 0
+    if len(argv) == 3 and argv[1] == '--archives':
+        bad = broken_archives(argv[2])
+        for rel in bad:
+            print(f'damaged archive: {rel}')
+        return 1 if bad else 0
     if len(argv) != 2:
-        print('Usage: game_check.py GAME_DIR | --texture-pack GAME_DIR [CACHE]', file=sys.stderr)
+        print('Usage: game_check.py GAME_DIR | --archives GAME_DIR | --texture-pack GAME_DIR [CACHE]', file=sys.stderr)
         return 2
     game = Path(argv[1])
     files = sorted((game / 'dvdroot_ps4').rglob('*.dcx'))
@@ -355,8 +405,11 @@ def main(argv):
             print(f'damaged: {path.relative_to(game)}')
         if number % 1000 == 0:
             print(f'{number} of {len(files)} checked', file=sys.stderr)
-    print(f'{len(broken)} of {len(files)} .dcx files do not unpack')
-    return 1 if broken else 0
+    bad_archives = broken_archives(game)
+    for rel in bad_archives:
+        print(f'damaged archive: {rel}')
+    print(f'{len(broken)} of {len(files)} .dcx files do not unpack; {len(bad_archives)} broken map archives')
+    return 1 if (broken or bad_archives) else 0
 
 
 if __name__ == '__main__':

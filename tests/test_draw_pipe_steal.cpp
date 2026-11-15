@@ -162,13 +162,62 @@ void Stress(bool assistance, bool resolvers) {
     std::printf("DrawPipe assistance %d, resolvers %d: %llu producer callbacks, %llu worker callbacks, ordered and exclusive\n",
                 assistance,resolvers,(unsigned long long)c.helped,(unsigned long long)c.worker);
 }
+void RestHysteresis() {
+    unsetenv("BB_PIPE_REST");
+    Context c;
+    {
+        DrawPipe pipe(Consume,&c);
+        c.pipe = &pipe;
+        pipe.StartResolvers(Resolve,2);
+        assert(!pipe.Resting());
+        // Two >=250ms windows with paced frames enter resting mode cleanly.
+        for (int w=0; w<2; ++w) {
+            for (int f=0; f<4; ++f) pipe.NoteFrame(true,false);
+            std::this_thread::sleep_for(std::chrono::milliseconds(260));
+            pipe.NoteFrame(true,false);
+        }
+        assert(pipe.Resting());
+        // Batched commits while resting must still complete on Drain/WaitForPacket.
+        for (unsigned i=1; i<=20; ++i) Post(pipe,64,i%2 == 0);
+        pipe.WaitForPacket(20,DrawPipe::ReasonSubmissionEnd);
+        assert(c.expected == 21);
+        // Loading screen immediately exits resting and wakes workers.
+        pipe.NoteFrame(true,true);
+        assert(!pipe.Resting());
+        Post(pipe,64,false);
+        pipe.Drain();
+        assert(c.expected == 22);
+    }
+    setenv("BB_PIPE_REST","0",1);
+    {
+        Context c2;
+        DrawPipe never_rest(Consume,&c2);
+        c2.pipe = &never_rest;
+        never_rest.NoteFrame(true,false);
+        std::this_thread::sleep_for(std::chrono::milliseconds(260));
+        never_rest.NoteFrame(true,false);
+        assert(!never_rest.Resting());
+    }
+    setenv("BB_PIPE_REST","always",1);
+    {
+        Context c3;
+        DrawPipe always_rest(Consume,&c3);
+        c3.pipe = &always_rest;
+        assert(always_rest.Resting());
+        for (unsigned i=1; i<=10; ++i) Post(always_rest,64,false);
+        always_rest.Drain();
+        assert(c3.expected == 11);
+    }
+    unsetenv("BB_PIPE_REST");
+}
 }
 int main() {
     setenv("BB_PIPE_SPIN_US","0",1);
     BbSections::command_thread = true;
     DeterministicPump();
     PendingResolve();
+    RestHysteresis();
     for (bool help : {false,true}) for (bool resolve : {false,true}) Stress(help,resolve);
     unsetenv("BB_GX_BARRIER_STEAL");
-    std::puts("PASS: ordered DrawPipe assistance, target waits, wrap/backpressure, resolver readiness, wake and teardown");
+    std::puts("PASS: ordered DrawPipe assistance, target waits, wrap/backpressure, resolver readiness, rest hysteresis, wake and teardown");
 }

@@ -349,6 +349,19 @@ u32 BufferCache::VramIdleSeconds() {
     return seconds;
 }
 
+bool BufferCache::HasIdleVramHeadroom() const {
+    static const bool idle_always = bb_env_on("BB_VRAM_IDLE_ALWAYS");
+    static const bool custom_seconds = bb_env("BB_VRAM_IDLE_SECONDS") != nullptr;
+    if (idle_always || custom_seconds || !instance.CanReportMemoryUsage()) {
+        return false;
+    }
+    const u64 budget = instance.GetDeviceMemoryBudgetNow();
+    if (budget == 0) {
+        return false;
+    }
+    return instance.GetDeviceMemoryUsage() * 100 < budget * 75;
+}
+
 void BufferCache::NoteResidencyMix(u64 first_block, u64 last_block, u64 size, bool is_written) {
     // Per class (0 in place, 1 VRAM, 2 mixed): bindings and bytes; mixed by read/write too.
     static std::array<std::atomic<u64>, 3> count{}, bytes{};
@@ -518,13 +531,15 @@ void BufferCache::ProcessIdleBlocks() {
     // Blocks in VRAM whose 2 MiB were not bound for the idle time go back in place
     // (ProcessDemotions: only blocks of the game's direct memory without GPU-written data).
     const u64 tick = scheduler.CurrentTick();
-    for (const auto& range : resident_ranges) {
-        if (!residency_chunks.contains(static_cast<VkDeviceMemory>(range.memory))) {
-            continue; // in place
-        }
-        for (u64 block = range.start; block < range.end; ++block) {
-            if (now - group_use[(block << block_shift) >> USE_GROUP_BITS] >= VramIdleSeconds()) {
-                demotions_waiting.push_back({block, tick, false, true});
+    if (!HasIdleVramHeadroom()) {
+        for (const auto& range : resident_ranges) {
+            if (!residency_chunks.contains(static_cast<VkDeviceMemory>(range.memory))) {
+                continue; // in place
+            }
+            for (u64 block = range.start; block < range.end; ++block) {
+                if (now - group_use[(block << block_shift) >> USE_GROUP_BITS] >= VramIdleSeconds()) {
+                    demotions_waiting.push_back({block, tick, false, true});
+                }
             }
         }
     }

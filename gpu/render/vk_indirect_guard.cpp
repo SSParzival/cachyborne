@@ -68,7 +68,9 @@ IndirectGuard::IndirectGuard(const Instance& instance_, Scheduler& scheduler_)
         max_count[i] = limits.maxComputeWorkGroupCount[i];
     }
     const char* max = bb_env("BB_INDIRECT_GUARD_MAX");
-    max_total = max && *max ? static_cast<u32>(std::strtoul(max, nullptr, 0)) : 1u << 22;
+    const bool radv = instance.GetDriverID() == vk::DriverId::eMesaRadv;
+    const u32 default_max_total = radv ? 65535u : (1u << 22);
+    max_total = max && *max ? static_cast<u32>(std::strtoul(max, nullptr, 0)) : default_max_total;
 
     std::array<vk::DescriptorSetLayoutBinding, 3> bindings{};
     for (u32 i = 0; i < bindings.size(); ++i) {

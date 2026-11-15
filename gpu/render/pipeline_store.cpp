@@ -457,6 +457,7 @@ void PipelineCache::WarmUp() {
         rebuild();
         return;
     }
+    Store().ReadAhead();
 
     // Reserve all persisted indices, including motion shaders whose session-local
     // addresses do not match and orphaned permutations with no preloaded pipeline.

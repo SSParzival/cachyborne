@@ -568,8 +568,13 @@ class NativePanels:
                     text=True,
                 ) as process:
                     for line in process.stdout:
-                        GLib.idle_add(self.report, line.rstrip())
+                        if hasattr(self, "_enqueue_log"):
+                            self._enqueue_log(line.rstrip())
+                        else:
+                            GLib.idle_add(self.report, line.rstrip())
                     code = process.wait()
+                if hasattr(self, "_flush_logs"):
+                    GLib.idle_add(self._flush_logs)
                 GLib.idle_add(self.report, f"Herramienta finalizada ({code}).")
             except OSError as error:
                 GLib.idle_add(self.report, str(error))

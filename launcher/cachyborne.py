@@ -26,6 +26,7 @@ from bbport_graphics_memory import GRAPHICS_VRAM_MODES, direct_pool_mb, graphics
 DEFAULTS = dict(fault_wait=False, voice_language='eng', memory_profile='16gb', pinning=True, p_cpus='0-11', e_cpus='12-19', ramdisk=False,
                 gamemode=False, radv=True, gamescope=False, hdr=False, vrr=False,
                 gamescope_fsr=False, width=2560, height=1440, fps='60', fps_limit=60,
+                aniso='16', pipe_rest='auto', cache_read_ahead=True, auto_prune=True,
                 shader_recipes='', image_shapes='', readbacks='', output_auto=False, upscaler='fsr411', output_res='2560x1440', render_res='2560x1440',
                 fullscreen=True, present_mode='mailbox', audio=True, gamepad='',
                 scheduler='current', fsr4_dir='', fsr411_dll='', fsr411_loader='', fsr412_driver='', dlss_fg_library='', dlss_library='', fsr411_dir=str(DATA / 'fsr4_412'), mods_dir='', mods_enabled=True, mods_config='', change_appearance=False, rebirth=False, messenger_gifts=False,
@@ -186,6 +187,12 @@ def validate_settings(s):
             raise ValueError(tr('Invalid resolution: {}').format(key))
     if s['present_mode'] not in ('fifo', 'fiforelaxed', 'mailbox', 'immediate'):
         raise ValueError(tr('Unsupported presentation mode'))
+    if str(s.get('aniso', '16')) not in ('16', '8', '4', '0'):
+        raise ValueError('Filtrado anisotrópico no válido')
+    if str(s.get('pipe_rest', 'auto')) not in ('auto', '0', 'always'):
+        raise ValueError('Modo de reposo de DrawPipe no válido')
+    if not isinstance(s.get('cache_read_ahead', True), bool) or not isinstance(s.get('auto_prune', True), bool):
+        raise ValueError('Las opciones de almacenamiento y lectura anticipada deben ser booleanas')
     if s['scheduler'] not in ('current', 'scx_lavd', 'scx_bpfland'):
         raise ValueError(tr('Unsupported scheduler'))
     for key in ('width', 'height'):
@@ -237,6 +244,7 @@ def configure_logging(profile, env):
         return
     logs = DATA / 'logs'
     logs.mkdir(parents=True, exist_ok=True)
+    prune_old_logs(logs, keep_groups=8)
     stamp = time.strftime('%Y%m%d_%H%M%S') + f'_{os.getpid()}'
     env.update(BB_FRAME_STATS='1', BB_FRAME_LOG=str(logs / (stamp + '.frames.csv')),
                BB_READBACK_LOG=str(logs / (stamp + '.readbacks.csv')))
@@ -350,6 +358,258 @@ def preparation_status(settings):
         if issue:
             return issue + '. Al preparar se usará FSR 3.1.'
     return 'Archivos básicos e idiomas disponibles. Preparar verificará identidad y todos los assets DCX.'
+
+
+def directory_bytes(path):
+    """Best-effort recursive byte size without following symlinks."""
+    root = Path(path)
+    if not root.exists():
+        return 0
+    if root.is_symlink() or root.is_file():
+        try:
+            return root.stat(follow_symlinks=False).st_size
+        except OSError:
+            return 0
+    total = 0
+    for base, _dirs, files in os.walk(root, followlinks=False):
+        for name in files:
+            try:
+                total += os.stat(os.path.join(base, name), follow_symlinks=False).st_size
+            except OSError:
+                pass
+    return total
+
+
+def active_generation_dir(prepared_root=None, profile_path=None):
+    """Return resolved path of the currently published prepared generation, if any."""
+    prepared_root = Path(prepared_root or (DATA / 'prepared')).resolve()
+    profile_path = Path(profile_path or (CONFIG / 'game_profile.json'))
+    if not profile_path.exists():
+        return None
+    try:
+        resolved_parent = profile_path.resolve().parent
+        if resolved_parent.parent == prepared_root:
+            return resolved_parent
+    except OSError:
+        pass
+    profile = read_json(profile_path, {})
+    prepared = profile.get('prepared') if isinstance(profile, dict) else None
+    if prepared:
+        candidate = Path(prepared).resolve()
+        if candidate.parent == prepared_root and candidate.is_dir():
+            return candidate
+    return None
+
+
+def prune_prepared_profiles(prepared_root=None, active_dir=None, keep=1):
+    """Remove superseded prepared/<uuid> directories, never deleting the active one."""
+    root = Path(prepared_root or (DATA / 'prepared'))
+    if not root.is_dir():
+        return 0, 0
+    keep = max(1, int(keep))
+    protected = set()
+    active = Path(active_dir).resolve() if active_dir else active_generation_dir(root)
+    if active is not None:
+        protected.add(active)
+    candidates = []
+    for entry in root.iterdir():
+        if entry.is_symlink() or not entry.is_dir():
+            continue
+        resolved = entry.resolve()
+        if resolved in protected:
+            continue
+        try:
+            candidates.append((entry.stat().st_mtime_ns, resolved))
+        except OSError:
+            pass
+    candidates.sort(reverse=True)
+    to_remove = candidates[max(0, keep - (1 if protected else 0)):]
+    removed, freed = 0, 0
+    for _mtime, target in to_remove:
+        freed += directory_bytes(target)
+        try:
+            shutil.rmtree(target)
+            removed += 1
+        except OSError:
+            pass
+    return removed, freed
+
+
+def prune_old_ramdisk(ram_root=None, active_generation=None, keep_active=True):
+    """Remove unused /dev/shm staging directories left by previous generations."""
+    root = Path(ram_root or RAM_ROOT)
+    if not root.is_dir():
+        return 0, 0
+    removed, freed = 0, 0
+    for entry in root.iterdir():
+        if entry.is_symlink() or not entry.is_dir():
+            continue
+        if keep_active and active_generation and entry.name == active_generation:
+            continue
+        freed += directory_bytes(entry)
+        try:
+            shutil.rmtree(entry)
+            removed += 1
+        except OSError:
+            pass
+    return removed, freed
+
+
+def _log_session_key(name):
+    for suffix in ('.frames.csv', '.readbacks.csv', '.log'):
+        if name.endswith(suffix):
+            return name[:-len(suffix)]
+    return name
+
+
+def prune_old_logs(logs_dir=None, keep_groups=8):
+    """Keep the newest session log groups and prune older session files."""
+    root = Path(logs_dir or (DATA / 'logs'))
+    if not root.is_dir():
+        return 0, 0
+    groups = {}
+    for entry in root.iterdir():
+        if entry.is_symlink() or not entry.is_file():
+            continue
+        try:
+            st = entry.stat()
+        except OSError:
+            continue
+        key = _log_session_key(entry.name)
+        mtime, items = groups.get(key, (0, []))
+        items.append((entry, st.st_size))
+        groups[key] = (max(mtime, st.st_mtime_ns), items)
+    ordered = sorted(groups.values(), key=lambda pair: pair[0], reverse=True)
+    removed, freed = 0, 0
+    for _mtime, items in ordered[max(0, int(keep_groups)):]:
+        for path, size in items:
+            try:
+                path.unlink()
+                removed += 1
+                freed += size
+            except OSError:
+                pass
+    return removed, freed
+
+
+def _stale_cache_targets(settings=None, cache_dir=None):
+    user = Path((settings or {}).get('user_dir') or (DATA / 'user')).expanduser()
+    cache = Path(cache_dir or CACHE)
+    targets = []
+    for base in (user / 'shader_cache', cache):
+        if not base.is_dir():
+            continue
+        prev = base / 'previous'
+        if prev.is_dir() and not prev.is_symlink():
+            targets.append(prev)
+        for item in base.rglob('*.tmp'):
+            if item.is_file() and not item.is_symlink():
+                targets.append(item)
+    return targets
+
+
+def _superseded_dist_files(dist_dir=None, version_file=None):
+    dist = Path(dist_dir or (ROOT / 'dist'))
+    if not dist.is_dir():
+        return []
+    ver_path = Path(version_file or (ROOT / 'VERSION'))
+    current_version = ver_path.read_text().strip() if ver_path.is_file() else ''
+    stale = []
+    for entry in sorted(dist.iterdir()):
+        if not entry.is_file() or entry.is_symlink():
+            continue
+        name = entry.name
+        if not (name.endswith('.tar.gz') or name.endswith('.sha256') or name == 'SHA256SUMS'):
+            continue
+        if current_version and name.startswith(f'cachyborne-{current_version}'):
+            continue
+        if name.startswith('cachyborne-'):
+            stale.append(entry)
+    return stale
+
+
+def disk_usage_summary(settings=None, keep_logs=3, prepared_root=None, logs_dir=None, dist_dir=None, ram_root=None, cache_dir=None):
+    """Report active footprint and safely reclaimable bytes without mutating files."""
+    prepared_root = Path(prepared_root or (DATA / 'prepared'))
+    logs_dir = Path(logs_dir or (DATA / 'logs'))
+    ram_root = Path(ram_root or RAM_ROOT)
+    active = active_generation_dir(prepared_root)
+    profile = read_json(CONFIG / 'game_profile.json', {})
+    use_ramdisk = bool((settings or profile.get('settings', {})).get('ramdisk', False))
+    active_gen = profile.get('generation') if isinstance(profile, dict) else None
+    prepared_reclaimable = 0
+    if prepared_root.is_dir():
+        for entry in prepared_root.iterdir():
+            if not entry.is_symlink() and entry.is_dir() and entry.resolve() != active:
+                prepared_reclaimable += directory_bytes(entry)
+    logs_reclaimable = 0
+    if logs_dir.is_dir():
+        groups = {}
+        for entry in logs_dir.iterdir():
+            if entry.is_symlink() or not entry.is_file():
+                continue
+            try:
+                st = entry.stat()
+            except OSError:
+                continue
+            key = _log_session_key(entry.name)
+            mtime, total = groups.get(key, (0, 0))
+            groups[key] = (max(mtime, st.st_mtime_ns), total + st.st_size)
+        ordered = sorted(groups.values(), key=lambda pair: pair[0], reverse=True)
+        logs_reclaimable = sum(size for _m, size in ordered[max(0, keep_logs):])
+    cache_reclaimable = sum(directory_bytes(p) for p in _stale_cache_targets(settings, cache_dir))
+    dist_reclaimable = sum(directory_bytes(p) for p in _superseded_dist_files(dist_dir))
+    ramdisk_reclaimable = 0
+    if ram_root.is_dir():
+        for entry in ram_root.iterdir():
+            if not entry.is_symlink() and entry.is_dir() and not (use_ramdisk and active_gen and entry.name == active_gen):
+                ramdisk_reclaimable += directory_bytes(entry)
+    user_dir = Path((settings or {}).get('user_dir') or (DATA / 'user')).expanduser()
+    return dict(
+        prepared_reclaimable=prepared_reclaimable,
+        logs_reclaimable=logs_reclaimable,
+        cache_reclaimable=cache_reclaimable,
+        dist_reclaimable=dist_reclaimable,
+        ramdisk_reclaimable=ramdisk_reclaimable,
+        total_reclaimable=prepared_reclaimable + logs_reclaimable + cache_reclaimable + dist_reclaimable + ramdisk_reclaimable,
+        prepared_total=directory_bytes(prepared_root),
+        logs_total=directory_bytes(logs_dir),
+        user_total=directory_bytes(user_dir),
+    )
+
+
+def reclaim_disk_space(settings=None, keep_logs=3, prune_dist=True, prepared_root=None, logs_dir=None, dist_dir=None, ram_root=None, cache_dir=None):
+    """Delete only inactive generations, old logs, temporary caches, and superseded releases."""
+    prepared_root = Path(prepared_root or (DATA / 'prepared'))
+    logs_dir = Path(logs_dir or (DATA / 'logs'))
+    ram_root = Path(ram_root or RAM_ROOT)
+    profile = read_json(CONFIG / 'game_profile.json', {})
+    use_ramdisk = bool((settings or profile.get('settings', {})).get('ramdisk', False))
+    active_gen = profile.get('generation') if isinstance(profile, dict) else None
+    _, freed_prepared = prune_prepared_profiles(prepared_root, keep=1)
+    _, freed_logs = prune_old_logs(logs_dir, keep_groups=keep_logs)
+    _, freed_ramdisk = prune_old_ramdisk(ram_root, active_generation=active_gen, keep_active=use_ramdisk)
+    freed_cache = 0
+    for target in _stale_cache_targets(settings, cache_dir):
+        freed_cache += directory_bytes(target)
+        try:
+            if target.is_dir():
+                shutil.rmtree(target)
+            else:
+                target.unlink()
+        except OSError:
+            pass
+    freed_dist = 0
+    if prune_dist:
+        for path in _superseded_dist_files(dist_dir):
+            freed_dist += directory_bytes(path)
+            try:
+                path.unlink()
+            except OSError:
+                pass
+    freed_total = freed_prepared + freed_logs + freed_cache + freed_dist + freed_ramdisk
+    return dict(freed_bytes=freed_total, prepared=freed_prepared, logs=freed_logs,
+                caches=freed_cache, dist=freed_dist, ramdisk=freed_ramdisk)
 
 
 def setup(game, settings=None):
@@ -501,6 +761,12 @@ def setup(game, settings=None):
         if s['ramdisk']:
             stage(profile)
         publish_profile(profile)
+        if s.get('auto_prune', True):
+            try:
+                prune_prepared_profiles(DATA / 'prepared', active_dir=out, keep=1)
+                prune_old_ramdisk(RAM_ROOT, active_generation=generation, keep_active=bool(s['ramdisk']))
+            except OSError:
+                pass
     except BaseException:
         shutil.rmtree(out)
         raise
@@ -609,6 +875,14 @@ def launch_command(profile, app0=None, extra=(), base_env=None):
         values.update(NATIVE_60_ENV)
     if str(s.get('runtime_ini', {}).get('live_resolution', '0')) == '1':
         values['BB_RENDER_RES'] = values['BB_OUTPUT_RES'] = ''
+    aniso = str(s.get('aniso', '16'))
+    if aniso != '16':
+        values['BB_ANISO'] = aniso
+    pipe_rest = str(s.get('pipe_rest', 'auto'))
+    if pipe_rest != 'auto':
+        values['BB_PIPE_REST'] = pipe_rest
+    if not s.get('cache_read_ahead', True):
+        values['BB_CACHE_READ_AHEAD'] = '0'
     values['BB_SHADER_GAME_DIR'] = str(app0 or profile['game'])
     for key, var, filename in (('shader_recipes', 'BB_SHADER_RECIPES', 'shader_recipes.bin'), ('image_shapes', 'BB_IMAGE_SHAPES', 'image_shapes.txt')):
         seed = s.get(key) or ROOT / filename
@@ -619,8 +893,11 @@ def launch_command(profile, app0=None, extra=(), base_env=None):
     if s['fsr411_dir']:
         values['BB_FSR411_DIR'] = s['fsr411_dir']
     if s['radv']:
-        values.update(AMD_VULKAN_ICD='RADV', RADV_PERFTEST='sam', RADV_TEX_ANISO='16',
-                      VK_LOADER_LAYERS_DISABLE='' if env.get('MANGOHUD') == '1' else '~implicit~')
+        radv_env = dict(AMD_VULKAN_ICD='RADV', RADV_PERFTEST='sam',
+                        VK_LOADER_LAYERS_DISABLE='' if env.get('MANGOHUD') == '1' else '~implicit~')
+        if aniso != '0':
+            radv_env['RADV_TEX_ANISO'] = aniso
+        values.update(radv_env)
         for name in ('radeon_icd.x86_64.json', 'radeon_icd.json'):
             icd = Path('/usr/share/vulkan/icd.d') / name
             if icd.is_file():
@@ -885,6 +1162,10 @@ def main(argv=None):
     shortcut = commands.add_parser('desktop')
     shortcut.add_argument('--download-icon', action='store_true', help='Download official Bloodborne artwork for local shortcuts')
     shortcut.add_argument('--desktop', action='store_true', help='Also copy the shortcut to the XDG desktop directory')
+    clean = commands.add_parser('clean')
+    clean.add_argument('--all-logs', action='store_true', help='Remove all session log files')
+    clean.add_argument('--no-dist', action='store_true', help='Keep superseded release tarballs in dist/')
+    clean.add_argument('--json', action='store_true', help='Emit machine-readable cleanup summary')
     args = parser.parse_args(argv)
     try:
         if args.action == 'setup':
@@ -897,6 +1178,12 @@ def main(argv=None):
             if args.performance_profile:
                 settings = performance_settings(settings, args.performance_profile)
             cancellable_setup(args.game, settings)
+        elif args.action == 'clean':
+            report = reclaim_disk_space(preferences(), keep_logs=0 if args.all_logs else 3, prune_dist=not args.no_dist)
+            if args.json:
+                print(json.dumps(report, indent=2))
+            else:
+                print(f"Espacio liberado: {report['freed_bytes'] / 1024**2:.1f} MiB")
         elif args.action == 'desktop':
             install_shortcuts(on_desktop=args.desktop, download_icon=args.download_icon)
         else:

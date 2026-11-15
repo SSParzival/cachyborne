@@ -1,7 +1,11 @@
 // SPDX-FileCopyrightText: Copyright 2026 bbport contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "render/blob_store.h"
+#include "shim/bb_env.h"
 
+#include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cstring>
 #include <fmt/format.h>
 
@@ -55,6 +59,7 @@ void BlobStore::Close() {
     if (!opened) {
         return;
     }
+    FinishPreload();
     writer.request_stop();
     cv.notify_all();
     writer.join();
@@ -86,6 +91,12 @@ bool BlobStore::Save(BlobType type, const std::string& name, std::vector<u32>&& 
 
 bool BlobStore::Queue(std::filesystem::path path, std::span<const u8> bytes,
                       std::vector<u8>* owned) {
+    {
+        std::scoped_lock ahead_lk{ahead_mutex};
+        if (!ahead.empty()) {
+            ahead.erase(path.filename().string());
+        }
+    }
     Write write{std::move(path), owned ? std::move(*owned)
                                        : std::vector<u8>(bytes.begin(), bytes.end())};
     {
@@ -137,13 +148,95 @@ bool BlobStore::WriteFile(const Write& write) {
     return true;
 }
 
+void BlobStore::ReadAhead() {
+    if (!opened || bb_env_off("BB_CACHE_READ_AHEAD")) {
+        return;
+    }
+    const auto started = std::chrono::steady_clock::now();
+    std::vector<std::filesystem::path> files;
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator{dir, ec}) {
+        const auto ext = entry.path().extension();
+        if (ext == ".meta" || ext == ".spv" || ext == ".key") {
+            files.push_back(entry.path());
+        }
+    }
+    if (files.empty()) {
+        return;
+    }
+    constexpr u64 MaxBlobBytes = 64ull << 20;
+    std::vector<std::vector<u8>> data(files.size());
+    std::vector<u8> read(files.size());
+    std::atomic<size_t> next{0};
+    std::atomic<u64> bytes{0};
+    const auto worker = [&] {
+        for (size_t i; (i = next.fetch_add(1, std::memory_order_relaxed)) < files.size();) {
+            const Common::FS::IOFile file{files[i], Common::FS::FileAccessMode::Read};
+            if (!file.IsOpen()) {
+                continue;
+            }
+            const u64 size = file.GetSize();
+            if (size > MaxBlobBytes) {
+                continue;
+            }
+            data[i].resize(size);
+            if (file.Read(data[i]) != size) {
+                data[i] = {};
+                continue;
+            }
+            read[i] = 1;
+            bytes.fetch_add(size, std::memory_order_relaxed);
+        }
+    };
+    const u32 threads = u32(std::clamp<size_t>(files.size() / 64, 1, 16));
+    std::vector<std::jthread> pool;
+    for (u32 t = 1; t < threads; ++t) {
+        pool.emplace_back(worker);
+    }
+    worker();
+    pool.clear();
+    size_t taken = 0;
+    {
+        std::scoped_lock lk{ahead_mutex};
+        ahead.clear();
+        ahead.reserve(files.size());
+        for (size_t i = 0; i < files.size(); ++i) {
+            if (read[i]) {
+                ahead.emplace(files[i].filename().string(), std::move(data[i]));
+                ++taken;
+            }
+        }
+    }
+    LOG_INFO(Render, "GPU cache: {} of {} blobs read ahead in {:.2f} s on {} threads ({:.1f} MiB)",
+             taken, files.size(),
+             std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count(),
+             threads, double(bytes.load()) / (1024.0 * 1024.0));
+}
+
+void BlobStore::FinishPreload() {
+    std::scoped_lock lk{ahead_mutex};
+    decltype(ahead){}.swap(ahead);
+}
+
 template <typename T>
 void BlobStore::LoadInto(BlobType type, const std::string& name, std::vector<T>& data) {
     if (!opened) {
         return;
     }
+    const auto path = PathOf(type, name);
+    {
+        std::scoped_lock lk{ahead_mutex};
+        if (const auto it = ahead.find(path.filename().string()); it != ahead.end()) {
+            const size_t count = it->second.size() / sizeof(T);
+            data.resize(count);
+            if (count != 0) {
+                std::memcpy(data.data(), it->second.data(), count * sizeof(T));
+            }
+            return;
+        }
+    }
     using namespace Common::FS;
-    const IOFile file{PathOf(type, name), FileAccessMode::Read};
+    const IOFile file{path, FileAccessMode::Read};
     if (!file.IsOpen()) {
         data.clear();
         return;
@@ -163,6 +256,25 @@ void BlobStore::Load(BlobType type, const std::string& name, std::vector<u32>& d
 void BlobStore::ForEachBlob(BlobType type,
                             const std::function<void(std::vector<u8>&& data)>& func) {
     const std::string ext = Extension(type);
+    {
+        std::vector<std::vector<u8>> buffered;
+        {
+            std::scoped_lock lk{ahead_mutex};
+            if (!ahead.empty()) {
+                for (const auto& [name, bytes] : ahead) {
+                    if (name.ends_with(ext)) {
+                        buffered.push_back(bytes);
+                    }
+                }
+            }
+        }
+        if (!buffered.empty()) {
+            for (auto& bytes : buffered) {
+                func(std::move(bytes));
+            }
+            return;
+        }
+    }
     std::error_code ec;
     for (const auto& entry : std::filesystem::directory_iterator{dir, ec}) {
         if (entry.path().extension() != ext) {
@@ -182,6 +294,7 @@ void BlobStore::Clear() {
     if (!opened) {
         return;
     }
+    FinishPreload();
     std::error_code ec;
     u64 removed = 0, kept = 0;
     // The old build's metadata and pipeline keys are kept in previous/: the next shader recipe

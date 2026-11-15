@@ -280,6 +280,26 @@ class TexturePackTests(unittest.TestCase):
             game_check.main(['game_check.py', '--texture-pack', str(self.game)])
         self.assertTrue(out.getvalue().startswith('1 a texture pack: dvdroot_ps4/map/m24/m24_0000'))
 
+    def test_broken_archives_detects_truncated_and_missing_bdt(self):
+        tpf_archive(self.maps / 'm25', 'm25_0000', [tpf(512, 512)])
+        self.assertEqual(game_check.broken_archives(self.game), [])
+        self.assertEqual(game_check.main(['game_check.py', '--archives', str(self.game)]), 0)
+
+        bdt = self.maps / 'm25/m25_0000.tpfbdt'
+        bdt.write_bytes(bdt.read_bytes()[:-1])
+        self.assertEqual(game_check.broken_archives(self.game), ['dvdroot_ps4/map/m25/m25_0000.tpfbdt'])
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(game_check.main(['game_check.py', '--archives', str(self.game)]), 1)
+        self.assertIn('damaged archive: dvdroot_ps4/map/m25/m25_0000.tpfbdt', out.getvalue())
+
+        bdt.unlink()
+        self.assertEqual(game_check.broken_archives(self.game), ['dvdroot_ps4/map/m25/m25_0000.tpfbdt'])
+
+        hkx = self.maps / 'm25/h25_00_00_00.hkxbhd'
+        hkx.write_bytes(b'')
+        self.assertIn('dvdroot_ps4/map/m25/h25_00_00_00.hkxbhd', game_check.broken_archives(self.game))
+
 
 if __name__ == '__main__':
     unittest.main()

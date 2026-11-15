@@ -1173,6 +1173,9 @@ namespace {
     SubmitInfo info{};
     scheduler.Flush(info);
     BbTimeline::Note(BbTimeline::VulkanSubmit, current_tick, DrawPipe::OnStageB() ? 1 : 0);
+    if (draw_pipe && !DrawPipe::OnStageB()) {
+        draw_pipe->NoteFrame(BbStats::frame_paced.load(std::memory_order_relaxed), false);
+    }
     return current_tick;
 }
 

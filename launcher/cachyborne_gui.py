@@ -22,21 +22,24 @@ from cachyborne_panels import NativePanels
 
 
 def apply_style():
-    manager = Adw.StyleManager.get_default()
-    manager.set_color_scheme(Adw.ColorScheme.PREFER_DARK)
     provider = Gtk.CssProvider()
     errors = []
     provider.connect('parsing-error', lambda _provider, _section, error: errors.append(str(error)))
     provider.load_from_path(str(Path(__file__).with_name('styles') / 'midnight.css'))
     if errors:
         raise RuntimeError('Midnight stylesheet: ' + '; '.join(errors))
+    display = Gdk.Display.get_default()
+    if display is None:
+        return provider
+    manager = Adw.StyleManager.get_default()
+    manager.set_color_scheme(Adw.ColorScheme.PREFER_DARK)
     def update(*_):
-        display = Gdk.Display.get_default()
-        if display is None:
+        active_display = Gdk.Display.get_default()
+        if active_display is None:
             return
-        Gtk.StyleContext.remove_provider_for_display(display, provider)
+        Gtk.StyleContext.remove_provider_for_display(active_display, provider)
         if not manager.get_high_contrast():
-            Gtk.StyleContext.add_provider_for_display(display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+            Gtk.StyleContext.add_provider_for_display(active_display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
     manager.connect('notify::high-contrast', update)
     update()
     return provider
@@ -61,10 +64,45 @@ def action(text, callback, primary=False, icon=None):
     return button
 
 
+def _host_hardware_summary():
+    """Read real local CPU, memory, and OS labels quickly for the sidebar."""
+    cpu = 'CPU x86_64'
+    try:
+        for line in Path('/proc/cpuinfo').read_text(encoding='utf-8', errors='ignore').splitlines():
+            if line.startswith('model name'):
+                raw = line.split(':', 1)[1].strip()
+                cpu = raw.replace('(R)', '').replace('(TM)', '').replace('14th Gen ', '').split('  ')[0].strip()
+                break
+    except OSError:
+        pass
+    mem = 'RAM Linux'
+    try:
+        for line in Path('/proc/meminfo').read_text(encoding='utf-8', errors='ignore').splitlines():
+            if line.startswith('MemTotal:'):
+                kib = int(line.split()[1])
+                mem = f'{round(kib / 1024**2)} GiB RAM'
+                break
+    except (OSError, ValueError):
+        pass
+    distro = 'Linux nativo'
+    try:
+        for line in Path('/etc/os-release').read_text(encoding='utf-8', errors='ignore').splitlines():
+            if line.startswith('PRETTY_NAME='):
+                distro = line.split('=', 1)[1].strip().strip('"')
+                break
+    except OSError:
+        pass
+    return cpu, mem, distro
+
+
+def _format_size(num_bytes):
+    return f'{num_bytes / 1024**2:.1f} MiB' if num_bytes < 1024**3 else f'{num_bytes / 1024**3:.2f} GiB'
+
+
 class Preferences(NativePanels, Adw.ApplicationWindow):
     def __init__(self, app):
         set_language('es')
-        super().__init__(application=app, title='Cachyborne · Bisexual Midnight', default_width=1130, default_height=850)
+        super().__init__(application=app, title='Cachyborne', default_width=1130, default_height=850)
         self.set_icon_name('cachyborne')
         self.add_css_class('cachyborne')
         self.settings = core.preferences()
@@ -74,12 +112,15 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         self.setup_process = None
         self.cancelled = False
         self.close_after_setup = False
+        self._log_queue = []
+        self._log_flush_source = None
+        self._log_lock = threading.Lock()
         self.set_size_request(820, 640)
         shell = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         stripe = Gtk.Box(); stripe.add_css_class('pride-line'); shell.append(stripe)
         header = Adw.HeaderBar()
         Gtk.Settings.get_default().set_property('gtk-decoration-layout', ':minimize,maximize,close')
-        header.set_title_widget(label('BLOODBORNE  /  CACHYOS', 'eyebrow'))
+        header.set_title_widget(label('Bloodborne · Cachyborne', 'eyebrow'))
         shell.append(header)
         body = Gtk.Box(vexpand=True)
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, hexpand=True, vexpand=True)
@@ -90,10 +131,10 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         self.build_home(); self.build_performance(); self.build_graphics(); self.build_controls(); self.build_content(); self.build_online(); self.build_advanced(); self.build_setup()
         footer = Gtk.Box(spacing=12); footer.add_css_class('action-bar')
         self.spinner = Gtk.Spinner(); footer.append(self.spinner)
-        self.status_text = label('Listo para tu próxima cacería', 'muted small'); self.status_text.set_hexpand(True)
+        self.status_text = label('Listo', 'muted small'); self.status_text.set_hexpand(True)
         footer.append(self.status_text)
-        footer.append(action('Guardar ajustes', self.save))
-        footer.append(action('Lanzar juego', self.launch, primary=True, icon='media-playback-start-symbolic'))
+        footer.append(action('Guardar', self.save))
+        footer.append(action('Jugar', self.launch, primary=True, icon='media-playback-start-symbolic'))
         shell.append(footer)
         self.connect('close-request', self.on_close)
         self.autosave_source = None
@@ -112,16 +153,15 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         self.navigate('setup' if '--setup' in sys.argv else 'home')
 
     def sidebar(self):
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, width_request=200)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, width_request=210)
         box.add_css_class('sidebar')
-        brand = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin_bottom=28)
-        brand.append(label('CACHYBORNE', 'brand'))
-        brand.append(label('BISEXUAL MIDNIGHT', 'eyebrow'))
-        brand.append(label('La noche es tuya.', 'muted small'))
+        brand = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, margin_bottom=20)
+        brand.append(label('Cachyborne', 'brand'))
+        brand.append(label('Bloodborne 1.09 · Vulkan', 'muted small'))
         box.append(brand)
         self.nav = {}
         first = None
-        for key, title, icon in [('home', 'Inicio', 'weather-clear-night-symbolic'),
+        for key, title, icon in [('home', 'Resumen', 'weather-clear-night-symbolic'),
                                  ('performance', 'Rendimiento', 'speedometer-symbolic'),
                                  ('graphics', 'Imagen y sonido', 'video-display-symbolic'),
                                  ('controls', 'Controles', 'input-gaming-symbolic'),
@@ -137,11 +177,12 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
             button.connect('toggled', lambda widget, name=key: self.stack.set_visible_child_name(name) if widget.get_active() else None)
             self.nav[key] = button; box.append(button)
         spacer = Gtk.Box(vexpand=True); box.append(spacer)
-        foot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7); foot.add_css_class('sidebar-foot')
-        foot.append(label('HECHO PARA TU PC', 'eyebrow'))
-        foot.append(label('Intel i5-14600KF', 'small'))
-        foot.append(label('Radeon RX 9070 XT', 'small'))
-        foot.append(label('16 GB DDR5 · Linux nativo', 'muted small'))
+        cpu, mem, distro = _host_hardware_summary()
+        self.host_cpu = cpu
+        foot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5); foot.add_css_class('sidebar-foot')
+        foot.append(label('EQUIPO DETECTADO', 'eyebrow'))
+        foot.append(label(cpu, 'small', True))
+        foot.append(label(f'{mem} · {distro}', 'muted small', True))
         box.append(foot)
         return box
 
@@ -211,53 +252,60 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         return row
 
     def build_home(self):
-        page = self.page('home', 'Tu centro de cacería', 'Todo preparado. Cada ajuste, a tu manera.')
-        hero = Gtk.Box(spacing=24); hero.add_css_class('hero')
-        copy_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, hexpand=True)
-        copy_box.append(label('NATIVE LINUX  ·  RDNA 4', 'eyebrow'))
-        copy_box.append(label('LA NOCHE\nES TUYA.', 'hero-title'))
-        copy_box.append(label('Un perfil de alta fluidez para tu CachyOS.\nSin recompilar en cada lanzamiento.', 'muted', True))
-        self.profile_badge = label('Perfil preparado', 'pill ready'); self.profile_badge.set_halign(Gtk.Align.START)
+        page = self.page('home', 'Resumen', 'Estado del perfil activo, escalado y espacio en disco.')
+        hero = Gtk.Box(spacing=20); hero.add_css_class('hero')
+        copy_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, hexpand=True)
+        copy_box.append(label('BLOODBORNE 1.09 · VULKAN', 'eyebrow'))
+        copy_box.append(label('Cachyborne', 'hero-title'))
+        self.home_summary_label = label('Cargando estado del perfil…', 'muted', True)
+        copy_box.append(self.home_summary_label)
+        self.profile_badge = label('Comprobando…', 'pill ready'); self.profile_badge.set_halign(Gtk.Align.START)
         copy_box.append(self.profile_badge)
         hero.append(copy_box)
         if core.icon_path(configuration=True).is_file():
             picture = Gtk.Picture.new_for_filename(str(core.icon_path(configuration=True)))
-            picture.set_content_fit(Gtk.ContentFit.CONTAIN); picture.set_size_request(192, 192)
+            picture.set_content_fit(Gtk.ContentFit.CONTAIN); picture.set_size_request(112, 112)
             picture.add_css_class('hero-art'); picture.set_overflow(Gtk.Overflow.HIDDEN); hero.append(picture)
         page.append(hero)
-        metrics = Gtk.Box(spacing=12, homogeneous=True)
-        for value, title, note, color in [('60', 'FPS OBJETIVO', 'Límite del perfil recomendado', 'pink'),
-                                          ('16,67 ms', 'PRESUPUESTO POR CUADRO', 'El rendimiento real depende de la escena', 'purple'),
-                                          ('16 GB', 'MEMORIA DEL SISTEMA', 'Juego en disco · cachés limitadas', 'blue')]:
-            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8); card.add_css_class('metric')
-            card.append(label(value, f'metric-value {color}')); card.append(label(title, 'eyebrow', True))
-            card.append(label(note, 'muted small', True)); metrics.append(card)
-        page.append(metrics)
-        profile = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12); profile.add_css_class('info-card')
-        profile.append(label('60 FPS · Fluidez', 'info-title'))
-        profile.append(label('FSR 4 · objetivo 60 FPS · salida 1440p · P-Cores para el juego. '
-                             'Tu calidad de escalado se conserva. La precarga de 30 GB queda desactivada.', 'muted', True))
+        summary = self.group(page, 'Estado actual')
+        self.home_fps_row = Adw.ActionRow(title='Cuadros y sincronización', subtitle='—')
+        self.home_scale_row = Adw.ActionRow(title='Resolución y escalado', subtitle='—')
+        self.disk_row = Adw.ActionRow(title='Espacio en disco', subtitle='Calculando…')
+        clean_button = Gtk.Button(label='Liberar espacio', valign=Gtk.Align.CENTER)
+        clean_button.add_css_class('secondary-action')
+        clean_button.connect('clicked', lambda *_: self.clean_storage())
+        self.disk_row.add_suffix(clean_button)
+        summary.add(self.home_fps_row); summary.add(self.home_scale_row); summary.add(self.disk_row)
+        profile = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); profile.add_css_class('info-card')
+        profile.append(label('Perfil recomendado (60 FPS · 1440p)', 'info-title'))
+        profile.append(label('Configura objetivo 60 FPS, FSR 4.1, afinidad P/E-Core, lectura paralela de caché '
+                             'y reposo automático de cola sin activar la precarga completa en RAM.', 'muted', True))
         buttons = Gtk.Box(spacing=10)
-        buttons.append(action('Perfil recomendado para este PC (1440p · 60 FPS)', self.apply_recommended, primary=True))
-        buttons.append(action('Preparar y aplicar', lambda: self.navigate('setup')))
+        buttons.append(action('Aplicar perfil recomendado', self.apply_recommended, primary=True))
+        buttons.append(action('Ir a preparación', lambda: self.navigate('setup')))
         profile.append(buttons); page.append(profile)
-        page.append(label('El objetivo de 60 FPS no es una garantía. Usa el contador y las estadísticas '
-                          'para comprobar el rendimiento en tu partida.', 'muted small', True))
 
     def build_performance(self):
-        page = self.page('performance', 'Fluidez, sin desperdicio', 'CPU híbrida, 16 GB y RADV. Ajustes pensados para tu hardware.')
-        cpu = self.group(page, 'Intel i5-14600KF')
-        self.switch(cpu, 'pinning', 'Afinidad por función del hilo', 'Juego y render en P-Cores; compilación en E-Cores.')
+        page = self.page('performance', 'Rendimiento', 'Afinidad de CPU, eficiencia de cola Vulkan, memoria y almacenamiento.')
+        cpu = self.group(page, getattr(self, 'host_cpu', 'Topología CPU'))
+        self.switch(cpu, 'pinning', 'Afinidad por función del hilo', 'Juego y render en P-Cores; compilación de shaders en E-Cores.')
         self.entry(cpu, 'p_cpus', 'P-Cores', 'CPU 0–11 en la topología de tu equipo')
         self.entry(cpu, 'e_cpus', 'E-Cores', 'CPU 12–19 en la topología de tu equipo')
-        memory = self.group(page, 'Memoria con límites claros')
-        memory.add(Adw.ActionRow(title='256 MiB de caché de recursos · 2 compiladores',
-                                 subtitle='Pool dimensionado por resolución: 5056 MiB a 1080p; 5936 MiB a 1440p nativo.'))
-        self.switch(memory, 'ramdisk', 'Precargar el juego completo en RAM', 'Desactivado para 16 GB: el dump ocupa unos 30 GB.')
-        self.switch(memory, 'radv', 'Perfil AMD RADV / ACO', 'Caché persistente de 4G en disco y SAM gestionado por el driver.')
+        pipe_group = self.group(page, 'Eficiencia Vulkan y caché')
+        self.combo(pipe_group, 'pipe_rest', 'Reposo de cola Vulkan (DrawPipe)', ['auto', '0', 'always'],
+                   ['Automático cuando el ritmo de cuadros está limitado', 'Siempre despierto (sin reposo)', 'Forzar reposo'])
+        self.switch(pipe_group, 'cache_read_ahead', 'Lectura paralela del caché de shaders al iniciar',
+                    'Lee los blobs en hasta 16 hilos para reducir el tiempo de arranque.')
+        self.switch(pipe_group, 'auto_prune', 'Limpiar preparaciones anteriores al preparar',
+                    'Elimina generaciones anteriores en prepared/ y ramdisk tras publicar el nuevo perfil.')
+        memory = self.group(page, 'Memoria y kernel')
+        memory.add(Adw.ActionRow(title='256 MiB de caché de recursos · retención inteligente de VRAM',
+                                 subtitle='Conserva texturas y búferes en VRAM mientras haya margen libre bajo el presupuesto RADV.'))
+        self.switch(memory, 'ramdisk', 'Precargar el juego completo en RAM', 'Desactivado para 16 GiB: el dump ocupa unos 30 GB en tmpfs.')
+        self.switch(memory, 'radv', 'Perfil AMD RADV / ACO', 'Activa SAM, ICD RADV y filtrado anisotrópico del driver.')
         self.switch(memory, 'gamemode', 'GameMode', 'Requiere gamemoderun instalado.')
         self.combo(memory, 'scheduler', 'Scheduler', ['current', 'scx_lavd', 'scx_bpfland'], ['Actual', 'scx_lavd activo', 'scx_bpfland activo'])
-        scope = self.group(page, 'Gamescope · opcional', 'Se mantiene apagado en el perfil 60 para evitar un compositor adicional.')
+        scope = self.group(page, 'Gamescope (opcional)', 'Se mantiene apagado por defecto para no añadir latencia de composición.')
         self.switch(scope, 'gamescope', 'Lanzar con Gamescope')
         self.entry(scope, 'width', 'Ancho de salida'); self.entry(scope, 'height', 'Alto de salida')
         self.switch(scope, 'hdr', 'HDR'); self.switch(scope, 'vrr', 'Adaptive Sync / VRR')
@@ -266,7 +314,7 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         page.append(action('Diagnóstico y hardware', lambda: self.navigate('advanced')))
 
     def build_graphics(self):
-        page = self.page('graphics', 'Cada detalle, a tu gusto', 'Escalado, presentación y efectos. Sin ocultar el control fino.')
+        page = self.page('graphics', 'Gráficos y pantalla', 'Resolución, escalador temporal, filtrado anisotrópico y efectos.')
         display = self.group(page, 'Pantalla y escalado')
         self.combo(display, 'fps', 'FPS objetivo', ['30','60','90','120','144','165','uncap'], ['30','60','90','120','144','165','Desbloqueado'])
         self.spin(display, 'fps_limit', 'Límite personalizado (0 usa el objetivo)', 0, 1000)
@@ -280,13 +328,16 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         self.switch(display, 'fullscreen', 'Pantalla completa')
         self.combo(display, 'present_mode', 'Presentación', ['mailbox','fifo','fiforelaxed','immediate'], ['Mailbox','FIFO / VSync','FIFO Relaxed','Immediate (permite tearing)'])
         self.switch(display, 'ini.sharpen', 'Nitidez RCAS'); self.spin(display, 'ini.sharpness', 'Intensidad de nitidez', 0, 2, .05, 2)
-        self.switch(display, 'ini.object_motion', 'Vectores de movimiento de objetos')
+        self.switch(display, 'ini.object_motion', 'Vectores de movimiento de objetos',
+                    'Preciso (menos estela detrás del personaje); desactivado usa solo el movimiento de cámara.')
         self.switch(display, 'ini.show_fps', 'Mostrar FPS en el juego')
         self.add_upstream_controls(self.group(page, 'Calidad y generación de cuadros'), 'graphics')
         effects = self.group(page, 'Efectos de Bloodborne')
+        self.combo(effects, 'aniso', 'Filtrado anisotrópico', ['16', '8', '4', '0'],
+                   ['16x (predeterminado)', '8x', '4x', 'Original del juego'])
         for key, title, default in [('chromatic_aberration','Aberración cromática','0'), ('dof','Profundidad de campo','0'),
                                      ('motion_blur','Desenfoque de movimiento','0'), ('ssao','Oclusión ambiental SSAO','1'),
- ('dynamic_shadows','Sombras dinámicas','1'),
+                                     ('dynamic_shadows','Sombras dinámicas','1'),
                                      ('ssr','Reflejos SSR','0'), ('bloom','Bloom','1')]:
             self.ini.setdefault('effect_' + key, default)
             self.switch(effects, 'ini.effect_' + key, title)
@@ -298,7 +349,7 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         page.append(action('Pantallas, GPU y assets FSR/DLSS', lambda: self.navigate('advanced')))
 
     def build_controls(self):
-        page = self.page('controls', 'Tu forma de jugar', 'Todos los controles originales siguen disponibles.')
+        page = self.page('controls', 'Controles', 'Asignaciones de teclado, ratón y mando SDL.')
         controls = self.group(page, 'Mando y ratón')
         self.entry(controls, 'gamepad', 'Mando SDL (nombre o GUID)', 'Vacío: selección automática.')
         for key, default in [('mouse_look','1'), ('mouse_sensitivity','1.00'), ('mouse_invert_y','0')]: self.ini.setdefault(key, default)
@@ -312,10 +363,10 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         page.append(action('Crear accesos de juego y configuración', self.desktop))
 
     def build_setup(self):
-        page = self.page('setup', 'Una vez preparado, solo juega', 'Validación y enlace aquí. Lanzamiento directo después.')
-        for number, title, text in [('01','Elige tu dump 1.09','Archivos descifrados de Bloodborne con la actualización ya combinada.'),
-                                     ('02','Ajusta tu perfil','60 FPS objetivo, FSR 4 y memoria acotada para 16 GB.'),
-                                     ('03','Valida y prepara','El perfil anterior se conserva si la preparación falla.')]:
+        page = self.page('setup', 'Preparación del juego', 'Validación del dump y enlace de parches en un solo paso.')
+        for number, title, text in [('01','Dump 1.09 descifrado','Archivos del juego con la actualización 1.09 integrada y sin parches fijos de 60 FPS.'),
+                                     ('02','Perfil de ejecución','Escribe bbport.ini, variables Vulkan y enlaces de mods/parches.'),
+                                     ('03','Validación atómica','El perfil anterior permanece intacto si la preparación falla o se cancela.')]:
             row = Gtk.Box(spacing=14); badge = label(number, 'step-number'); badge.set_valign(Gtk.Align.START)
             row.append(badge); text_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
             text_box.append(label(title, 'info-title')); text_box.append(label(text, 'muted small', True)); row.append(text_box); page.append(row)
@@ -360,7 +411,60 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
     def refresh_status(self):
         profile = core.read_json(core.CONFIG / 'game_profile.json', {})
         prepared = profile.get('settings', {})
-        self.profile_badge.set_text(f"Preparado · {prepared.get('fps', '?')} FPS objetivo" if profile else 'Setup pendiente')
+        current = self.settings
+        fps_label = prepared.get('fps') or current.get('fps', '60')
+        fps_text = 'Desbloqueado' if fps_label == 'uncap' else f'{fps_label} FPS'
+        self.profile_badge.set_text(f'Perfil preparado · {fps_text}' if profile else 'Preparación pendiente')
+        self.profile_badge.remove_css_class('ready' if not profile else 'pending')
+        self.profile_badge.add_css_class('ready' if profile else 'pending')
+        upscaler_names = {'off': 'Sin escalado', 'taa': 'TAA nativo', 'fsr3': 'FSR 3.1', 'fsr4': 'FSR 4',
+                          'fsr411': 'FSR 4.1', 'dlss': 'DLSS', 'fsr1': 'FSR 1'}
+        active = prepared or current
+        up = upscaler_names.get(active.get('upscaler', 'fsr411'), active.get('upscaler', 'fsr411'))
+        out_res = active.get('output_res', '2560x1440')
+        ren_res = active.get('render_res', out_res)
+        pres = {'mailbox': 'Mailbox', 'fifo': 'FIFO / VSync', 'fiforelaxed': 'FIFO Relaxed',
+                'immediate': 'Immediate'}.get(active.get('present_mode', 'mailbox'), active.get('present_mode', 'mailbox'))
+        rest = {'auto': 'DrawPipe reposo auto', '0': 'DrawPipe siempre activo', 'always': 'DrawPipe en reposo'}.get(
+            str(active.get('pipe_rest', 'auto')), 'auto')
+        if hasattr(self, 'home_summary_label'):
+            self.home_summary_label.set_text(f'{up} · {out_res} · {pres} · {fps_text}')
+        if hasattr(self, 'home_fps_row'):
+            self.home_fps_row.set_subtitle(f'{fps_text} · {pres} · {rest}')
+        if hasattr(self, 'home_scale_row'):
+            ini = active.get('runtime_ini', self.ini)
+            vbao = 'GT-VBAO activo' if ini.get('vbao', '1') == '1' else 'AO original'
+            aniso = f"Aniso {active.get('aniso', '16')}x" if str(active.get('aniso', '16')) != '0' else 'Aniso del juego'
+            self.home_scale_row.set_subtitle(f'{up} · interna {ren_res} → salida {out_res} · {vbao} · {aniso}')
+        self.refresh_disk_status()
+
+    def refresh_disk_status(self):
+        if not hasattr(self, 'disk_row'):
+            return
+        try:
+            summary = core.disk_usage_summary(self.settings)
+            prep = _format_size(summary['prepared_total'])
+            reclaim = _format_size(summary['total_reclaimable'])
+            if summary['total_reclaimable'] > 0:
+                self.disk_row.set_subtitle(
+                    f"Preparado: {prep} · Recuperable ahora: {reclaim} "
+                    f"(generaciones antiguas, logs, cachés temporales)")
+            else:
+                self.disk_row.set_subtitle(f'Preparado: {prep} · Sin residuos antiguos detectados')
+        except OSError as error:
+            self.disk_row.set_subtitle(f'No se pudo medir el espacio: {error}')
+
+    def clean_storage(self):
+        try:
+            report = core.reclaim_disk_space(self.collect(), keep_logs=3, prune_dist=True)
+            freed = _format_size(report['freed_bytes'])
+            msg = f'Limpieza completada: {freed} liberados.' if report['freed_bytes'] else 'No había espacio residual para liberar.'
+            self.report(msg)
+            if hasattr(self, 'toasts'):
+                self.toasts.add_toast(Adw.Toast(title=msg))
+            self.refresh_disk_status()
+        except OSError as error:
+            self.report(f'No se pudo limpiar el disco: {error}')
 
     def collect(self, validate=False):
         settings = copy.deepcopy(self.settings)
@@ -448,6 +552,7 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
                 return True
             self.settings = core.save_preferences(normalized, as_default=as_default)
             self.ini = dict(self.settings['runtime_ini'])
+            self.refresh_status()
             self.report('Ajustes guardados' + (' como predeterminados personales.' if as_default else '. Prepara el juego para aplicarlos.'))
             return True
         except OSError as error:
@@ -469,6 +574,21 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
             dialog.destroy()
         chooser.connect('response', response); chooser.show(); self.chooser = chooser
 
+    def _flush_logs(self):
+        with self._log_lock:
+            lines = self._log_queue[:]
+            self._log_queue.clear()
+            self._log_flush_source = None
+        if lines:
+            self.report('\n'.join(lines))
+        return GLib.SOURCE_REMOVE
+
+    def _enqueue_log(self, line):
+        with self._log_lock:
+            self._log_queue.append(line)
+            if self._log_flush_source is None:
+                self._log_flush_source = GLib.timeout_add(60, self._flush_logs)
+
     def prepare(self):
         if self.busy:
             self.cancel_setup(); return
@@ -488,13 +608,16 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
                     self.setup_process = process
                     if self.cancelled:
                         os.killpg(process.pid, signal.SIGTERM)
-                    for line in process.stdout: GLib.idle_add(self.report, line.rstrip())
+                    for line in process.stdout:
+                        self._enqueue_log(line.rstrip())
                     code = process.wait()
+                GLib.idle_add(self._flush_logs)
                 message = ('Preparación cancelada. Perfil anterior conservado.' if self.cancelled else
                            'Setup completado.' if code == 0 else f'Setup falló ({code}). Perfil anterior conservado.')
                 GLib.idle_add(self.report, message)
                 GLib.idle_add(self.finished, code == 0)
             except OSError as error:
+                GLib.idle_add(self._flush_logs)
                 GLib.idle_add(self.report, str(error)); GLib.idle_add(self.finished, False)
         threading.Thread(target=worker, daemon=True).start()
 
@@ -521,6 +644,8 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
             GLib.source_remove(self.autosave_source); self.autosave_source = None
         if self.asset_check_source is not None:
             GLib.source_remove(self.asset_check_source); self.asset_check_source = None
+        if getattr(self, '_log_flush_source', None) is not None:
+            GLib.source_remove(self._log_flush_source); self._log_flush_source = None
         self.save()
         return False
 
