@@ -277,9 +277,10 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         self.disk_row.add_suffix(clean_button)
         summary.add(self.home_fps_row); summary.add(self.home_scale_row); summary.add(self.disk_row)
         profile = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10); profile.add_css_class('info-card')
-        profile.append(label('Perfil recomendado (60 FPS · 1440p)', 'info-title'))
-        profile.append(label('Configura objetivo 60 FPS, FSR 4.1, afinidad P/E-Core, lectura paralela de caché '
-                             'y reposo automático de cola sin activar la precarga completa en RAM.', 'muted', True))
+        profile.append(label('Perfil recomendado (90 FPS · 2× FG = 180 FPS · VRR · 1440p)', 'info-title'))
+        profile.append(label('Configura objetivo 90 FPS con generación de cuadros 2× (180 FPS), VRR activado, '
+                             'sombras dinámicas y de alta calidad desactivadas, FSR 4.1, afinidad P/E-Core y '
+                             'purga automática del caché de la configuración anterior.', 'muted', True))
         buttons = Gtk.Box(spacing=10)
         buttons.append(action('Aplicar perfil recomendado', self.apply_recommended, primary=True))
         buttons.append(action('Ir a preparación', lambda: self.navigate('setup')))
@@ -296,8 +297,8 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
                    ['Automático cuando el ritmo de cuadros está limitado', 'Siempre despierto (sin reposo)', 'Forzar reposo'])
         self.switch(pipe_group, 'cache_read_ahead', 'Lectura paralela del caché de shaders al iniciar',
                     'Lee los blobs en hasta 16 hilos para reducir el tiempo de arranque.')
-        self.switch(pipe_group, 'auto_prune', 'Limpiar preparaciones anteriores al preparar',
-                    'Elimina generaciones anteriores en prepared/ y ramdisk tras publicar el nuevo perfil.')
+        self.switch(pipe_group, 'auto_prune', 'Limpiar preparaciones y caché anterior al aplicar cambios',
+                    'Elimina generaciones previas, ramdisk obsoleto y cachés de shaders/Mesa de la configuración anterior sin tocar guardados.')
         memory = self.group(page, 'Memoria y kernel')
         memory.add(Adw.ActionRow(title='256 MiB de caché de recursos · retención inteligente de VRAM',
                                  subtitle='Conserva texturas y búferes en VRAM mientras haya margen libre bajo el presupuesto RADV.'))
@@ -337,7 +338,7 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
                    ['16x (predeterminado)', '8x', '4x', 'Original del juego'])
         for key, title, default in [('chromatic_aberration','Aberración cromática','0'), ('dof','Profundidad de campo','0'),
                                      ('motion_blur','Desenfoque de movimiento','0'), ('ssao','Oclusión ambiental SSAO','1'),
-                                     ('dynamic_shadows','Sombras dinámicas','1'),
+                                     ('dynamic_shadows','Sombras dinámicas','0'),
                                      ('ssr','Reflejos SSR','0'), ('bloom','Bloom','1')]:
             self.ini.setdefault('effect_' + key, default)
             self.switch(effects, 'ini.effect_' + key, title)
@@ -412,27 +413,35 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
         profile = core.read_json(core.CONFIG / 'game_profile.json', {})
         prepared = profile.get('settings', {})
         current = self.settings
-        fps_label = prepared.get('fps') or current.get('fps', '60')
-        fps_text = 'Desbloqueado' if fps_label == 'uncap' else f'{fps_label} FPS'
+        fps_label = prepared.get('fps') or current.get('fps', '90')
+        active = prepared or current
+        ini = active.get('runtime_ini', self.ini)
+        fg_mode = ini.get('frame_generation', 'fsr3')
+        fg_mult = 2 if fg_mode == 'fsr3' else (int(ini.get('frame_generation_multiplier', '2')) if fg_mode == 'dlss' else 1)
+        if fps_label == 'uncap':
+            fps_text = 'Desbloqueado' + (f' ({fg_mult}× FG)' if fg_mult > 1 else '')
+        elif fg_mult > 1 and str(fps_label).isdigit():
+            fps_text = f'{fps_label} FPS → {int(fps_label) * fg_mult} FPS ({fg_mult}× FG)'
+        else:
+            fps_text = f'{fps_label} FPS'
         self.profile_badge.set_text(f'Perfil preparado · {fps_text}' if profile else 'Preparación pendiente')
         self.profile_badge.remove_css_class('ready' if not profile else 'pending')
         self.profile_badge.add_css_class('ready' if profile else 'pending')
         upscaler_names = {'off': 'Sin escalado', 'taa': 'TAA nativo', 'fsr3': 'FSR 3.1', 'fsr4': 'FSR 4',
                           'fsr411': 'FSR 4.1', 'dlss': 'DLSS', 'fsr1': 'FSR 1'}
-        active = prepared or current
         up = upscaler_names.get(active.get('upscaler', 'fsr411'), active.get('upscaler', 'fsr411'))
         out_res = active.get('output_res', '2560x1440')
         ren_res = active.get('render_res', out_res)
         pres = {'mailbox': 'Mailbox', 'fifo': 'FIFO / VSync', 'fiforelaxed': 'FIFO Relaxed',
                 'immediate': 'Immediate'}.get(active.get('present_mode', 'mailbox'), active.get('present_mode', 'mailbox'))
+        vrr_text = 'VRR activo' if active.get('vrr', True) else 'VRR desactivado'
         rest = {'auto': 'DrawPipe reposo auto', '0': 'DrawPipe siempre activo', 'always': 'DrawPipe en reposo'}.get(
             str(active.get('pipe_rest', 'auto')), 'auto')
         if hasattr(self, 'home_summary_label'):
-            self.home_summary_label.set_text(f'{up} · {out_res} · {pres} · {fps_text}')
+            self.home_summary_label.set_text(f'{up} · {out_res} · {pres} · {vrr_text} · {fps_text}')
         if hasattr(self, 'home_fps_row'):
-            self.home_fps_row.set_subtitle(f'{fps_text} · {pres} · {rest}')
+            self.home_fps_row.set_subtitle(f'{fps_text} · {pres} · {vrr_text} · {rest}')
         if hasattr(self, 'home_scale_row'):
-            ini = active.get('runtime_ini', self.ini)
             vbao = 'GT-VBAO activo' if ini.get('vbao', '1') == '1' else 'AO original'
             aniso = f"Aniso {active.get('aniso', '16')}x" if str(active.get('aniso', '16')) != '0' else 'Aniso del juego'
             self.home_scale_row.set_subtitle(f'{up} · interna {ren_res} → salida {out_res} · {vbao} · {aniso}')
@@ -498,9 +507,9 @@ class Preferences(NativePanels, Adw.ApplicationWindow):
 
     def apply_recommended(self):
         try:
-            self.settings = core.performance_settings(self.collect(), '60')
+            self.settings = core.performance_settings(self.collect(), '90')
             self.ini = dict(self.settings['runtime_ini']); self.set_widgets()
-            self.save(); self.report('Perfil 60 seleccionado. Prepara el juego para aplicarlo.')
+            self.save(); self.report('Perfil 90 FPS (180 FPS con FG 2×) y VRR seleccionado. Prepara el juego para aplicarlo.')
         except (OSError, ValueError) as error:
             self.report(str(error))
 

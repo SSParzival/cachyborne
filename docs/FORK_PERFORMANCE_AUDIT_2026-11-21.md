@@ -1,0 +1,26 @@
+# Auditoría de rendimiento en forks para este equipo (2026-11-21)
+
+Evaluación de mejoras de rendimiento aplicables desde **bbhost**, **Lantern Engine**, **Supermedo** y la familia **bbport** sobre el hardware objetivo de Cachyborne, sin pruebas en juego (dump no disponible en esta sesión).
+
+## Especificaciones consideradas
+
+- **CPU:** Intel Core i5-14600KF (14 núcleos / 20 hilos; P-Cores `0-11`, E-Cores `12-19`)
+- **GPU:** AMD Radeon RX 9070 / 9070 XT (Navi 48, RDNA 4 / GFX1201, 16 GB VRAM, Mesa RADV)
+- **RAM:** 16 GB (15 GiB utilizables)
+- **Sistema:** CachyOS Linux (`7.3.4-1-cachyos`), compilación nativa Clang + `-march=native` + ThinLTO + `mold`
+
+## Resumen por fork
+
+| Fork / repositorio | Qué ya está integrado en Cachyborne | Qué no aplica a este equipo | Candidatos futuros (requieren medición en juego) |
+| --- | --- | --- | --- |
+| **bbhost** (`droogie/bbhost`, sincronizado hasta `v0.2.34` / `1cff2cb`) | `BB_PIPE_REST`, precarga paralela `BB_CACHE_READ_AHEAD` (16 hilos), retención VRAM ociosa bajo 75 %, guarda indirecta RADV (`65535`), `BB_PACE_STABLE`, barrera GX, `block_reclaim`, `occlusion_fresh`, ThinLTO. | `BBHOST_SHADOW_VRAM_MB` y `BBHOST_SHADOW_SPARSE=1` (orientados a tarjetas de 4–8 GB VRAM con desborde PCIe; innecesarios con 16 GB VRAM + SAM/ReBAR); `image_copy_elision` (desactivado por defecto en GPU discretas en el propio bbhost); workarounds ANV de Intel iGPU. | `PR #141` (`perf/flip-timeline`: mejoras de command processor en zonas limitadas por CPU) y workers de bloques constantes (`PR #213`): arquitectura GX/Vulkan distinta (`gxvk` frente al núcleo `gpu/cp` + `gpu/render` derivado de shadPS4) y aún en borrador; exige perfilado real a 90+ FPS en Yharnam Central antes de portar. |
+| **Lantern Engine** (`Awakenchan/LanternEngine`, sincronizado hasta `v0.9.42` / `573f83f`; revisado hasta `v0.9.46`) | Compute pass de sombras de contacto y PCSS (desactivados por defecto), validación de archivos `.tpfbdt`/`.hkxbdt` truncados, parche XML de idiomas online. | AMD FSR Frame Generation vía DLL del SDK de AMD (solo Windows; en Linux se usa `fsr-vulkan` FSR 3.1 nativo); modelo de memoria PC heredado (reportado con micro-tirones frente al modelo unificado 0.7); POM (`vk_pom_patch.h`, añade coste GPU, no rendimiento). | Priorización de personajes en slots de motion vectors (mitiga tirones de movimiento en escenas saturadas) y reinicio del historial del escalador tras viaje en lámpara o reaparición (calidad visual/estabilidad, no throughput bruto). |
+| **Supermedo** (`Supermedo/bloodborne_pc`) | Clamping de dispatches indirectos contra límites RADV (`VK_ERROR_DEVICE_LOST`) cubierto por `vk_indirect_guard.cpp`; FSR 3.1/4, vectores de movimiento, SSR opcional y controles KBM. | Lanzador WPF, ML-FG 4.0.x vía DLLs de AMD y capa Win32 (exclusivos de Windows). | Ninguna optimización específica de Linux/RDNA4 ausente en Cachyborne. |
+| **bbport** (`deadinside28/bloodborne_pc`, `bloodborne-native/bloodborne-runtime`, `ayozetr/bloodborne_linux`, `Mrsuss60/bloodborne_pc_windows_port`) | Base estable 0.7, modelo de memoria unificado sin `BB_PC_MODEL` heredado, fix de formatos reservados (`0.9.5`), propiedad de especializaciones y barrera `Flush()` de `BlobStore`, salida segura con guardado, FSR 4.1.2 FP8 y `BB_FG_ASYNC=1` en `vk_frame_generation.cpp`. | Renderer Metal / MetalFX y `low_memory=1` con `PoolPiece` de 16 MiB (específicos de macOS / Apple Silicon con memoria unificada). | **Clang LLVM PGO (`llvm-profdata`)**: `deadinside28/bloodborne_pc` reportó +15–20 % de rendimiento CPU con PGO en PC; `build.sh` rechaza GCC PGO por diseño, pero un flujo LLVM PGO sería viable cuando exista una sesión de juego para capturar perfiles. **`BB_FG_ASYNC=1`**: ya compilado en `gpu/upscale/vk_frame_generation.cpp` (cola compute secundaria en RADV), mantenido opt-in hasta medir latencia y frame pacing real a 90→180 FPS en RX 9070 XT. |
+
+## Decisiones aplicadas en esta configuración predeterminada
+
+1. **90 FPS base + generación de cuadros FSR 3.1 (2×) = 180 FPS objetivo:** En Linux/RADV con RX 9070 XT, `frame_generation=fsr3` con `frame_generation_multiplier=2` funciona de forma nativa en Vulkan sin DLLs de Windows ni hardware NVIDIA.
+2. **VRR (`vrr=true`) activado por defecto:** Reduce fluctuaciones percibidas y evita cuantización de refresco con 90/180 FPS variables cuando monitor y compositor admiten Adaptive Sync.
+3. **Sombras dinámicas y de alta calidad desactivadas por defecto:** `effect_dynamic_shadows=0`, `contact_shadows=0` y `pcss=0` eliminan draw calls pesados de luces dinámicas y pasadas compute adicionales (0,28–1,01 ms medidos previamente en PCSS/contactos), reduciendo carga GPU/CPU hacia el objetivo de 90 FPS base.
+4. **Purga estricta de caché previo al aplicar nuevas configuraciones:** Al cambiar ajustes en Midnight (`cachyborne-setup`) o en el lanzador de referencia (`bbport_launcher.py`), se eliminan automáticamente generaciones `prepared/` sustituidas, directorios obsoletos en `/dev/shm` (antes de precargar nuevos en modo ramdisk para evitar duplicación de memoria) y los cachés `shader_cache/` y `mesa/` de la configuración anterior, conservando siempre `savedata/`, copias de seguridad, trofeos y bibliotecas del usuario.

@@ -23,7 +23,8 @@ def seed_editor(settings):
     stored.update(game_dir=settings.get('game', ''), user_dir=settings.get('user_dir', '') or str(core.DATA / 'user'),
                   fps_mode=settings['fps'] if settings['fps'] in ('30', '60', '90', 'uncap') else 'uncap',
                   fps_limit=0 if settings['fps'] == 'uncap' else int(settings['fps']),
-                  fullscreen=settings['fullscreen'], present_mode=settings['present_mode'].capitalize(),
+                  fullscreen=settings['fullscreen'], hdr=settings.get('hdr', False), vrr=settings.get('vrr', True),
+                  present_mode=settings['present_mode'].capitalize(),
                   gamepad=settings['gamepad'], mods_dir=settings['mods_dir'], patches_dir=settings['patches_dir'])
     stored['ui_language'] = stored.get('ui_language') or 'en'
     editor.save_settings(stored)
@@ -39,7 +40,7 @@ def import_editor(settings, original, ini):
     result = copy.deepcopy(settings)
     result.update(original_settings=copy.deepcopy(original), runtime_ini=dict(ini),
                   game=original['game_dir'], user_dir=original.get('user_dir', ''),
-                  fullscreen=original['fullscreen'], hdr=original['hdr'],
+                  fullscreen=original['fullscreen'], hdr=original['hdr'], vrr=original.get('vrr', True),
                   present_mode=original['present_mode'].lower(), gamepad=original.get('gamepad', ''),
                   mods_dir=original.get('mods_dir', ''), mods_enabled=original.get('mods_enabled', True),
                   patches_dir=original.get('patches_dir', ''), upscaler=ini.get('upscaler', 'fsr3'),

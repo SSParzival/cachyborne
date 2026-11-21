@@ -16,6 +16,7 @@ BLOODBORNE_ES = {
     "AMD upscaler DLL (amd_fidelityfx_upscaler_dx12.dll)": "DLL del escalador de AMD (amd_fidelityfx_upscaler_dx12.dll)",
     "AMD's driver: the Adrenalin installer (.exe) or amdxcffx64.dll": "Controlador de AMD: instalador de Adrenalin (.exe) o amdxcffx64.dll",
     "Account": "Cuenta",
+    "Adaptive Sync / VRR": "Sincronización adaptativa / VRR",
     "Add one more": "Añadir otra",
     "Allow HDR": "Permitir HDR",
     "An online account is filled in, but “Play online” is off": "Hay una cuenta en línea configurada, pero «Jugar en línea» está desactivado",

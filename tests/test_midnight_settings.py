@@ -108,11 +108,11 @@ class MidnightSettingsTests(unittest.TestCase):
         self.assertNotIn("BB_PC_MODEL", env)
         self.assertNotIn("memory_model", result["original_settings"])
         self.assertEqual(env["CUSTOM_OLD"], "kept")
-        self.assertEqual(env["BB_FPS"], "60")
-        self.assertEqual(env["BB_FPS_LIMIT"], "60")
+        self.assertEqual(env["BB_FPS"], "90")
+        self.assertEqual(env["BB_FPS_LIMIT"], "90")
         self.assertIn("MANGOHUD", s["runtime_env"])
 
-    def test_60_profile_applies_safe_resolution_and_preserves_hdr_mods_and_bindings(self):
+    def test_90_profile_applies_safe_resolution_and_preserves_hdr_mods_and_bindings(self):
         s = copy.deepcopy(core.DEFAULTS) | dict(
             upscaler="fsr4",
             render_res="2560x1440",
@@ -127,7 +127,13 @@ class MidnightSettingsTests(unittest.TestCase):
         self.assertEqual(result["render_res"], "2560x1440")
         self.assertEqual(result["voice_language"], "eng")
         self.assertEqual(result["runtime_ini"]["key.cross"], "X")
-        self.assertEqual(result["fps_limit"], 60)
+        self.assertEqual(result["fps_limit"], 90)
+        self.assertTrue(result["vrr"])
+        self.assertEqual(result["runtime_ini"]["frame_generation"], "fsr3")
+        self.assertEqual(result["runtime_ini"]["frame_generation_multiplier"], "2")
+        self.assertEqual(result["runtime_ini"]["effect_dynamic_shadows"], "0")
+        self.assertEqual(result["runtime_ini"]["contact_shadows"], "0")
+        self.assertEqual(result["runtime_ini"]["pcss"], "0")
         self.assertEqual(result["runtime_ini"]["vbao"], "1")
         self.assertEqual(result["runtime_ini"]["texture_quality"], "full")
         self.assertEqual(result["runtime_ini"]["anti_aliasing"], "smaa")

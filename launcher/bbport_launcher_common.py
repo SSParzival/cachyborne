@@ -120,7 +120,7 @@ EFFECTS = [
     ("effect_dof", 'Depth of field (DoF)', False),
     ("effect_motion_blur", 'Motion blur', False),
     ("effect_ssao", 'SSAO', True),
-    ("effect_dynamic_shadows", 'Dynamic light shadows', True),
+    ("effect_dynamic_shadows", 'Dynamic light shadows', False),
     ("effect_ssr", 'SSR reflections (not in the original game)', False),
     ("effect_bloom", 'Bloom', True),
     ("skip_intro", 'Skip the intro videos', False),
@@ -181,6 +181,7 @@ DEFAULTS = {
     "language": "1",
     "fullscreen": False,
     "hdr": False,
+    "vrr": True,
     "present_mode": "Mailbox",
     "gamepad": "",
     "gamepad_name": "",
@@ -188,8 +189,8 @@ DEFAULTS = {
     # The GPU by its Vulkan name ("" = the port's choice: a discrete one first).
     "gpu": "",
     "skip_network_choice": True,
-    "fps_mode": "60",
-    "fps_limit": 60,
+    "fps_mode": "90",
+    "fps_limit": 90,
     "draw_pipe": "",
     "mangohud": False,
     "frame_stats": False,
@@ -235,7 +236,7 @@ INI_DEFAULTS = {
     "light_grid_opt": "1",
     "output_res": "auto",
     "model_lod": "0",
-    "frame_generation": "off",
+    "frame_generation": "fsr3",
     "frame_generation_multiplier": "2",
     "low_latency": "on",
     "mouse_look": "1",
@@ -337,7 +338,10 @@ LOW_LATENCIES = [('On', "on"), ('On + Boost', "boost"), ('Off', "off")]
 
 def frame_gen_choice(ini):
     """The FRAME_GENS value for the ini's frame_generation and multiplier."""
-    if ini.get("frame_generation") == "dlss":
+    mode = ini.get("frame_generation")
+    if mode == "fsr3":
+        return "fsr3"
+    if mode == "dlss":
         try:
             multiplier = min(max(int(ini.get("frame_generation_multiplier", "2")), 2), 4)
         except ValueError:
@@ -348,9 +352,105 @@ def frame_gen_choice(ini):
 
 def frame_gen_ini(choice):
     """The ini values (frame_generation, frame_generation_multiplier) of a FRAME_GENS value."""
+    if choice == "fsr3":
+        return "fsr3", "2"
     if choice.startswith("dlss"):
         return "dlss", choice[len("dlss"):]
     return "off", "2"
+
+
+# Settings and INI keys whose changes invalidate previous shader/pipeline/Mesa caches.
+CACHE_SETTINGS_KEYS = (
+    "game_dir", "user_dir", "mods_dir", "mods_enabled", "patches_dir",
+    "fullscreen", "hdr", "vrr", "present_mode", "gpu", "fps_mode", "fps_limit", "draw_pipe",
+)
+CACHE_INI_KEYS = (
+    "upscaler", "preset", "sharpen", "sharpness", "object_motion", "vbao",
+    "anti_aliasing", "texture_quality", "light_grid_opt", "aspect_ratio", "output_res",
+    "model_lod", "frame_generation", "frame_generation_multiplier", "low_latency",
+    "contact_shadows", "pcss", "fsr4_model", "live_resolution",
+    *(key for key, _, _ in EFFECTS),
+)
+
+
+def config_cache_fingerprint(settings, ini, data_dir=None):
+    """Compact deterministic fingerprint for config fields that affect shader/driver caches."""
+    root = Path(data_dir) if data_dir is not None else DATA_DIR
+    payload = {
+        "s": {k: settings.get(k) for k in CACHE_SETTINGS_KEYS},
+        "i": {k: str(ini.get(k, "")) for k in CACHE_INI_KEYS},
+    }
+    for name in ("mods.json", "patches.json"):
+        path = root / name
+        try:
+            payload[name] = path.read_text(encoding="utf-8") if path.is_file() else ""
+        except OSError:
+            payload[name] = ""
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+
+def _clear_directory_contents(directory):
+    """Remove files/subdirectories inside `directory` without removing the parent or following symlinks."""
+    root = Path(directory)
+    if not root.is_dir() or root.is_symlink():
+        return 0
+    freed = 0
+    for entry in list(root.iterdir()):
+        try:
+            if entry.is_symlink() or entry.is_file():
+                freed += entry.stat(follow_symlinks=False).st_size
+                entry.unlink()
+            elif entry.is_dir():
+                for base, _dirs, files in os.walk(entry, followlinks=False):
+                    for name in files:
+                        try:
+                            freed += os.stat(os.path.join(base, name), follow_symlinks=False).st_size
+                        except OSError:
+                            pass
+                shutil.rmtree(entry)
+        except OSError:
+            pass
+    return freed
+
+
+def purge_previous_cache(previous_user_dir=None, current_user_dir=None, cache_dir=None,
+                         config_changed=False):
+    """Purge obsolete shader/Mesa caches when applying a new configuration, preserving saves."""
+    cache_root = Path(cache_dir) if cache_dir is not None else (
+        Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "cachyborne"
+    )
+    user_dirs = []
+    for candidate in (previous_user_dir, current_user_dir):
+        if candidate:
+            path = Path(candidate).expanduser()
+            if path not in user_dirs:
+                user_dirs.append(path)
+    if not user_dirs:
+        user_dirs.append(DATA_DIR / "user")
+    freed = 0
+    # Always prune superseded previous/ folders and leftover .tmp blobs.
+    for base in [*(u / "shader_cache" for u in user_dirs), cache_root]:
+        if not base.is_dir() or base.is_symlink():
+            continue
+        prev = base / "previous"
+        if prev.is_dir() and not prev.is_symlink():
+            freed += _clear_directory_contents(prev)
+            try:
+                prev.rmdir()
+            except OSError:
+                pass
+        for item in base.rglob("*.tmp"):
+            if item.is_file() and not item.is_symlink():
+                try:
+                    freed += item.stat(follow_symlinks=False).st_size
+                    item.unlink()
+                except OSError:
+                    pass
+    if config_changed:
+        for user_dir in user_dirs:
+            freed += _clear_directory_contents(user_dir / "shader_cache")
+        freed += _clear_directory_contents(cache_root / "mesa")
+    return freed
 
 
 def binaries_dir():

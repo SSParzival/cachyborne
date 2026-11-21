@@ -25,7 +25,10 @@ int main() {
     assert(defaults.texture_quality == BbSettings::TqFull);
     assert(defaults.sharpness == 0.35f);
     assert(!BbSettings::Effects[0].default_on && !BbSettings::Effects[1].default_on &&
-           !BbSettings::Effects[2].default_on);
+           !BbSettings::Effects[2].default_on && !BbSettings::Effects[5].default_on);
+    assert(defaults.frame_generation == BbSettings::FrameGenFsr3 &&
+           defaults.frame_generation_multiplier == 2);
+    assert(!defaults.contact_shadows && !defaults.pcss);
 
     assert(!BbSettings::IsHotEffect(6)); // SSR resizes resources on restart.
     assert(BbSettings::IsHotEffect(7));  // Bloom still switches live.

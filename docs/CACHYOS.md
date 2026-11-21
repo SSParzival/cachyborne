@@ -10,7 +10,7 @@ launch installs packages or compiles the project. `./cachyborne-install.sh --use
 uses existing system/private-prefix dependencies without administrator access.
 
 ```bash
-cachyborne-setup /path/to/decrypted/app0 --performance-profile 144
+cachyborne-setup /path/to/decrypted/app0 --performance-profile 90
 cachyborne-launch --dry-run
 cachyborne-launch
 ```
@@ -31,8 +31,9 @@ setup. Mod generations retain a symlink view of the source assets; keep both
 the original app0 and the selected mod files in place. They are never modified.
 Install current FSR 4.1.2 assets with `bash tools/fetch_fsr412_assets.sh`. Missing or
 corrupt assets trigger a warning and automatic FSR 3.1 preparation. The recommended
-60 FPS profile reapplies Native AA at 2560x1440 → 2560x1440, English voices and Spanish text;
-HDR, bindings and content selections are retained.
+90 FPS profile applies 90 FPS base + 2× FSR 3.1 frame generation (180 FPS target),
+VRR enabled, dynamic/contact/PCSS shadows disabled, Native AA at 2560x1440 → 2560x1440,
+English voices and Spanish text; HDR, bindings and content selections are retained.
 
 FSR 4.1 replay checks its selected assets; the download helper verifies the official SDK DLL and generates native SPIR-V.
 
@@ -54,8 +55,11 @@ The JSON profile lives at `~/.config/cachyborne/game_profile.json`, preferences
 at `settings.json` in the same directory. Generations and saves are under
 `~/.local/share/cachyborne`, Mesa's persistent cache under `~/.cache/cachyborne/mesa`.
 XDG_CONFIG_HOME, XDG_DATA_HOME and XDG_CACHE_HOME are respected.
-Do not delete active generations. Old prepared generations can be removed
-manually while the game is stopped, retaining the directory named in the profile.
+When `auto_prune` is enabled (default), publishing a new configuration removes
+superseded `prepared/` generations, obsolete `/dev/shm` ramdisk trees (before
+staging a new ramdisk copy so RAM is not doubled), and—whenever rendering,
+mod or patch settings changed—the previous configuration's `shader_cache/` and
+Mesa shader caches. Saves (`savedata/`) are never removed.
 
 ## Memory and CPU settings
 

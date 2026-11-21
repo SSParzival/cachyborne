@@ -44,8 +44,10 @@ FSR scene samplers use `log2(render/output)-1`; other passes retain their bias.
 This changes texture sampling detail/bandwidth, not image allocation budgets.
 Camera cuts reset temporal history; motion vectors are sanitized before entering it. Camera input,
 object identity, disocclusion and exposure can still affect ghosting; sharpening
-cannot repair missing geometry or invalid motion. Frame generation is disabled
-by default and its display rate is not the simulation FPS.
+cannot repair missing geometry or invalid motion. FSR 3.1 2× frame generation
+(`frame_generation=fsr3`, `frame_generation_multiplier=2`) is enabled by default
+with the 90 FPS base cap (180 FPS display target) and VRR; its display rate is
+not the simulation FPS. `BB_FG_ASYNC=1` remains opt-in until measured on RADV.
 
 ## Other choices
 

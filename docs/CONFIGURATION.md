@@ -77,9 +77,12 @@ AAC tracks tagged `und`; the runtime supplies a fallback table only for the
 99,240,674-byte asset with that nine-stream layout. English is the second audio
 track (stream index 2), rather than the first Japanese track. No assets are rewritten.
 
-The recommended 60 FPS button applies the complete 1440p Native AA preset, including
-English voices and Spanish text; it preserves bindings, content, HDR and paths.
-The 16 GB profile sizes graphics heaps to the internal scene and checks GTT
+The recommended 90 FPS button applies the complete 1440p Native AA preset (90 FPS base,
+2× FSR 3.1 frame generation for a 180 FPS target, VRR enabled, dynamic/contact/PCSS shadows
+disabled), including English voices and Spanish text; it preserves bindings, content, HDR
+and paths. Applying a changed configuration automatically purges superseded prepared
+generations, stale `/dev/shm` staging, and previous shader/Mesa caches without touching
+saves. The 16 GB profile sizes graphics heaps to the internal scene and checks GTT
 capacity, requiring a verifiable budget above the retail pool.
 `BB_DMEM_MB` is the runtime's direct-pool variable (5936 at native 1440p);
 `BB_DIRECT_MEMORY` is not a supported alias. Extra direct pool and resource
@@ -214,34 +217,41 @@ Sweet Purple colors, plus the SDL BMP. Reinstall with
 assets, saves, mods and server credentials are preserved by the updater.
 
 
-## Default 60 FPS profile and audio verification
+## Default 90 FPS (180 FPS with 2× FG) profile and audio verification
 
-New profiles and the recommended button use `fps=60`, `fps_limit=60`, with
-`BB_FRAME_HOOKS=1`. Delta time, fixed steps, sprint and cloth stiffness are
-hooked dynamically; `fps_patches('60')` returns no invasive FPS patch by default.
+New profiles and the recommended button use `fps=90`, `fps_limit=90`, `vrr=true`,
+`frame_generation=fsr3` with `frame_generation_multiplier=2` (180 FPS display target),
+and `BB_FRAME_HOOKS=1`. Delta time, fixed steps, sprint and cloth stiffness are
+hooked dynamically; `fps_patches('90')` returns no invasive FPS patch by default.
 The Intel tonemap fix remains CPU-vendor detected and enabled on GenuineIntel.
 Already prepared generations and explicit user preferences retain their settings;
-apply `--performance-profile 60` and prepare again to migrate them.
+apply `--performance-profile 90` (or `60` for fixed-60 pacing) and prepare again
+to migrate them.
 
 `BB_VBLANK_HZ=1000` is the virtual guest clock, independent of the monitor.
-It enables asynchronous flips while the dynamic pacer caps simulation at 60;
+It enables asynchronous flips while the dynamic pacer caps simulation at 90;
 setting it to 60/120 introduces a second clock that can quantize finished frames.
-Mailbox remains the default; use a 60/120 Hz display mode or VRR when available.
+Mailbox and VRR (`vrr=true`) are enabled by default.
 This does not guarantee exact frame times on an arbitrary compositor or scene.
 
 Image defaults: `texture_quality=full`, `vbao=1`, `anti_aliasing=smaa`, SSAO,
-dynamic shadows, bloom and light-grid optimization on, RCAS on at `0.35`;
-chromatic aberration, motion blur, DoF and frame generation off.
+bloom and light-grid optimization on, RCAS on at `0.35`, `frame_generation=fsr3` (2×);
+dynamic light shadows (`effect_dynamic_shadows=0`), contact shadows (`contact_shadows=0`),
+PCSS (`pcss=0`), chromatic aberration, motion blur and DoF off.
 `RADV_TEX_ANISO=16` is retained. The optional per-draw `BB_EARLY_SUBMIT` path
 is absent from this repository; required fence submissions must remain intact.
 
-**Memory constraint:** the 60 FPS profile uses 2560×1440 for both scene and
+**Memory constraint:** the default 90 FPS profile uses 2560×1440 for both scene and
 output with FSR Native AA (`preset=0`, 1.0×). `preset=1` selects Quality (1.5×).
 SMAA only executes with the upscaler off; FSR supplies temporal antialiasing.
 Native 1440p uses resolution-sized graphics heaps and a 5936 MiB direct-memory
 pool. Setup and launch check its GTT budget; CPU-facing data remains cached.
 Texture packs can still require the larger 9152 MiB pool and fail that check.
 Full textures refer to retail textures, not enlarged texture packs.
+When setup publishes a configuration whose rendering/mod/patch settings changed,
+`auto_prune` automatically deletes superseded `prepared/` generations, obsolete
+`/dev/shm` staging, and previous `shader_cache/` and Mesa shader caches while
+preserving `savedata/`.
 
 AudioOut runs at 48000 Hz independently of game FPS. SDL playback starts after
 1024 frames plus two guest buffers of silence have been queued (32 ms for
@@ -268,13 +278,13 @@ including loading, pauses and device changes. `starved=0` and frame-time logs
 are acceptance measurements on the target PC, not promises from unit tests.
 
 ```sh
-cachyborne-setup /path/to/app0 --performance-profile 60
+cachyborne-setup /path/to/app0 --performance-profile 90
 cachyborne-launch --dry-run
 BB_AUDIO_STATS=1 BB_SAVE_LOG=1 cachyborne-launch
 PYTHONPATH=launcher:tests:. python3 -m unittest discover tests/
 ```
 
-The dry-run JSON must contain `BB_FPS=60`, `BB_FPS_LIMIT=60`,
+The dry-run JSON must contain `BB_FPS=90`, `BB_FPS_LIMIT=90`,
 `BB_FRAME_HOOKS=1`, `BB_VBLANK_HZ=1000`, `BB_DMEM_MB=5936`,
 `BB_P_CPUS=0-11`, `BB_E_CPUS=12-19`, and `RADV_TEX_ANISO=16`.
 

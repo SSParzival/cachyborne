@@ -330,6 +330,33 @@
      }
     },
     {
+     "key": "vrr",
+     "type": "bool",
+     "store": "settings",
+     "default": true,
+     "title": {
+      "en": "Adaptive Sync / VRR",
+      "pt_BR": "Sincronização adaptativa / VRR",
+      "zh_CN": "自适应同步 / VRR",
+      "fr_FR": "Synchronisation adaptative / VRR"
+     },
+     "description": {
+      "en": "Variable refresh rate synchronization where the monitor and compositor support it.",
+      "pt_BR": "Sincronização de taxa de atualização variável quando suportada pelo monitor e compositor.",
+      "zh_CN": "在显示器和合成器支持时启用可变刷新率同步。",
+      "fr_FR": "Synchronisation à fréquence variable lorsque l'écran et le compositeur la prennent en charge."
+     },
+     "platforms": [
+      "linux"
+     ],
+     "group": {
+      "en": "Window",
+      "pt_BR": "Janela",
+      "zh_CN": "窗口",
+      "fr_FR": "Fenêtre"
+     }
+    },
+    {
      "key": "aspect_ratio",
      "type": "special",
      "store": "ini",
@@ -577,7 +604,7 @@
      "key": "frame_generation",
      "type": "special",
      "store": "ini",
-     "default": "off",
+     "default": "fsr3",
      "title": {
       "en": "Frame generation",
       "pt_BR": "Geração de quadros",
@@ -1155,7 +1182,7 @@
      "key": "effect_dynamic_shadows",
      "type": "bool",
      "store": "ini",
-     "default": true,
+     "default": false,
      "title": {
       "en": "Dynamic light shadows",
       "pt_BR": "Sombras de luzes dinâmicas",
@@ -1293,7 +1320,7 @@
      "key": "fps_mode",
      "type": "choice",
      "store": "settings",
-     "default": "60",
+     "default": "90",
      "choices": [
       {
        "value": "uncap",
@@ -1347,7 +1374,7 @@
      "key": "fps_limit",
      "type": "int",
      "store": "settings",
-     "default": 60,
+     "default": 90,
      "min": 0,
      "max": 480,
      "step": 1,

@@ -45,22 +45,29 @@ and null online-event guards. [Source review](docs/COMMUNITY_AUDIT_0.8.3.md).
 | CPU | i5-14600KF; P CPUs 0–11, E CPUs 12–19, verified on this PC |
 | Memory | 16 GB system RAM; disk assets/caches; no full game in tmpfs |
 | Image | FSR 4.1 Native AA (1×), 2560×1440 scene and output |
-| Quality | Full textures, GT-VBAO (SSAO enabled), dynamic shadows and bloom; RCAS 0.35 |
+| Quality | Full textures, GT-VBAO (SSAO enabled), bloom and RCAS 0.35; dynamic, contact and PCSS shadows off |
 | Model | Capability-based automatic selection; native FP8 on this GPU |
-| Presentation | Mailbox, 60 FPS target cap; frame generation off |
+| Presentation | Mailbox, VRR on, 90 FPS base target with 2× FSR 3.1 frame generation (180 FPS target) |
+| Cache | Automatic purge of superseded generations, stale ramdisk and previous shader/Mesa caches when config changes |
 | Build | Clang, native CPU instructions, ThinLTO and mold |
 
-The default cap is 60 FPS (16.667 ms); frame-time consistency must be measured in game.
+The default profile targets **90 base FPS** with **2× FSR 3.1 frame generation (180 FPS target)**,
+**VRR enabled**, and **dynamic/high-quality shadows disabled** (`effect_dynamic_shadows=0`,
+`contact_shadows=0`, `pcss=0`); frame-time consistency must be measured in game.
 SMAA is selected in settings and runs when the upscaler is off; with FSR, temporal AA applies.
 Chromatic aberration, motion blur and DoF are off. The default `preset=0` means
-**Native AA (1×)**; `preset=1` selects Quality (1.5×). Resolution-sized graphics
+**Native AA (1×)**; `preset=1` selects Quality (1.5×).
+Applying a changed configuration automatically purges previous prepared generations, stale
+`/dev/shm` staging, and previous shader/Mesa caches while keeping `savedata/` intact. See the
+[2026-11-21 fork performance audit](docs/FORK_PERFORMANCE_AUDIT_2026-11-21.md).
+Resolution-sized graphics
 heaps use a 5936 MiB guest pool at native 1440p; CPU-facing guest memory stays
 cached while GPU resources and mirrors use VRAM. The local GTT budget is checked
 before preparing or launching this profile.
 Audio uses a monotonic clock, a prefilled SDL queue and P-core placement;
 `BB_AUDIO_STATS=1` exposes underruns for hardware verification.
 
-The FPS target does not guarantee that rate in every scene. CPU numbering is
+The 90 FPS base (180 FPS with 2× FG) target does not guarantee that rate in every scene. CPU numbering is
 machine-specific. Foreground simulation/audio/render threads use P CPUs; named
 shader/decompression workers use E CPUs, intersected with the allowed cpuset.
 
@@ -91,7 +98,7 @@ Broader gameplay, complete BBHost integration and the final release remain in pr
 ```sh
 git submodule update --init --recursive
 ./cachyborne-install.sh
-cachyborne-setup /path/to/app0 --performance-profile 60
+cachyborne-setup /path/to/app0 --performance-profile 90
 cachyborne-launch --dry-run
 cachyborne-launch
 ```
@@ -112,7 +119,7 @@ settings, mods, patches or game content. The source dump remains untouched.
 ```sh
 # Optional extraction needs MinGW/SPIR-V tools and a usable Proton installation.
 bash tools/fetch_fsr412_assets.sh
-cachyborne-setup /path/to/app0 --performance-profile 60
+cachyborne-setup /path/to/app0 --performance-profile 90
 ```
 
 The helper downloads official **AMD SDK 2.4.0 / upscaler 4.1.2.4555**, verifies a

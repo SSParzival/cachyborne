@@ -64,7 +64,11 @@ features and available models. FSR3 remains the fallback. Other GPU/Windows
 backends retain their platform guards and are not assumed usable on RADV.
 
 Midnight is Python/GTK4/Libadwaita. Its JSON preferences project into the shared
-INI and runtime environment. Text, speech and menu locales are independent;
+INI and runtime environment. Default profiles target 90 base FPS with 2× FSR 3.1
+frame generation (180 FPS target), VRR enabled, and dynamic/contact/PCSS shadows
+disabled. Publishing a changed configuration automatically purges superseded
+prepared generations, stale ramdisk directories and the previous configuration's
+shader/Mesa caches without touching saves. Text, speech and menu locales are independent;
 port-owned menus support English and Spanish. Sweet Purple SVGs are the icon
 sources, with PNG/BMP exports for desktop and SDL consumers.
 
@@ -73,4 +77,5 @@ bounded build jobs. FSR backend changes are stored as patches against a pinned
 submodule and applied by `build.sh`, so fresh clones reproduce the source.
 
 [Configuration](docs/CONFIGURATION.md) · [validation](docs/VALIDATION_0.8.3.md) ·
-[community provenance](docs/COMMUNITY_AUDIT_0.8.3.md)
+[community provenance](docs/COMMUNITY_AUDIT_0.8.3.md) ·
+[fork performance audit](docs/FORK_PERFORMANCE_AUDIT_2026-11-21.md)

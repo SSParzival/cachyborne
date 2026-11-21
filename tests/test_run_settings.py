@@ -69,7 +69,7 @@ class PreparedLaunchTests(unittest.TestCase):
 
     def test_fixed_60_efficiency_and_explicit_overrides(self):
         import copy
-        self.profile['settings'] = copy.deepcopy(runner.DEFAULTS)
+        self.profile['settings'] = copy.deepcopy(runner.DEFAULTS) | {'fps': '60', 'fps_limit': 60}
         _, env = runner.launch_command(self.profile, base_env={})
         self.assertEqual({k:env[k] for k in runner.NATIVE_60_ENV},
                          dict(BB_GPU_SPIN_US='0',BB_PIPE_SPIN_US='0',
@@ -83,7 +83,7 @@ class PreparedLaunchTests(unittest.TestCase):
             self.profile['settings'] = copy.deepcopy(runner.DEFAULTS) | overrides
             _, env = runner.launch_command(self.profile, base_env={})
             self.assertTrue(set(runner.NATIVE_60_ENV).isdisjoint(env))
-        self.profile['settings'] = copy.deepcopy(runner.DEFAULTS)
+        self.profile['settings'] = copy.deepcopy(runner.DEFAULTS) | {'fps': '60', 'fps_limit': 60}
         _, env = runner.launch_command(self.profile, base_env={'BB_FRAME_HOOKS':'0'})
         self.assertTrue(set(runner.NATIVE_60_ENV).isdisjoint(env))
 
@@ -216,7 +216,7 @@ class PreparedLaunchTests(unittest.TestCase):
         runner.atomic_json(self.config / 'settings.json', dict(fps='165'))
         with patch.object(runner, 'CONFIG', self.config):
             self.assertEqual(runner.preferences()['fps'], '165')
-            self.assertEqual(runner.load_profile()['settings']['fps'], '60')
+            self.assertEqual(runner.load_profile()['settings']['fps'], '90')
 
     def test_wrappers_keep_argument_boundaries_and_environment_overrides(self):
         self.profile['settings'].update(gamemode=True, gamescope=True, hdr=True, vrr=True, fps='165', fps_limit=0)
@@ -446,15 +446,20 @@ class PreparedLaunchTests(unittest.TestCase):
             path = runner.download_desktop_icon()
         self.assertEqual(path.read_bytes()[:8], b'\x89PNG\r\n\x1a\n')
 
-    def test_recommended_60_profile_preserves_user_bindings_and_paths(self):
+    def test_recommended_90_profile_preserves_user_bindings_and_paths(self):
         settings = runner.DEFAULTS | {'mods_dir': '/mods', 'user_dir': '/saves',
                                      'runtime_ini': {'key.cross': 'X', 'mouse_sensitivity': '1.5'},
                                      'runtime_env': {'BB_FPS': '60', 'BB_LANGUAGE': '3'}}
         recommended = runner.performance_settings(settings)
-        self.assertEqual(recommended['fps'], '60')
+        self.assertEqual(recommended['fps'], '90')
+        self.assertEqual(recommended['fps_limit'], 90)
+        self.assertTrue(recommended['vrr'])
         self.assertEqual(recommended['render_res'], '2560x1440')
         self.assertEqual(recommended['upscaler'], 'fsr411')
         self.assertEqual(recommended['runtime_ini']['preset'], '0')
+        self.assertEqual(recommended['runtime_ini']['frame_generation'], 'fsr3')
+        self.assertEqual(recommended['runtime_ini']['frame_generation_multiplier'], '2')
+        self.assertEqual(recommended['runtime_ini']['effect_dynamic_shadows'], '0')
         self.assertEqual(recommended['runtime_ini']['key.cross'], 'X')
         self.assertEqual(recommended['user_dir'], '/saves')
         self.assertNotIn('BB_FPS', recommended['runtime_env'])

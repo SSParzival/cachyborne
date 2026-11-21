@@ -24,8 +24,8 @@ from cachyborne_options import INI_DEFAULTS, RETIRED_ENV, validate_ini
 from bbport_graphics_memory import GRAPHICS_VRAM_MODES, direct_pool_mb, graphics_vram_layout, validate_heap_patches
 
 DEFAULTS = dict(fault_wait=False, voice_language='eng', memory_profile='16gb', pinning=True, p_cpus='0-11', e_cpus='12-19', ramdisk=False,
-                gamemode=False, radv=True, gamescope=False, hdr=False, vrr=False,
-                gamescope_fsr=False, width=2560, height=1440, fps='60', fps_limit=60,
+                gamemode=False, radv=True, gamescope=False, hdr=False, vrr=True,
+                gamescope_fsr=False, width=2560, height=1440, fps='90', fps_limit=90,
                 aniso='16', pipe_rest='auto', cache_read_ahead=True, auto_prune=True,
                 shader_recipes='', image_shapes='', readbacks='', output_auto=False, upscaler='fsr411', output_res='2560x1440', render_res='2560x1440',
                 fullscreen=True, present_mode='mailbox', audio=True, gamepad='',
@@ -113,21 +113,23 @@ NATIVE_60_ENV = dict(BB_GPU_SPIN_US='0', BB_PIPE_SPIN_US='0',
                      BB_LIMITER_MARGIN_US='auto', BB_PACE_STABLE='1')
 
 
-def performance_settings(current=None, target='60'):
+def performance_settings(current=None, target='90'):
     """A target, not a frame-rate guarantee; preserve bindings, mods and user directories."""
     import copy
     settings = copy.deepcopy(DEFAULTS if current is None else DEFAULTS | current)
     settings['runtime_ini'] = dict(DEFAULTS['runtime_ini']) | settings.get('runtime_ini', {})
-    settings.update(fps=target, fps_limit=int(target), pinning=True, ramdisk=False, radv=True)
+    settings.update(fps=target, fps_limit=int(target), pinning=True, ramdisk=False, radv=True, vrr=True)
     chosen_upscaler = current.get('upscaler') if current and 'upscaler' in current else DEFAULTS['upscaler']
-    settings.update(upscaler=chosen_upscaler, output_auto=False, output_res='2560x1440', render_res='2560x1440' if target=='60' else '1706x960',
+    native_res = target in ('60', '90')
+    settings.update(upscaler=chosen_upscaler, output_auto=False, output_res='2560x1440', render_res='2560x1440' if native_res else '1706x960',
                     width=2560, height=1440, p_cpus='0-11', e_cpus='12-19',
                     voice_language='eng', present_mode='mailbox')
-    settings['original_settings'] = dict(settings.get('original_settings', {})) | dict(language='20', ui_language='es')
+    settings['original_settings'] = dict(settings.get('original_settings', {})) | dict(language='20', ui_language='es', vrr=True)
     for key in ('texture_quality', 'vbao', 'anti_aliasing', 'effect_ssao', 'effect_dynamic_shadows',
-                'effect_bloom', 'light_grid_opt', 'sharpen', 'sharpness', 'frame_generation'):
+                'contact_shadows', 'pcss', 'effect_bloom', 'light_grid_opt', 'sharpen', 'sharpness',
+                'frame_generation', 'frame_generation_multiplier'):
         settings['runtime_ini'][key] = DEFAULTS['runtime_ini'][key]
-    settings['runtime_ini'].update(menu_language='es', preset='0' if target=='60' else '1', effect_chromatic_aberration='0', effect_dof='0', effect_motion_blur='0', live_resolution='0')
+    settings['runtime_ini'].update(menu_language='es', preset='0' if native_res else '1', effect_chromatic_aberration='0', effect_dof='0', effect_motion_blur='0', live_resolution='0')
     settings['runtime_ini'].update(upscaler=settings['upscaler'], output_res=settings['output_res'])
     # Clear conflicting old editor overrides when explicitly applying a recommended preset.
     for key in ('BB_FPS', 'BB_FPS_LIMIT', 'BB_FRAME_HOOKS', 'BB_VBLANK_HZ', 'BB_UPSCALER', 'BB_UPSCALE_PRESET', 'BB_RENDER_RES',
@@ -135,11 +137,12 @@ def performance_settings(current=None, target='60'):
                 'BB_LANGUAGE', 'BB_MENU_LANGUAGE', 'BB_PRESENT_MODE', 'BB_P_CPUS', 'BB_E_CPUS',
                 *NATIVE_60_ENV, 'BB_PACE_CATCHUP', 'BB_NATIVE_FLIP_PACING'):
         settings['runtime_env'].pop(key, None)
-    if target == '60':
+    if target in ('60', '90'):
         # CPU-facing guest data must stay cached; GPU resources and mirrors
         # still use VRAM. BAR reads of both graphics heaps measured 10-11 FPS.
         settings['runtime_env']['BB_GUEST_VRAM'] = '0'
         settings['runtime_env'].pop('BB_GUEST_VRAM_RANGES', None)
+    if target == '60':
         settings['runtime_env'].update(NATIVE_60_ENV)
     return settings
 
@@ -508,6 +511,105 @@ def _stale_cache_targets(settings=None, cache_dir=None):
     return targets
 
 
+CONFIG_CACHE_KEYS = (
+    'fps', 'fps_limit', 'upscaler', 'output_res', 'render_res', 'output_auto',
+    'present_mode', 'hdr', 'vrr', 'radv', 'aniso', 'pipe_rest', 'readbacks',
+    'mods_enabled', 'mods_dir', 'mod_selection', 'patches_dir', 'patch_selection',
+    'change_appearance', 'rebirth', 'messenger_gifts', 'large_heaps', 'fsr4_dir', 'fsr411_dir',
+)
+CONFIG_CACHE_INI_KEYS = (
+    'preset', 'sharpen', 'sharpness', 'object_motion', 'vbao', 'anti_aliasing',
+    'texture_quality', 'light_grid_opt', 'model_lod', 'frame_generation',
+    'frame_generation_multiplier', 'low_latency', 'contact_shadows', 'pcss',
+    'fsr4_model', 'live_resolution', 'aspect_ratio', 'frame_clock',
+    'effect_chromatic_aberration', 'effect_dof', 'effect_motion_blur',
+    'effect_ssao', 'effect_dynamic_shadows', 'effect_ssr', 'effect_bloom',
+)
+
+
+def config_cache_fingerprint(settings):
+    """Deterministic fingerprint of settings that affect shader/pipeline/Mesa caches."""
+    if not isinstance(settings, dict):
+        return ''
+    ini = settings.get('runtime_ini') if isinstance(settings.get('runtime_ini'), dict) else {}
+    payload = {
+        's': {key: settings.get(key) for key in CONFIG_CACHE_KEYS},
+        'i': {key: str(ini.get(key, '')) for key in CONFIG_CACHE_INI_KEYS},
+    }
+    return json.dumps(payload, sort_keys=True, separators=(',', ':'))
+
+
+def _clear_cache_dir(path):
+    """Delete files and subdirectories inside a cache folder without removing the folder or following symlinks."""
+    root = Path(path)
+    if not root.is_dir() or root.is_symlink():
+        return 0
+    freed = 0
+    for entry in list(root.iterdir()):
+        try:
+            freed += directory_bytes(entry)
+            if entry.is_symlink() or entry.is_file():
+                entry.unlink()
+            elif entry.is_dir():
+                shutil.rmtree(entry)
+        except OSError:
+            pass
+    return freed
+
+
+def purge_previous_config_caches(previous_profile, new_profile, cache_dir=None):
+    """Purge stale shader and Mesa caches when a new configuration replaces a previous one.
+
+    Saves (`savedata/`), backups (`savedata-backups/`), trophies and user libraries are never touched.
+    """
+    new_settings = (new_profile or {}).get('settings', {}) if isinstance(new_profile, dict) else {}
+    old_settings = (previous_profile or {}).get('settings', {}) if isinstance(previous_profile, dict) else {}
+    new_user = Path((new_profile or {}).get('user') or new_settings.get('user_dir') or (DATA / 'user')).expanduser()
+    old_user_raw = (previous_profile or {}).get('user') or old_settings.get('user_dir')
+    old_user = Path(old_user_raw).expanduser() if old_user_raw else None
+    new_cache = Path(cache_dir or (new_profile or {}).get('cache') or CACHE)
+    old_cache_raw = (previous_profile or {}).get('cache')
+    old_cache = Path(old_cache_raw).expanduser() if old_cache_raw else None
+
+    freed = 0
+    seen_targets = set()
+    for s_obj, c_dir in ((new_settings, new_cache), (old_settings, old_cache or new_cache)):
+        for target in _stale_cache_targets(s_obj, c_dir):
+            if target in seen_targets:
+                continue
+            seen_targets.add(target)
+            freed += directory_bytes(target)
+            try:
+                if target.is_dir() and not target.is_symlink():
+                    shutil.rmtree(target)
+                else:
+                    target.unlink()
+            except OSError:
+                pass
+
+    has_previous = bool(previous_profile) and isinstance(previous_profile, dict)
+    changed = has_previous and (
+        config_cache_fingerprint(old_settings) != config_cache_fingerprint(new_settings)
+        or (old_user is not None and old_user.resolve() != new_user.resolve())
+        or (old_cache is not None and old_cache.resolve() != new_cache.resolve())
+    )
+    if not changed:
+        return freed
+
+    cache_dirs = []
+    for candidate in (
+        old_user / 'shader_cache' if old_user else None,
+        new_user / 'shader_cache',
+        old_cache / 'mesa' if old_cache else None,
+        new_cache / 'mesa',
+    ):
+        if candidate is not None and candidate not in cache_dirs:
+            cache_dirs.append(candidate)
+    for target in cache_dirs:
+        freed += _clear_cache_dir(target)
+    return freed
+
+
 def _superseded_dist_files(dist_dir=None, version_file=None):
     dist = Path(dist_dir or (ROOT / 'dist'))
     if not dist.is_dir():
@@ -759,12 +861,18 @@ def setup(game, settings=None):
                        source_game=str(source_game), prepared=str(out), probe=str(ROOT / 'out/bb-probe'), user=str(user),
                        cache=str(CACHE), settings=s)
         if s['ramdisk']:
+            if s.get('auto_prune', True):
+                try:
+                    prune_old_ramdisk(RAM_ROOT, active_generation=generation, keep_active=True)
+                except OSError:
+                    pass
             stage(profile)
         publish_profile(profile)
         if s.get('auto_prune', True):
             try:
                 prune_prepared_profiles(DATA / 'prepared', active_dir=out, keep=1)
                 prune_old_ramdisk(RAM_ROOT, active_generation=generation, keep_active=bool(s['ramdisk']))
+                purge_previous_config_caches(old_profile, profile, cache_dir=CACHE)
             except OSError:
                 pass
     except BaseException:
@@ -1144,7 +1252,7 @@ def main(argv=None):
     prepare = commands.add_parser('setup')
     prepare.add_argument('game', nargs='?')
     prepare.add_argument('--gui', action='store_true')
-    prepare.add_argument('--performance-profile', choices=['144', '60'])
+    prepare.add_argument('--performance-profile', choices=['144', '90', '60'])
     prepare.add_argument('--fps', choices=['30', '60', '90', '120', '144', '165', 'uncap'])
     prepare.add_argument('--upscaler', choices=['off', 'fsr3', 'fsr4', 'fsr411', 'taa', 'dlss', 'fsr1'])
     from cachyborne_options import VOICE_LANGUAGES

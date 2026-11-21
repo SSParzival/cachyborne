@@ -19,12 +19,16 @@ class Upstream07SettingsTests(unittest.TestCase):
         s['runtime_ini'].update(ini)
         return s
 
-    def test_default_60fps_native_profile_matches_schema_and_projection(self):
+    def test_default_90fps_fg_vrr_native_profile_matches_schema_and_projection(self):
         s = options.reconcile(self.settings())
-        self.assertEqual((s['fps'], s['fps_limit']), ('60', 60))
+        self.assertEqual((s['fps'], s['fps_limit']), ('90', 90))
+        self.assertTrue(s['vrr'])
+        self.assertTrue(s['original_settings']['vrr'])
         expected = dict(texture_quality='full', vbao='1', anti_aliasing='smaa',
                         preset='0', sharpen='1', sharpness='0.35', light_grid_opt='1',
-                        effect_ssao='1', effect_dynamic_shadows='1', effect_bloom='1',
+                        frame_generation='fsr3', frame_generation_multiplier='2',
+                        effect_ssao='1', effect_dynamic_shadows='0', effect_bloom='1',
+                        contact_shadows='0', pcss='0',
                         effect_chromatic_aberration='0', effect_motion_blur='0', effect_dof='0')
         for key, value in expected.items():
             self.assertEqual(s['runtime_ini'][key], value, key)
@@ -35,9 +39,12 @@ class Upstream07SettingsTests(unittest.TestCase):
             value = items[key]['default']
             normalized = str(int(value)) if isinstance(value, bool) else str(value)
             self.assertEqual(normalized, expected[key], key)
-        self.assertEqual(items['fps_mode']['default'], '60')
-        self.assertEqual(items['fps_limit']['default'], 60)
-        self.assertEqual(patches.fps_patches('60', {'BB_FRAME_HOOKS': '1'}), [])
+        self.assertEqual(items['fps_mode']['default'], '90')
+        self.assertEqual(items['fps_limit']['default'], 90)
+        self.assertIs(items['vrr']['default'], True)
+        self.assertEqual(patches.fps_patches('90', {'BB_FRAME_HOOKS': '1'}), [])
+        self.assertIn('Disable Dynamic Light Shadows (perf increase)',
+                      patches.effect_patches(s['runtime_ini'], {'BB_HOT_EFFECTS': '0'}))
         self.assertEqual(core.direct_memory_mb(s), 5936)
         self.assertEqual(patches.PRESET_SCALES[int(s['runtime_ini']['preset'])], 1.0)
         self.assertEqual(patches.PRESET_SCALES[0], 1.0)

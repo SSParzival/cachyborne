@@ -32,6 +32,8 @@ class LauncherWindow(ContentPages, OnlinePage, TrophiesPage, LogPage, UpscalerFi
         self.settings = load_settings()
         set_language(self.settings.get("ui_language", ""))
         self.ini, self.ini_lines = load_ini()
+        self._saved_user_dir = self.user_dir()
+        self._config_fingerprint = config_cache_fingerprint(self.settings, self.ini)
         self.process = None
         self.stream = None
         self.fsr411_build = None  # tools/fsr4cap/build_assets.sh while it runs
@@ -262,6 +264,9 @@ class LauncherWindow(ContentPages, OnlinePage, TrophiesPage, LogPage, UpscalerFi
         screen.add(self.present_row)
         self.hdr_row = Adw.SwitchRow(title=tr('Allow HDR'), active=self.settings["hdr"])
         screen.add(self.hdr_row)
+        self.vrr_row = Adw.SwitchRow(title=tr('Adaptive Sync / VRR'),
+                                     active=self.settings.get("vrr", True))
+        screen.add(self.vrr_row)
         sec["display"].add(screen)
 
         # Issue #15: the first gamepad SDL found was taken (wheels and other controllers too).
@@ -508,6 +513,7 @@ class LauncherWindow(ContentPages, OnlinePage, TrophiesPage, LogPage, UpscalerFi
             "skip_network_choice": self.skip_network_row, "display": self.display_row,
             "fullscreen": self.fullscreen_row, "aspect_ratio": self.aspect_row,
             "output_res": self.output_row, "present_mode": self.present_row, "hdr": self.hdr_row,
+            "vrr": self.vrr_row,
             "upscaler": self.upscaler_row, "preset": self.preset_row, "anti_aliasing": self.aa_row,
             "sharpen": self.sharpen_row, "sharpness": self.sharpness_row,
             "texture_quality": self.texture_row, "model_lod": self.lod_row,
@@ -821,6 +827,8 @@ class LauncherWindow(ContentPages, OnlinePage, TrophiesPage, LogPage, UpscalerFi
             line for line in (selected, tr('The chosen one is used as soon as it connects')) if line))
 
     def store(self):
+        prev_user_dir = getattr(self, "_saved_user_dir", self.user_dir())
+        prev_fingerprint = getattr(self, "_config_fingerprint", None)
         s = self.settings
         s["gamepad"] = combo_value(self.gamepad_row)
         s["gamepad_name"] = self.gamepad_row.names[self.gamepad_row.get_selected()]
@@ -831,6 +839,7 @@ class LauncherWindow(ContentPages, OnlinePage, TrophiesPage, LogPage, UpscalerFi
         s["fullscreen"] = self.fullscreen_row.get_active()
         s["present_mode"] = combo_value(self.present_row)
         s["hdr"] = self.hdr_row.get_active()
+        s["vrr"] = self.vrr_row.get_active()
         s["fps_mode"] = combo_value(self.fps_row)
         s["fps_limit"] = int(self.limit_row.get_value())
         s["draw_pipe"] = combo_value(self.pipe_row)
@@ -889,7 +898,17 @@ class LauncherWindow(ContentPages, OnlinePage, TrophiesPage, LogPage, UpscalerFi
             "anti_aliasing": combo_value(self.aa_row),
         })
         save_ini(self.ini, self.ini_lines)
+        self.ini_lines = []
         self.ini, self.ini_lines = load_ini()
+        curr_user_dir = self.user_dir()
+        new_fingerprint = config_cache_fingerprint(s, self.ini)
+        changed = prev_fingerprint is not None and (
+            new_fingerprint != prev_fingerprint or curr_user_dir != prev_user_dir
+        )
+        purge_previous_cache(previous_user_dir=prev_user_dir, current_user_dir=curr_user_dir,
+                             config_changed=changed)
+        self._saved_user_dir = curr_user_dir
+        self._config_fingerprint = new_fingerprint
 
     def environment(self):
         return game_environment(self.settings)

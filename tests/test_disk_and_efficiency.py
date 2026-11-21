@@ -224,6 +224,209 @@ class DiskAndEfficiencyTests(unittest.TestCase):
         self.assertFalse(old_gen.exists())
         self.assertTrue(Path(profile['prepared']).is_dir())
 
+    def test_setup_purges_previous_shader_and_mesa_caches_on_config_change_preserving_saves(self):
+        game = self.base / 'CUSA03173'
+        _fake_game(game)
+        out_bin = self.base / 'out'
+        out_bin.mkdir(parents=True, exist_ok=True)
+        (out_bin / 'bb-probe').write_bytes(b'#!/bin/sh\n')
+        (out_bin / 'bb-probe').chmod(0o755)
+        assets = self.base / 'assets/icons'
+        assets.mkdir(parents=True, exist_ok=True)
+        (assets / 'cachyborne.bmp').write_bytes(b'BM')
+
+        user_dir = self.data / 'user'
+        savedata = user_dir / 'savedata/CUSA03173'
+        savedata.mkdir(parents=True, exist_ok=True)
+        (savedata / 'userdata0000').write_bytes(b'MY_SAVE')
+        shader_cache = user_dir / 'shader_cache'
+        shader_cache.mkdir(parents=True, exist_ok=True)
+        (shader_cache / 'old_pipeline.bin').write_bytes(b'S' * 512)
+        (shader_cache / 'previous').mkdir(parents=True, exist_ok=True)
+        (shader_cache / 'previous/stale.spv').write_bytes(b'P' * 128)
+        mesa_cache = self.cache / 'mesa'
+        mesa_cache.mkdir(parents=True, exist_ok=True)
+        (mesa_cache / 'radv_blob.bin').write_bytes(b'M' * 1024)
+        # Symlink inside cache must be unlinked without touching its external target.
+        external_file = self.base / 'keep_me.txt'
+        external_file.write_text('untouched')
+        (shader_cache / 'ext_link').symlink_to(external_file)
+
+        old_settings = copy.deepcopy(core.DEFAULTS) | dict(
+            fps='60', fps_limit=60, upscaler='fsr3', auto_prune=True,
+            runtime_env={'BB_GUEST_VRAM': '0'},
+        )
+        old_gen = self._make_generation('2' * 32, payload_size=64, mtime_offset=1)
+        (old_gen / 'game_profile.json').write_text(json.dumps({
+            'generation': '2' * 32,
+            'prepared': str(old_gen),
+            'user': str(user_dir),
+            'cache': str(self.cache),
+            'settings': old_settings,
+        }))
+        self.config.mkdir(parents=True, exist_ok=True)
+        (self.config / 'game_profile.json').symlink_to(old_gen / 'game_profile.json')
+
+        new_settings = copy.deepcopy(core.DEFAULTS) | dict(
+            fps='90', fps_limit=90, upscaler='fsr3', auto_prune=True,
+            runtime_env={'BB_GUEST_VRAM': '0'},
+        )
+
+        def fake_tool(command, **_kwargs):
+            if '--out' in command:
+                out = Path(command[command.index('--out') + 1])
+                for artifact in core.ARTIFACTS:
+                    if artifact != 'bbport.ini':
+                        (out / artifact).write_bytes(b'prepared')
+            return mock.Mock(returncode=0)
+
+        sys.path.insert(0, str(ROOT / 'scripts'))
+        import game_check
+        with mock.patch.object(core, 'amd_gtt_budget', return_value=(16 * 1024**3, None)), \
+             mock.patch.object(game_check, 'image_sha256', return_value='hash'), \
+             mock.patch.object(game_check, 'problem', return_value=None), \
+             mock.patch('subprocess.run', side_effect=fake_tool):
+            profile = core.setup(str(game), new_settings)
+
+        self.assertFalse(old_gen.exists())
+        self.assertTrue(Path(profile['prepared']).is_dir())
+        self.assertEqual(list(shader_cache.iterdir()), [])
+        self.assertEqual(list(mesa_cache.iterdir()), [])
+        self.assertEqual((savedata / 'userdata0000').read_bytes(), b'MY_SAVE')
+        self.assertEqual(external_file.read_text(), 'untouched')
+
+        # Re-running with identical config keeps valid active shader/Mesa caches while removing previous/.tmp.
+        (shader_cache / 'fresh_pipeline.bin').write_bytes(b'F' * 256)
+        (shader_cache / 'stale.tmp').write_bytes(b'T' * 64)
+        (mesa_cache / 'fresh_radv.bin').write_bytes(b'R' * 256)
+        with mock.patch.object(core, 'amd_gtt_budget', return_value=(16 * 1024**3, None)), \
+             mock.patch.object(game_check, 'image_sha256', return_value='hash'), \
+             mock.patch.object(game_check, 'problem', return_value=None), \
+             mock.patch('subprocess.run', side_effect=fake_tool):
+            core.setup(str(game), new_settings)
+        self.assertTrue((shader_cache / 'fresh_pipeline.bin').is_file())
+        self.assertFalse((shader_cache / 'stale.tmp').exists())
+        self.assertTrue((mesa_cache / 'fresh_radv.bin').is_file())
+
+    def test_launcher_common_purge_previous_cache_and_defaults(self):
+        import bbport_launcher_common as common
+        self.assertEqual(common.DEFAULTS['fps_mode'], '90')
+        self.assertEqual(common.DEFAULTS['fps_limit'], 90)
+        self.assertIs(common.DEFAULTS['vrr'], True)
+        self.assertEqual(common.INI_DEFAULTS['frame_generation'], 'fsr3')
+        self.assertEqual(common.INI_DEFAULTS['frame_generation_multiplier'], '2')
+        self.assertEqual(common.INI_DEFAULTS['effect_dynamic_shadows'], '0')
+        self.assertEqual(common.frame_gen_choice({'frame_generation': 'fsr3'}), 'fsr3')
+        self.assertEqual(common.frame_gen_ini('fsr3'), ('fsr3', '2'))
+
+        user_a = self.base / 'user_a'
+        user_b = self.base / 'user_b'
+        cache_root = self.base / 'xdg_cache'
+        for u in (user_a, user_b):
+            (u / 'savedata').mkdir(parents=True, exist_ok=True)
+            (u / 'savedata/slot.bin').write_bytes(b'SAVE')
+            (u / 'shader_cache').mkdir(parents=True, exist_ok=True)
+            (u / 'shader_cache/blob.bin').write_bytes(b'B' * 100)
+            (u / 'shader_cache/temp.tmp').write_bytes(b'T' * 20)
+        (cache_root / 'mesa').mkdir(parents=True, exist_ok=True)
+        (cache_root / 'mesa/cache.bin').write_bytes(b'M' * 200)
+
+        # Unchanged config only deletes .tmp / previous, keeping active shader blobs.
+        freed_same = common.purge_previous_cache(user_a, user_a, cache_dir=cache_root, config_changed=False)
+        self.assertEqual(freed_same, 20)
+        self.assertTrue((user_a / 'shader_cache/blob.bin').is_file())
+        self.assertTrue((cache_root / 'mesa/cache.bin').is_file())
+
+        # Changed config purges previous and current shader_cache + mesa cache, never saves.
+        freed_changed = common.purge_previous_cache(user_a, user_b, cache_dir=cache_root, config_changed=True)
+        self.assertGreaterEqual(freed_changed, 420)
+        self.assertEqual(list((user_a / 'shader_cache').iterdir()), [])
+        self.assertEqual(list((user_b / 'shader_cache').iterdir()), [])
+        self.assertEqual(list((cache_root / 'mesa').iterdir()), [])
+        self.assertEqual((user_a / 'savedata/slot.bin').read_bytes(), b'SAVE')
+        self.assertEqual((user_b / 'savedata/slot.bin').read_bytes(), b'SAVE')
+
+    def test_ramdisk_staging_prunes_old_generation_before_copying_new_one(self):
+        game = self.base / 'CUSA03173'
+        _fake_game(game)
+        out_bin = self.base / 'out'
+        out_bin.mkdir(parents=True, exist_ok=True)
+        (out_bin / 'bb-probe').write_bytes(b'#!/bin/sh\n')
+        (out_bin / 'bb-probe').chmod(0o755)
+        assets = self.base / 'assets/icons'
+        assets.mkdir(parents=True, exist_ok=True)
+        (assets / 'cachyborne.bmp').write_bytes(b'BM')
+
+        stale_ram = self.ram / ('9' * 32)
+        stale_ram.mkdir(parents=True, exist_ok=True)
+        (stale_ram / 'eboot.bin').write_bytes(b'OLD_RAM')
+
+        settings = copy.deepcopy(core.DEFAULTS) | dict(
+            upscaler='fsr3', ramdisk=True, auto_prune=True,
+            runtime_env={'BB_GUEST_VRAM': '0'},
+        )
+        old_existed_at_stage = []
+
+        def fake_stage(profile):
+            old_existed_at_stage.append(stale_ram.exists())
+            return self.ram / profile['generation']
+
+        def fake_tool(command, **_kwargs):
+            if '--out' in command:
+                out = Path(command[command.index('--out') + 1])
+                for artifact in core.ARTIFACTS:
+                    if artifact != 'bbport.ini':
+                        (out / artifact).write_bytes(b'prepared')
+            return mock.Mock(returncode=0)
+
+        sys.path.insert(0, str(ROOT / 'scripts'))
+        import game_check
+        with mock.patch.object(core, 'amd_gtt_budget', return_value=(16 * 1024**3, None)), \
+             mock.patch.object(game_check, 'image_sha256', return_value='hash'), \
+             mock.patch.object(game_check, 'problem', return_value=None), \
+             mock.patch.object(core, 'stage', side_effect=fake_stage), \
+             mock.patch('subprocess.run', side_effect=fake_tool):
+            core.setup(str(game), settings)
+        self.assertEqual(old_existed_at_stage, [False])
+
+    def test_bbport_launcher_content_save_purges_cache_only_when_changed(self):
+        import bbport_launcher_common as common
+        from bbport_launcher_content import ContentPages
+        from types import SimpleNamespace
+
+        user_dir = self.base / 'content_user'
+        (user_dir / 'savedata').mkdir(parents=True, exist_ok=True)
+        (user_dir / 'savedata/save.bin').write_bytes(b'KEEP')
+        (user_dir / 'shader_cache').mkdir(parents=True, exist_ok=True)
+        (user_dir / 'shader_cache/pipe.bin').write_bytes(b'OLD_PIPE')
+        cache_dir = self.base / 'xdg_cache_content'
+        (cache_dir / 'mesa').mkdir(parents=True, exist_ok=True)
+        (cache_dir / 'mesa/radv.bin').write_bytes(b'OLD_MESA')
+
+        row_a = SimpleNamespace(get_active=lambda: True)
+        dummy = SimpleNamespace(
+            mod_list=SimpleNamespace(rows=[('ModA', row_a)]),
+            user_dir=lambda: user_dir,
+        )
+        with mock.patch.object(common, 'DATA_DIR', self.data), \
+             mock.patch('bbport_launcher_content.DATA_DIR', self.data), \
+             mock.patch.dict(os.environ, {'XDG_CACHE_HOME': str(cache_dir.parent)}):
+            # First write establishes baseline mods.json without purging.
+            with mock.patch('bbport_launcher_content.purge_previous_cache',
+                            wraps=lambda **kw: common.purge_previous_cache(cache_dir=cache_dir, **kw)) as spy:
+                self.assertTrue(ContentPages.save_mod_profile(dummy))
+                spy.assert_not_called()
+                # Identical re-save is a no-op.
+                self.assertFalse(ContentPages.save_mod_profile(dummy))
+                spy.assert_not_called()
+                # Changing mod enabled state purges previous shader/Mesa cache, preserving saves.
+                row_a.get_active = lambda: False
+                self.assertTrue(ContentPages.save_mod_profile(dummy))
+                spy.assert_called_once()
+        self.assertEqual(list((user_dir / 'shader_cache').iterdir()), [])
+        self.assertEqual(list((cache_dir / 'mesa').iterdir()), [])
+        self.assertEqual((user_dir / 'savedata/save.bin').read_bytes(), b'KEEP')
+
 
 def directory_size(path):
     return core.directory_bytes(path)

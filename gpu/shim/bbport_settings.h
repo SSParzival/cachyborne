@@ -55,7 +55,7 @@ inline constexpr Effect Effects[] = {
     {"effect_motion_blur", "Motion blur", false},
     {"effect_ssao", "Ambient occlusion (SSAO)", true},
     {"effect_game_aa", "Game's own anti-aliasing", true},
-    {"effect_dynamic_shadows", "Shadows from dynamic lights", true},
+    {"effect_dynamic_shadows", "Shadows from dynamic lights", false},
     {"effect_ssr", "Screen-space reflections (not in original game)", false},
     {"effect_bloom", "Bloom", true},
     {"skip_intro", "Skip startup intros", false},
@@ -189,7 +189,7 @@ struct Values {
     /// Frame generation (upscale/vk_frame_generation): frames generated between each two of
     /// the game's, shown between them (needs the upscaler's scaled path). Live. FrameGenFsr3 is
     /// hidden in the menu until its artifacts are fixed (only BB_FRAME_GEN turns it on).
-    std::atomic<int> frame_generation{FrameGenOff};
+    std::atomic<int> frame_generation{FrameGenFsr3};
     /// Frames on screen per game frame with DLSS: 2 (RTX 40), up to 4 (RTX 50). FSR 3.1: 2.
     std::atomic<int> frame_generation_multiplier{2};
     /// Whether the GPU can run FSR 3 frame generation (set by the renderer), or why not.

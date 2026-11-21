@@ -16,7 +16,18 @@ class ContentPages:
         rows = self.mod_list.rows
         profile = {"order": [name for name, _ in rows],
                    "disabled": [name for name, row in rows if not row.get_active()]}
-        (DATA_DIR / "mods.json").write_text(json.dumps(profile, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        path = DATA_DIR / "mods.json"
+        new_text = json.dumps(profile, indent=2, ensure_ascii=False) + "\n"
+        try:
+            old_text = path.read_text(encoding="utf-8") if path.is_file() else None
+        except OSError:
+            old_text = None
+        if old_text != new_text:
+            path.write_text(new_text, encoding="utf-8")
+            if old_text is not None and hasattr(self, "user_dir"):
+                purge_previous_cache(current_user_dir=self.user_dir(), config_changed=True)
+            return True
+        return False
 
     def refresh_mods(self):
         self.mod_list.clear()
@@ -77,7 +88,17 @@ class ContentPages:
         profile = {"enabled": sorted({k for k in profile.get("enabled", []) if k not in shown} | set(enabled)),
                    "disabled": sorted({k for k in profile.get("disabled", []) if k not in shown} | set(disabled))}
         DATA_DIR.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(profile, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        new_text = json.dumps(profile, indent=2, ensure_ascii=False) + "\n"
+        try:
+            old_text = path.read_text(encoding="utf-8") if path.is_file() else None
+        except OSError:
+            old_text = None
+        if old_text != new_text:
+            path.write_text(new_text, encoding="utf-8")
+            if old_text is not None and hasattr(self, "user_dir"):
+                purge_previous_cache(current_user_dir=self.user_dir(), config_changed=True)
+            return True
+        return False
 
     def refresh_patches(self):
         self.patch_list.clear()
