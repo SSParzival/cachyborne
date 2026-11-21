@@ -1,4 +1,4 @@
-# Cachyborne 0.8.6 — Midnight for CachyOS
+# Cachyborne 0.8.8 — Midnight for CachyOS
 
 **English** · [Español](README.es.md)
 
@@ -34,8 +34,8 @@ Version 0.8.3 restores all resident linear mips without overwriting guest paddin
 uses compact staging and per-slice memory transactions, and adds particle-time
 and null online-event guards. [Source review](docs/COMMUNITY_AUDIT_0.8.3.md).
 
-[Release notes](docs/RELEASE_0.8.6.md) · [Validation](docs/VALIDATION_0.8.3.md) ·
-[Community audit](docs/COMMUNITY_AUDIT_0.8.3.md)
+[Release notes](docs/RELEASE_0.8.8.md) · [Validation](docs/VALIDATION_0.8.3.md) ·
+[Community audit](docs/COMMUNITY_AUDIT_0.8.3.md) · [Fork performance audit](docs/FORK_PERFORMANCE_AUDIT_2026-11-21.md)
 
 ## Target profile
 
